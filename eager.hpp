@@ -4,21 +4,21 @@
 #include "shared_state.hpp"
 
 template <typename T>
-class lazy;
+class eager;
 
 template <typename T>
-class lazy_promise
+class eager_promise
 {
 public:
-    lazy_promise() = default;
+    eager_promise() = default;
 
-    lazy<T> get_return_object() noexcept
+    eager<T> get_return_object() noexcept
     {
-        using coroutine_handle = std::experimental::coroutine_handle<lazy_promise<T>>;
+        using coroutine_handle = std::experimental::coroutine_handle<eager_promise<T>>;
         return { coroutine_handle::from_promise(*this), _state };
     }
 
-    constexpr std::experimental::suspend_always initial_suspend() const noexcept { return {}; }
+    constexpr std::experimental::suspend_never initial_suspend() const noexcept { return {}; }
     constexpr std::experimental::suspend_always final_suspend() const noexcept { return {}; }
 
     void unhandled_exception()
@@ -39,14 +39,13 @@ private:
     shared_state<T> _state;
 };
 
-
 template <typename T>
-class lazy
+class eager
 {
 public:
-    using promise_type = lazy_promise<T>;
+    using promise_type = eager_promise<T>;
 
-    lazy(
+    eager(
         std::experimental::coroutine_handle<> coroutine,
         shared_state<T>& state
     )
@@ -54,13 +53,13 @@ public:
         , _state(state)
     {}
 
-    lazy(lazy&& other) noexcept
-        : lazy(other._coroutine, other._state)
+    eager(eager&& other) noexcept
+        : eager(other._coroutine, other._state)
     {
         other._coroutine = nullptr;
     }
 
-    ~lazy()
+    ~eager()
     {
         if (_coroutine)
             _coroutine.destroy();
@@ -68,9 +67,6 @@ public:
 
     T value()
     {
-        if (_state.is_done())
-            throw std::runtime_error("value() called > 1 times");
-        _coroutine.resume();
         return _state.value();
     }
 
@@ -80,18 +76,18 @@ private:
 };
 
 template <>
-class lazy_promise<void>
+class eager_promise<void>
 {
 public:
-    lazy_promise() = default;
+    eager_promise() = default;
 
-    lazy<void> get_return_object() noexcept
+    eager<void> get_return_object() noexcept
     {
-        using coroutine_handle = std::experimental::coroutine_handle<lazy_promise<void>>;
+        using coroutine_handle = std::experimental::coroutine_handle<eager_promise<void>>;
         return { coroutine_handle::from_promise(*this), _state };
     }
 
-    constexpr std::experimental::suspend_always initial_suspend() const noexcept { return {}; }
+    constexpr std::experimental::suspend_never initial_suspend() const noexcept { return {}; }
     constexpr std::experimental::suspend_always final_suspend() const noexcept { return {}; }
 
     void unhandled_exception()

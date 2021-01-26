@@ -2,27 +2,27 @@
 #include <variant>
 #include <experimental/coroutine>
 #include "generator.hpp"
-#include "instant.hpp"
+#include "eager.hpp"
 #include "lazy.hpp"
 
 
-instant<int> some_value_fast(int x, int y)
+eager<int> some_value_fast(int x, int y)
 {
     std::cout << "about to return from some_value_fast" << std::endl;
     co_return x + y;
 }
 
-instant<int> some_value_throw(int x, int y)
+eager<int> some_value_throw(int x, int y)
 {
     std::cout << "about to return from some_value_throw" << std::endl;
     throw std::runtime_error("bla bla bla");
     co_return x + y;
 }
 
-instant<void> some_value_void(int /*x*/, int /*y*/)
-{
-    co_return;
-}
+// eager<void> some_value_void(int /*x*/, int /*y*/)
+// {
+//     co_return;
+// }
 
 lazy<int> some_value_lazy(int x, int y)
 {
@@ -59,19 +59,19 @@ void usage()
   }
 }
 
-void instant_usage()
+void eager_usage()
 {
-    instant<int> res = some_value_fast(10, 12);
+    eager<int> res = some_value_fast(10, 12);
     std::cout << "res value = " << std::endl;
     std::cout << res.value() << std::endl;
 
-    instant<int> res2 = some_value_throw(12, 14);
+    eager<int> res2 = some_value_throw(12, 14);
     std::cout << "res2 value = " << std::endl;
     // std::cout << res2.value() << std::endl;
 
-    instant<void> res3 = some_value_void(12, 14);
-    std::cout << "res3 value = " << std::endl;
-    res3.value();
+    // eager<void> res3 = some_value_void(12, 14);
+    // std::cout << "res3 value = " << std::endl;
+    // res3.value();
 }
 
 void lazy_usage()
@@ -90,6 +90,6 @@ int main()
 {
     // usage();
 
-    // instant_usage();
-    lazy_usage();
+    eager_usage();
+    // lazy_usage();
 }
