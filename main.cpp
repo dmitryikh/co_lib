@@ -1,10 +1,14 @@
+#include <chrono>
 #include <iostream>
 #include <variant>
 #include <experimental/coroutine>
 #include "generator.hpp"
 #include "eager.hpp"
 #include "lazy.hpp"
+#include "scheduler.hpp"
+#include "sleep.hpp"
 
+using namespace std::chrono_literals;
 
 eager<int> some_value_fast(int x, int y)
 {
@@ -85,10 +89,58 @@ void lazy_usage()
     res2.value();
 }
 
+task<void> task10()
+{
+    for (size_t i = 0; i < 1; i++)
+    {
+        co_await sleep_for(10000ms);
+        std::cout << "task10 running\n";
+    }
+    std::cout << "task10 finished\n";
+}
+
+task<void> task1()
+{
+    get_scheduler().spawn(task10());
+    for (size_t i = 0; i < 10; i++)
+    {
+        co_await sleep_for(1000ms);
+        std::cout << "task1 running\n";
+    }
+    std::cout << "task1 finished\n";
+}
+
+task<void> task2_nested()
+{
+    for (size_t i = 0; i < 30; i++)
+    {
+        co_await sleep_for(300ms);
+        std::cout << "task2_nested running\n";
+    }
+    std::cout << "task2_nested finished\n";
+    throw std::runtime_error("exceptioN!!");
+}
+
+task<void> task2()
+{
+    std::cout << "task2 running\n";
+    co_await task2_nested();
+}
+
+void scheduler_usage()
+{
+    auto& scheduler = get_scheduler();
+
+    scheduler.spawn(task2());
+    scheduler.spawn(task1());
+    scheduler.run();
+}
+
 int main()
 {
     // usage();
 
-    eager_usage();
+    // eager_usage();
     // lazy_usage();
+    scheduler_usage();
 }
