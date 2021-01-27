@@ -3,31 +3,33 @@
 #include "time.hpp"
 #include "scheduler.hpp"
 
-class awaitable_sleep_until
+class awaitable_sleep_for
 {
 public:
-    explicit awaitable_sleep_until(time_point until)
-        : _until(until)
+    explicit awaitable_sleep_for(duration dur)
+        : _duration(dur)
     {}
 
-    bool await_ready() const noexcept { return false; }
+    bool await_ready() const noexcept { return _duration <= duration{}; }
 
     void await_suspend(std::experimental::coroutine_handle<> awaiting_coroutine) noexcept
     {
-        get_scheduler().schedule_at(_until, awaiting_coroutine);
+        int64_t milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(_duration).count();
+        get_scheduler().schedule_at(timer_req, milliseconds, awaiting_coroutine);
     }
 
     void await_resume() noexcept {}
 private:
-    time_point _until;
+    uv_timer_t timer_req;
+    duration _duration;
 };
 
-awaitable_sleep_until sleep_until(time_point until)
+awaitable_sleep_for sleep_for(duration dur)
 {
-    return awaitable_sleep_until{ until };
+    return awaitable_sleep_for{ dur };
 }
 
-awaitable_sleep_until sleep_for(duration dur)
+awaitable_sleep_for sleep_until(time_point until)
 {
-    return sleep_until(system_clock::now() + dur);
+    return sleep_for(until - system_clock::now());
 }
