@@ -1,0 +1,5 @@
+[requires]
+libuv/1.40.0
+
+[generators]
+cmake
