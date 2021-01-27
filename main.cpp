@@ -35,12 +35,9 @@ lazy<void> some_lazy_void(int /*x*/, int /*y*/)
     co_return;
 }
 
-
-
-
-cppcoro::generator<const std::uint64_t> fibonacci()
+generator<uint64_t> fibonacci()
 {
-  std::uint64_t a = 0, b = 1;
+  uint64_t a = 0, b = 1;
   while (true)
   {
     co_yield b;
@@ -52,11 +49,13 @@ cppcoro::generator<const std::uint64_t> fibonacci()
 
 void usage()
 {
-  for (auto i : fibonacci())
-  {
-    if (i > 1'000) break;
-    std::cout << i << std::endl;
-  }
+    auto gen = fibonacci();
+    std::optional<uint64_t> value_opt;
+    while ((value_opt = gen.next()))
+    {
+        if (value_opt.value() > 1'000) break;
+        std::cout << value_opt.value() << std::endl;
+    }
 }
 
 void eager_usage()
