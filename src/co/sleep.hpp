@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+#include <co/std.hpp>
 #include <co/scheduler.hpp>
 
 namespace co
@@ -17,7 +19,7 @@ public:
 
     bool await_ready() const noexcept { return _milliseconds <= 0; }
 
-    void await_suspend(std::experimental::coroutine_handle<> awaiting_coroutine) noexcept
+    void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
     {
         uv_timer_init(get_scheduler().uv_loop(), &timer_req);
         timer_req.data = awaiting_coroutine.address();
@@ -31,7 +33,7 @@ private:
     {
         assert(timer_req != nullptr);
 
-        auto coro = std::experimental::coroutine_handle<>::from_address(timer_req->data);
+        auto coro = std::coroutine_handle<>::from_address(timer_req->data);
         get_scheduler().ready(coro);
     }
 

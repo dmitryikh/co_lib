@@ -1,6 +1,6 @@
 #pragma once 
 
-#include <experimental/coroutine>
+#include <co/std.hpp>
 #include <co/impl/shared_state.hpp>
 
 namespace co::tmp
@@ -19,12 +19,12 @@ public:
 
     eager<T> get_return_object() noexcept
     {
-        using coroutine_handle = std::experimental::coroutine_handle<eager_promise<T>>;
+        using coroutine_handle = std::coroutine_handle<eager_promise<T>>;
         return { coroutine_handle::from_promise(*this), _state };
     }
 
-    constexpr std::experimental::suspend_never initial_suspend() const noexcept { return {}; }
-    constexpr std::experimental::suspend_always final_suspend() const noexcept { return {}; }
+    constexpr std::suspend_never initial_suspend() const noexcept { return {}; }
+    constexpr std::suspend_always final_suspend() const noexcept { return {}; }
 
     void unhandled_exception()
     {
@@ -38,7 +38,7 @@ public:
 
     // Don't allow any use of 'co_await' inside the coroutine.
     template<typename U>
-    std::experimental::suspend_never await_transform(U&& value) = delete;
+    std::suspend_never await_transform(U&& value) = delete;
 
 private:
     shared_state<T> _state;
@@ -51,7 +51,7 @@ public:
     using promise_type = eager_promise<T>;
 
     eager(
-        std::experimental::coroutine_handle<> coroutine,
+        std::coroutine_handle<> coroutine,
         shared_state<T>& state
     )
         : _coroutine(coroutine)
@@ -76,7 +76,7 @@ public:
     }
 
 private:
-    std::experimental::coroutine_handle<> _coroutine;
+    std::coroutine_handle<> _coroutine;
     shared_state<T>& _state;
 };
 
@@ -88,12 +88,12 @@ public:
 
     eager<void> get_return_object() noexcept
     {
-        using coroutine_handle = std::experimental::coroutine_handle<eager_promise<void>>;
+        using coroutine_handle = std::coroutine_handle<eager_promise<void>>;
         return { coroutine_handle::from_promise(*this), _state };
     }
 
-    constexpr std::experimental::suspend_never initial_suspend() const noexcept { return {}; }
-    constexpr std::experimental::suspend_always final_suspend() const noexcept { return {}; }
+    constexpr std::suspend_never initial_suspend() const noexcept { return {}; }
+    constexpr std::suspend_always final_suspend() const noexcept { return {}; }
 
     void unhandled_exception()
     {
@@ -106,7 +106,7 @@ public:
     }
 
     template<typename U>
-    std::experimental::suspend_never await_transform(U&& value) = delete;
+    std::suspend_never await_transform(U&& value) = delete;
 
 private:
     shared_state<void> _state;

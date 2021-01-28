@@ -1,12 +1,6 @@
 #pragma once
 
-#include <exception>
-#include <utility>
-#include <type_traits>
-#include <cstdint>
-#include <cassert>
-
-#include <experimental/coroutine>
+#include <co/std.hpp>
 #include <co/impl/shared_state.hpp>
 
 namespace co
@@ -25,9 +19,8 @@ struct final_awaitable
         return false;
     }
 
-    template<typename PROMISE>
-    std::experimental::coroutine_handle<> await_suspend(
-        std::experimental::coroutine_handle<PROMISE> coro) noexcept
+    template<typename Promise>
+    std::coroutine_handle<> await_suspend(std::coroutine_handle<Promise> coro) noexcept
     {
         return coro.promise()._continuation;
     }
@@ -41,21 +34,21 @@ class task_promise
     friend struct final_awaitable;
 
 public:
-    std::experimental::suspend_always initial_suspend() noexcept { return {}; }
+    std::suspend_always initial_suspend() noexcept { return {}; }
 
     auto final_suspend() noexcept
     {
         return final_awaitable{};
     }
 
-    void set_continuation(std::experimental::coroutine_handle<> continuation) noexcept
+    void set_continuation(std::coroutine_handle<> continuation) noexcept
     {
         _continuation = continuation;
     }
 
     task<T> get_return_object() noexcept
     {
-        using coroutine_handle = std::experimental::coroutine_handle<task_promise<T>>;
+        using coroutine_handle = std::coroutine_handle<task_promise<T>>;
         return task<T>{ coroutine_handle::from_promise(*this), _state };
     }
 
@@ -76,7 +69,7 @@ public:
 
 private:
 
-    std::experimental::coroutine_handle<> _continuation;
+    std::coroutine_handle<> _continuation;
     shared_state<T> _state;
 };
 
@@ -95,7 +88,7 @@ private:
     class awaitable
     {
     public:
-        awaitable(std::experimental::coroutine_handle<promise_type> coroutine) noexcept
+        awaitable(std::coroutine_handle<promise_type> coroutine) noexcept
             : _coroutine(coroutine)
         {}
 
@@ -104,8 +97,8 @@ private:
             return !_coroutine || _coroutine.done();
         }
 
-        std::experimental::coroutine_handle<> await_suspend(
-            std::experimental::coroutine_handle<> continuation) noexcept
+        std::coroutine_handle<> await_suspend(
+            std::coroutine_handle<> continuation) noexcept
         {
             _coroutine.promise().set_continuation(continuation);
             return _coroutine;
@@ -117,12 +110,12 @@ private:
         }
 
     public:
-        std::experimental::coroutine_handle<promise_type> _coroutine;
+        std::coroutine_handle<promise_type> _coroutine;
     };
 
 public:
 
-    explicit task(std::experimental::coroutine_handle<promise_type> coroutine, impl::shared_state<T>& state)
+    explicit task(std::coroutine_handle<promise_type> coroutine, impl::shared_state<T>& state)
         : _coroutine(coroutine)
         , _state(state)
     {}
@@ -155,7 +148,7 @@ public:
 
 private:
 
-    std::experimental::coroutine_handle<promise_type> _coroutine;
+    std::coroutine_handle<promise_type> _coroutine;
     impl::shared_state<T>& _state;
 };
 
@@ -168,21 +161,21 @@ class task_promise<void>
     friend struct final_awaitable;
 
 public:
-    std::experimental::suspend_always initial_suspend() noexcept { return {}; }
+    std::suspend_always initial_suspend() noexcept { return {}; }
 
     auto final_suspend() noexcept
     {
         return final_awaitable{};
     }
 
-    void set_continuation(std::experimental::coroutine_handle<> continuation) noexcept
+    void set_continuation(std::coroutine_handle<> continuation) noexcept
     {
         _continuation = continuation;
     }
 
     task<void> get_return_object() noexcept
     {
-        using coroutine_handle = std::experimental::coroutine_handle<task_promise<void>>;
+        using coroutine_handle = std::coroutine_handle<task_promise<void>>;
         return task<void>{ coroutine_handle::from_promise(*this), _state };
     }
 
@@ -203,7 +196,7 @@ public:
 
 private:
 
-    std::experimental::coroutine_handle<> _continuation;
+    std::coroutine_handle<> _continuation;
     shared_state<void> _state;
 };
 

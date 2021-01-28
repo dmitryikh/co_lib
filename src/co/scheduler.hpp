@@ -1,8 +1,8 @@
 #pragma once
 
 #include <queue>
-#include <experimental/coroutine>
 #include <uv.h>
+#include <co/std.hpp>
 #include <co/task.hpp>
 
 namespace co
@@ -23,8 +23,8 @@ public:
 
     scheduled_task get_return_object();
 
-    constexpr std::experimental::suspend_always initial_suspend() const noexcept { return {}; }
-    constexpr std::experimental::suspend_never final_suspend() const noexcept { return {}; }
+    constexpr std::suspend_always initial_suspend() const noexcept { return {}; }
+    constexpr std::suspend_never final_suspend() const noexcept { return {}; }
 
     void unhandled_exception() {}
     void return_void() {}
@@ -34,12 +34,12 @@ class scheduled_task
 {
 public:
     using promise_type = scheduled_task_promise;
-    std::experimental::coroutine_handle<> coroutine_handle;
+    std::coroutine_handle<> coroutine_handle;
 };
 
 scheduled_task scheduled_task_promise::get_return_object()
 {
-    using coroutine_handle = std::experimental::coroutine_handle<scheduled_task_promise>;
+    using coroutine_handle = std::coroutine_handle<scheduled_task_promise>;
     return { coroutine_handle::from_promise(*this) };
 }
 
@@ -47,7 +47,7 @@ scheduled_task scheduled_task_promise::get_return_object()
 
 class scheduler
 {
-    using coroutine_handle = std::experimental::coroutine_handle<>;
+    using coroutine_handle = std::coroutine_handle<>;
 
 public:
 

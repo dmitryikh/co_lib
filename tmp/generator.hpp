@@ -1,7 +1,7 @@
 #pragma once
 
 #include <optional>
-#include <experimental/coroutine>
+#include <co/std.hpp>
 
 namespace co::tmp
 {
@@ -55,12 +55,12 @@ public:
 
     generator<T> get_return_object() noexcept
     {
-        using coroutine_handle = std::experimental::coroutine_handle<generator_promise<T>>;
+        using coroutine_handle = std::coroutine_handle<generator_promise<T>>;
         return { coroutine_handle::from_promise(*this), _state };
     }
 
-    constexpr std::experimental::suspend_always initial_suspend() const noexcept { return {}; }
-    constexpr std::experimental::suspend_always final_suspend() const noexcept { return {}; }
+    constexpr std::suspend_always initial_suspend() const noexcept { return {}; }
+    constexpr std::suspend_always final_suspend() const noexcept { return {}; }
 
     void unhandled_exception()
     {
@@ -72,7 +72,7 @@ public:
         _state.set_done();
     }
 
-    std::experimental::suspend_always yield_value(T value) noexcept
+    std::suspend_always yield_value(T value) noexcept
     {
         _state.set_value(std::move(value));
         return {};
@@ -80,7 +80,7 @@ public:
 
     // Don't allow any use of 'co_await' inside the coroutine.
     template<typename U>
-    std::experimental::suspend_never await_transform(U&& value) = delete;
+    std::suspend_never await_transform(U&& value) = delete;
 
 private:
     generator_shared_state<T> _state;
@@ -93,7 +93,7 @@ public:
     using promise_type = generator_promise<T>;
 
     generator(
-        std::experimental::coroutine_handle<> coroutine,
+        std::coroutine_handle<> coroutine,
         generator_shared_state<T>& state
     )
         : _coroutine(coroutine)
@@ -123,7 +123,7 @@ public:
     }
 
 private:
-    std::experimental::coroutine_handle<> _coroutine;
+    std::coroutine_handle<> _coroutine;
     generator_shared_state<T>& _state;
 };
 
