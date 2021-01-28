@@ -2,7 +2,7 @@
 
 #include <variant>
 
-namespace co::base
+namespace co::impl
 {
 
 template <typename T>

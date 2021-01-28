@@ -1,12 +1,12 @@
 #pragma once 
 
 #include <experimental/coroutine>
-#include <co/base/shared_state.hpp>
+#include <co/impl/shared_state.hpp>
 
 namespace co::tmp
 {
 
-using co::base::shared_state;
+using co::impl::shared_state;
 
 template <typename T>
 class eager;

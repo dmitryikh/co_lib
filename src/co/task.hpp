@@ -7,12 +7,16 @@
 #include <cassert>
 
 #include <experimental/coroutine>
+#include <co/impl/shared_state.hpp>
 
-namespace co::base
+namespace co
 {
 
 template <typename T>
 class task;
+
+namespace impl
+{
 
 struct final_awaitable
 {
@@ -76,13 +80,15 @@ private:
     shared_state<T> _state;
 };
 
+} // namespace impl
+
 
 template<typename T>
 class task
 {
 public:
 
-    using promise_type = task_promise<T>;
+    using promise_type = impl::task_promise<T>;
 
 private:
 
@@ -116,7 +122,7 @@ private:
 
 public:
 
-    explicit task(std::experimental::coroutine_handle<promise_type> coroutine, shared_state<T>& state)
+    explicit task(std::experimental::coroutine_handle<promise_type> coroutine, impl::shared_state<T>& state)
         : _coroutine(coroutine)
         , _state(state)
     {}
@@ -150,8 +156,11 @@ public:
 private:
 
     std::experimental::coroutine_handle<promise_type> _coroutine;
-    shared_state<T>& _state;
+    impl::shared_state<T>& _state;
 };
+
+namespace impl
+{
 
 template <>
 class task_promise<void>
@@ -197,5 +206,7 @@ private:
     std::experimental::coroutine_handle<> _continuation;
     shared_state<void> _state;
 };
+
+} // namespace impl
 
 }

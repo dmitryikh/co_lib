@@ -5,8 +5,8 @@
 #include "tmp/generator.hpp"
 #include "tmp/eager.hpp"
 #include "tmp/lazy.hpp"
-#include <co/base/scheduler.hpp>
-#include <co/base/sleep.hpp>
+#include <co/scheduler.hpp>
+#include <co/sleep.hpp>
 #include <co/net/network.hpp>
 
 using namespace std::chrono_literals;
@@ -90,39 +90,39 @@ void lazy_usage()
     res2.value();
 }
 
-co::base::task<void> task10()
+co::task<void> task10()
 {
     for (size_t i = 0; i < 1; i++)
     {
-        co_await co::base::sleep_for(10000ms);
+        co_await co::sleep_for(10000ms);
         std::cout << "task10 running\n";
     }
     std::cout << "task10 finished\n";
 }
 
-co::base::task<void> task1()
+co::task<void> task1()
 {
-    co::base::get_scheduler().spawn(task10());
+    co::get_scheduler().spawn(task10());
     for (size_t i = 0; i < 10; i++)
     {
-        co_await co::base::sleep_for(1000ms);
+        co_await co::sleep_for(1000ms);
         std::cout << "task1 running\n";
     }
     std::cout << "task1 finished\n";
 }
 
-co::base::task<void> task2_nested()
+co::task<void> task2_nested()
 {
     for (size_t i = 0; i < 30; i++)
     {
-        co_await co::base::sleep_for(300ms);
+        co_await co::sleep_for(300ms);
         std::cout << "task2_nested running\n";
     }
     std::cout << "task2_nested finished\n";
     throw std::runtime_error("exceptioN!!");
 }
 
-co::base::task<void> task2()
+co::task<void> task2()
 {
     std::cout << "task2 running\n";
     co_await task2_nested();
@@ -130,25 +130,25 @@ co::base::task<void> task2()
 
 void scheduler_usage()
 {
-    auto& scheduler = co::base::get_scheduler();
+    auto& scheduler = co::get_scheduler();
 
     scheduler.spawn(task2());
     scheduler.spawn(task1());
     scheduler.run();
 }
 
-co::base::task<void> client_work(const std::string& ip, uint16_t port)
+co::task<void> client_work(const std::string& ip, uint16_t port)
 {
     std::cout << "cobbect\n";
     auto socket = std::make_shared<co::net::tcp>(co_await co::net::connect(ip, port));
     // co_await socket.read_n(&bytes[0], 30);
-    co::base::get_scheduler().spawn([socket] () -> co::base::task<void>
+    co::get_scheduler().spawn([socket] () -> co::task<void>
     {
         for (int i = 0; i < 1; i++)
         {
             const std::string to_write = "abba";
             co_await socket->write(to_write.data(), to_write.size());
-            co_await co::base::sleep_for(1000ms);
+            co_await co::sleep_for(1000ms);
             // std::cout << "send done!\n";
         }
         std::cout << "shutdown\n";
@@ -169,7 +169,7 @@ co::base::task<void> client_work(const std::string& ip, uint16_t port)
 
 void net_usage()
 {
-    auto& scheduler = co::base::get_scheduler();
+    auto& scheduler = co::get_scheduler();
     scheduler.spawn(client_work("0.0.0.0", 50007));
     scheduler.run();
 }

@@ -3,15 +3,18 @@
 #include <queue>
 #include <experimental/coroutine>
 #include <uv.h>
-#include <co/base/time.hpp>
-#include <co/base/task.hpp>
+#include <co/task.hpp>
 
-namespace co::base
+namespace co
+{
+
+class scheduler;
+scheduler& get_scheduler();
+
+namespace impl
 {
 
 class scheduled_task;
-class scheduler;
-scheduler& get_scheduler();
 
 class scheduled_task_promise
 {
@@ -39,6 +42,8 @@ scheduled_task scheduled_task_promise::get_return_object()
     using coroutine_handle = std::experimental::coroutine_handle<scheduled_task_promise>;
     return { coroutine_handle::from_promise(*this) };
 }
+
+} // namesace impl
 
 class scheduler
 {
@@ -75,7 +80,7 @@ public:
     }
 
 private:
-    static scheduled_task create_scheduled_task(task<void> task)
+    static impl::scheduled_task create_scheduled_task(task<void> task)
     {
         try
         {
