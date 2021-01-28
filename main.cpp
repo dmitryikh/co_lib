@@ -7,6 +7,7 @@
 #include "lazy.hpp"
 #include "scheduler.hpp"
 #include "sleep.hpp"
+#include "network.hpp"
 
 using namespace std::chrono_literals;
 
@@ -136,11 +137,49 @@ void scheduler_usage()
     scheduler.run();
 }
 
+task<void> client_work(const std::string& ip, uint16_t port)
+{
+    std::cout << "cobbect\n";
+    auto socket = std::make_shared<tcp>(co_await connect(ip, port));
+    // co_await socket.read_n(&bytes[0], 30);
+    get_scheduler().spawn([socket] () -> task<void>
+    {
+        for (int i = 0; i < 1; i++)
+        {
+            const std::string to_write = "abba";
+            co_await socket->write(to_write.data(), to_write.size());
+            co_await sleep_for(1000ms);
+            // std::cout << "send done!\n";
+        }
+        std::cout << "shutdown\n";
+        co_await socket->shutdown();
+    }());
+
+    while (true)
+    {
+        std::cout << "read\n";
+        std::string bytes(30, 0);
+        const size_t len = co_await socket->read(&bytes[0], 30);
+        bytes.resize(len);
+        if (len == 0)
+            break;
+        std::cout << "read res: " << bytes << "\n";
+    }
+}
+
+void net_usage()
+{
+    auto& scheduler = get_scheduler();
+    scheduler.spawn(client_work("0.0.0.0", 50007));
+    scheduler.run();
+}
+
 int main()
 {
     // usage();
 
     // eager_usage();
     // lazy_usage();
-    scheduler_usage();
+    // scheduler_usage();
+    net_usage();
 }
