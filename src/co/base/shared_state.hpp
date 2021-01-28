@@ -2,6 +2,9 @@
 
 #include <variant>
 
+namespace co::base
+{
+
 template <typename T>
 class shared_state
 {
@@ -73,3 +76,5 @@ private:
     bool _is_done = false;
     std::exception_ptr _exception_ptr;
 };
+
+}

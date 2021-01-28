@@ -11,13 +11,13 @@
 
 using namespace std::chrono_literals;
 
-eager<int> some_value_fast(int x, int y)
+co::tmp::eager<int> some_value_fast(int x, int y)
 {
     std::cout << "about to return from some_value_fast" << std::endl;
     co_return x + y;
 }
 
-eager<int> some_value_throw(int x, int y)
+co::tmp::eager<int> some_value_throw(int x, int y)
 {
     std::cout << "about to return from some_value_throw" << std::endl;
     throw std::runtime_error("bla bla bla");
@@ -29,18 +29,18 @@ eager<int> some_value_throw(int x, int y)
 //     co_return;
 // }
 
-lazy<int> some_value_lazy(int x, int y)
+co::tmp::lazy<int> some_value_lazy(int x, int y)
 {
     std::cout << "about to return from some_value_lazy" << std::endl;
     co_return x + y;
 }
 
-lazy<void> some_lazy_void(int /*x*/, int /*y*/)
+co::tmp::lazy<void> some_lazy_void(int /*x*/, int /*y*/)
 {
     co_return;
 }
 
-generator<uint64_t> fibonacci()
+co::tmp::generator<uint64_t> fibonacci()
 {
   uint64_t a = 0, b = 1;
   while (true)
@@ -65,11 +65,11 @@ void usage()
 
 void eager_usage()
 {
-    eager<int> res = some_value_fast(10, 12);
+    co::tmp::eager<int> res = some_value_fast(10, 12);
     std::cout << "res value = " << std::endl;
     std::cout << res.value() << std::endl;
 
-    eager<int> res2 = some_value_throw(12, 14);
+    co::tmp::eager<int> res2 = some_value_throw(12, 14);
     std::cout << "res2 value = " << std::endl;
     // std::cout << res2.value() << std::endl;
 
@@ -80,49 +80,49 @@ void eager_usage()
 
 void lazy_usage()
 {
-    lazy<int> res = some_value_lazy(10, 12);
+    co::tmp::lazy<int> res = some_value_lazy(10, 12);
     std::cout << "lazy: res value = " << std::endl;
     std::cout << "lazy: " << res.value() << std::endl;
     // res.value();  will throw
 
-    lazy<void> res2 = some_lazy_void(10, 12);
+    co::tmp::lazy<void> res2 = some_lazy_void(10, 12);
     std::cout << "lazy: res2 value = " << std::endl;
     res2.value();
 }
 
-task<void> task10()
+co::base::task<void> task10()
 {
     for (size_t i = 0; i < 1; i++)
     {
-        co_await sleep_for(10000ms);
+        co_await co::base::sleep_for(10000ms);
         std::cout << "task10 running\n";
     }
     std::cout << "task10 finished\n";
 }
 
-task<void> task1()
+co::base::task<void> task1()
 {
-    get_scheduler().spawn(task10());
+    co::base::get_scheduler().spawn(task10());
     for (size_t i = 0; i < 10; i++)
     {
-        co_await sleep_for(1000ms);
+        co_await co::base::sleep_for(1000ms);
         std::cout << "task1 running\n";
     }
     std::cout << "task1 finished\n";
 }
 
-task<void> task2_nested()
+co::base::task<void> task2_nested()
 {
     for (size_t i = 0; i < 30; i++)
     {
-        co_await sleep_for(300ms);
+        co_await co::base::sleep_for(300ms);
         std::cout << "task2_nested running\n";
     }
     std::cout << "task2_nested finished\n";
     throw std::runtime_error("exceptioN!!");
 }
 
-task<void> task2()
+co::base::task<void> task2()
 {
     std::cout << "task2 running\n";
     co_await task2_nested();
@@ -130,25 +130,25 @@ task<void> task2()
 
 void scheduler_usage()
 {
-    auto& scheduler = get_scheduler();
+    auto& scheduler = co::base::get_scheduler();
 
     scheduler.spawn(task2());
     scheduler.spawn(task1());
     scheduler.run();
 }
 
-task<void> client_work(const std::string& ip, uint16_t port)
+co::base::task<void> client_work(const std::string& ip, uint16_t port)
 {
     std::cout << "cobbect\n";
-    auto socket = std::make_shared<tcp>(co_await connect(ip, port));
+    auto socket = std::make_shared<co::net::tcp>(co_await co::net::connect(ip, port));
     // co_await socket.read_n(&bytes[0], 30);
-    get_scheduler().spawn([socket] () -> task<void>
+    co::base::get_scheduler().spawn([socket] () -> co::base::task<void>
     {
         for (int i = 0; i < 1; i++)
         {
             const std::string to_write = "abba";
             co_await socket->write(to_write.data(), to_write.size());
-            co_await sleep_for(1000ms);
+            co_await co::base::sleep_for(1000ms);
             // std::cout << "send done!\n";
         }
         std::cout << "shutdown\n";
@@ -169,7 +169,7 @@ task<void> client_work(const std::string& ip, uint16_t port)
 
 void net_usage()
 {
-    auto& scheduler = get_scheduler();
+    auto& scheduler = co::base::get_scheduler();
     scheduler.spawn(client_work("0.0.0.0", 50007));
     scheduler.run();
 }

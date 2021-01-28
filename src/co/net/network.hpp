@@ -4,6 +4,9 @@
 #include <uv.h>
 #include <co/base/scheduler.hpp>
 
+namespace co::net
+{
+
 using tcp_uv_ptr = std::unique_ptr<uv_tcp_t>;
 
 class awaitable_read
@@ -28,7 +31,7 @@ public:
         if (ret != 0)
         {
             _status = ret;
-            get_scheduler().ready(awaiting_coroutine);
+            co::base::get_scheduler().ready(awaiting_coroutine);
         }
     }
 
@@ -76,7 +79,7 @@ private:
             self._read_len = static_cast<size_t>(nread);
 
         /*int ret = */uv_read_stop(stream);
-        get_scheduler().ready(self._coro);
+        co::base::get_scheduler().ready(self._coro);
     }
 
 private:
@@ -109,7 +112,7 @@ public:
         if (ret != 0)
         {
             _status = ret;
-            get_scheduler().ready(awaiting_coroutine);
+            co::base::get_scheduler().ready(awaiting_coroutine);
         }
     }
 
@@ -129,7 +132,7 @@ private:
 
         auto& self = *static_cast<awaitable_write*>(handle->data);
         self._status = status;
-        get_scheduler().ready(self._coro);
+        co::base::get_scheduler().ready(self._coro);
     }
 
 private:
@@ -157,7 +160,7 @@ public:
         if (ret != 0)
         {
             _status = ret;
-            get_scheduler().ready(awaiting_coroutine);
+            co::base::get_scheduler().ready(awaiting_coroutine);
         }
     }
 
@@ -177,7 +180,7 @@ private:
 
         auto& self = *static_cast<awaitable_shutdown*>(handle->data);
         self._status = status;
-        get_scheduler().ready(self._coro);
+        co::base::get_scheduler().ready(self._coro);
     }
 
 private:
@@ -248,7 +251,7 @@ public:
     {
         std::cout << "connect_suspend\n";
         _coro = awaiting_coroutine;
-        uv_tcp_init(get_scheduler().uv_loop(), _tcp_ptr.get());
+        uv_tcp_init(co::base::get_scheduler().uv_loop(), _tcp_ptr.get());
         _connect.data = static_cast<void*>(this);
         struct sockaddr_in dest;
         uv_ip4_addr(_ip.c_str(), _port, &dest);
@@ -257,7 +260,7 @@ public:
         if (ret != 0)
         {
             _status = ret;
-            get_scheduler().ready(awaiting_coroutine);
+            co::base::get_scheduler().ready(awaiting_coroutine);
         }
     }
 
@@ -280,7 +283,7 @@ private:
         assert(connect->data != nullptr);
         auto& self = *static_cast<awaitable_connect*>(connect->data);
         self._status = status;
-        get_scheduler().ready(self._coro);
+        co::base::get_scheduler().ready(self._coro);
     }
 
 private:
@@ -298,6 +301,4 @@ awaitable_connect connect(const std::string& ip, uint16_t port)
     return awaitable_connect(ip, port);
 }
 
-
-
-// class socket
+}

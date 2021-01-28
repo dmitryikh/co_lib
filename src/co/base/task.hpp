@@ -8,6 +8,9 @@
 
 #include <experimental/coroutine>
 
+namespace co::base
+{
+
 template <typename T>
 class task;
 
@@ -194,3 +197,5 @@ private:
     std::experimental::coroutine_handle<> _continuation;
     shared_state<void> _state;
 };
+
+}

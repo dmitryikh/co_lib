@@ -3,6 +3,9 @@
 #include <optional>
 #include <experimental/coroutine>
 
+namespace co::tmp
+{
+
 template <typename T>
 class generator_shared_state 
 {
@@ -123,3 +126,5 @@ private:
     std::experimental::coroutine_handle<> _coroutine;
     generator_shared_state<T>& _state;
 };
+
+}

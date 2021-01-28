@@ -3,6 +3,11 @@
 #include <experimental/coroutine>
 #include <co/base/shared_state.hpp>
 
+namespace co::tmp
+{
+
+using co::base::shared_state;
+
 template <typename T>
 class eager;
 
@@ -106,3 +111,5 @@ public:
 private:
     shared_state<void> _state;
 };
+
+}

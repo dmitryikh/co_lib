@@ -3,6 +3,9 @@
 #include <co/base/time.hpp>
 #include <co/base/scheduler.hpp>
 
+namespace co::base
+{
+
 class awaitable_sleep_for
 {
 public:
@@ -44,4 +47,6 @@ awaitable_sleep_for sleep_for(duration dur)
 awaitable_sleep_for sleep_until(time_point until)
 {
     return sleep_for(until - system_clock::now());
+}
+
 }

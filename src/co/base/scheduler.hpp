@@ -6,6 +6,8 @@
 #include <co/base/time.hpp>
 #include <co/base/task.hpp>
 
+namespace co::base
+{
 
 class scheduled_task;
 class scheduler;
@@ -103,4 +105,6 @@ inline scheduler& get_scheduler()
 {
     static scheduler _scheduler;
     return _scheduler;
+}
+
 }

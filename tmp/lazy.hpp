@@ -3,6 +3,9 @@
 #include <experimental/coroutine>
 #include <co/base/shared_state.hpp>
 
+namespace co::tmp
+{
+
 template <typename T>
 class lazy;
 
@@ -36,7 +39,7 @@ public:
     std::experimental::suspend_never await_transform(U&& value) = delete;
 
 private:
-    shared_state<T> _state;
+    co::base::shared_state<T> _state;
 };
 
 
@@ -48,7 +51,7 @@ public:
 
     lazy(
         std::experimental::coroutine_handle<> coroutine,
-        shared_state<T>& state
+        co::base::shared_state<T>& state
     )
         : _coroutine(coroutine)
         , _state(state)
@@ -76,7 +79,7 @@ public:
 
 private:
     std::experimental::coroutine_handle<> _coroutine;
-    shared_state<T>& _state;
+    co::base::shared_state<T>& _state;
 };
 
 template <>
@@ -108,5 +111,7 @@ public:
     std::experimental::suspend_never await_transform(U&& value) = delete;
 
 private:
-    shared_state<void> _state;
+    co::base::shared_state<void> _state;
 };
+
+}
