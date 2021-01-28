@@ -1,8 +1,5 @@
 #pragma once
 
-#include <thread>
-#include <map>
-#include <unordered_map>
 #include <queue>
 #include <experimental/coroutine>
 #include <uv.h>
@@ -55,12 +52,13 @@ public:
 
     void run()
     {
-        uv_idle_t idler;
-        uv_idle_init(uv_default_loop(), &idler);
-        uv_idle_start(&idler, on_idle);
-
-        resume_ready();
-        uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+        while (true)
+        {
+            resume_ready();
+            const int ret = uv_run(uv_default_loop(), UV_RUN_ONCE);
+            if (ret == 0 && _ready.empty())
+                break;
+        }
         uv_loop_close(uv_default_loop());
     }
 
@@ -69,11 +67,9 @@ public:
         _ready.push(handle);
     }
 
-    void schedule_at(uv_timer_t& timer_req, uint64_t milliseconds, coroutine_handle handle)
+    uv_loop_t* uv_loop()
     {
-        uv_timer_init(uv_default_loop(), &timer_req);
-        timer_req.data = handle.address();
-        uv_timer_start(&timer_req, on_timer, milliseconds, 0);
+        return uv_default_loop();
     }
 
 private:
@@ -81,35 +77,12 @@ private:
     {
         try
         {
-            get_scheduler()._task_counter++;
             co_await task;
         }
         catch (const std::exception& exc)
         {
             std::cerr << "task error: " << exc.what() << "\n";
         }
-        get_scheduler()._task_counter--;
-    }
-
-    static void on_idle(uv_idle_t* handle)
-    {
-        assert(handle != nullptr);
-
-        auto& scheduler = get_scheduler();
-        if (scheduler.task_running() == 0)
-        {
-            assert(scheduler._ready.empty());
-            // all tasks been finished. Stop the loop by stopping the idle handle
-            uv_idle_stop(handle);
-        }
-        get_scheduler().resume_ready();
-    }
-
-    static void on_timer(uv_timer_t* timer_req)
-    {
-        assert(timer_req != nullptr);
-        auto coro = coroutine_handle::from_address(timer_req->data);
-        get_scheduler().ready(coro);
     }
 
     void resume_ready()
@@ -122,14 +95,8 @@ private:
         }
     }
 
-    bool task_running() const
-    {
-        return _task_counter;
-    }
-
 private:
     std::queue<coroutine_handle> _ready;
-    int64_t _task_counter;
 };
 
 inline scheduler& get_scheduler()
