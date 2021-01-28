@@ -2,12 +2,12 @@
 #include <iostream>
 #include <variant>
 #include <experimental/coroutine>
-#include "generator.hpp"
-#include "eager.hpp"
-#include "lazy.hpp"
-#include "scheduler.hpp"
-#include "sleep.hpp"
-#include "network.hpp"
+#include "tmp/generator.hpp"
+#include "tmp/eager.hpp"
+#include "tmp/lazy.hpp"
+#include <co/base/scheduler.hpp>
+#include <co/base/sleep.hpp>
+#include <co/net/network.hpp>
 
 using namespace std::chrono_literals;
 

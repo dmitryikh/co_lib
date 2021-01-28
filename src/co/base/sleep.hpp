@@ -1,7 +1,7 @@
 #pragma once
 
-#include "time.hpp"
-#include "scheduler.hpp"
+#include <co/base/time.hpp>
+#include <co/base/scheduler.hpp>
 
 class awaitable_sleep_for
 {

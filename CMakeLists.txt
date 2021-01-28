@@ -14,6 +14,8 @@ project(
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
+include_directories(${CMAKE_SOURCE_DIR}/src)
+
 # This is a "default" library, and will match the *** variable setting.
 # Other common choices are STATIC, SHARED, and MODULE
 # Including header files here helps IDEs but is not required.

@@ -1,7 +1,7 @@
 #pragma once 
 
 #include <experimental/coroutine>
-#include "shared_state.hpp"
+#include <co/base/shared_state.hpp>
 
 template <typename T>
 class lazy;
