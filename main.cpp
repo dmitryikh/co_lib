@@ -7,6 +7,7 @@
 #include "tmp/lazy.hpp"
 #include <co/scheduler.hpp>
 #include <co/sleep.hpp>
+#include <co/mutex.hpp>
 #include <co/net/network.hpp>
 
 using namespace std::chrono_literals;
@@ -174,6 +175,34 @@ void net_usage()
     scheduler.run();
 }
 
+void mutex_usage()
+{
+    auto& scheduler = co::get_scheduler();
+    co::mutex mutex;
+    scheduler.spawn([&]() -> co::task<void>
+    {
+        auto scoped_lock = co_await mutex.lock();
+        std::cout << "task0 got lock\n";
+        co_await co::sleep_for(1s);
+        std::cout << "task0 release lock\n";
+    }());
+    scheduler.spawn([&]() -> co::task<void>
+    {
+        auto scoped_lock = co_await mutex.lock();
+        std::cout << "task1 got lock\n";
+        co_await co::sleep_for(1s);
+        std::cout << "task1 release lock\n";
+    }());
+    scheduler.spawn([&]() -> co::task<void>
+    {
+        auto scoped_lock = co_await mutex.lock();
+        std::cout << "task2 got lock\n";
+        co_await co::sleep_for(1s);
+        std::cout << "task2 release lock\n";
+    }());
+    scheduler.run();
+}
+
 int main()
 {
     // usage();
@@ -181,5 +210,6 @@ int main()
     // eager_usage();
     // lazy_usage();
     // scheduler_usage();
-    net_usage();
+    // net_usage();
+    mutex_usage();
 }
