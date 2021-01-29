@@ -2,6 +2,7 @@
 
 #include <co/std.hpp>
 #include <co/impl/shared_state.hpp>
+#include <co/impl/awaitable_base.hpp>
 
 namespace co
 {
@@ -12,33 +13,15 @@ class task;
 namespace impl
 {
 
-struct final_awaitable
-{
-    bool await_ready() const noexcept
-    {
-        return false;
-    }
-
-    template<typename Promise>
-    std::coroutine_handle<> await_suspend(std::coroutine_handle<Promise> coro) noexcept
-    {
-        return coro.promise()._continuation;
-    }
-
-    void await_resume() noexcept {}
-};
-
 template <typename T>
 class task_promise
 {
-    friend struct final_awaitable;
-
 public:
     std::suspend_always initial_suspend() noexcept { return {}; }
 
     auto final_suspend() noexcept
     {
-        return final_awaitable{};
+        return symmetric_transfer_awaitable{ _continuation };
     }
 
     void set_continuation(std::coroutine_handle<> continuation) noexcept
@@ -68,7 +51,6 @@ public:
     }
 
 private:
-
     std::coroutine_handle<> _continuation;
     shared_state<T> _state;
 };
@@ -80,13 +62,13 @@ template<typename T>
 class task
 {
 public:
-
     using promise_type = impl::task_promise<T>;
 
 private:
 
-    class awaitable
+    class awaitable : public co::impl::awaitable_base
     {
+        using base = co::impl::awaitable_base;
     public:
         awaitable(std::coroutine_handle<promise_type> coroutine) noexcept
             : _coroutine(coroutine)
@@ -101,11 +83,13 @@ private:
             std::coroutine_handle<> continuation) noexcept
         {
             _coroutine.promise().set_continuation(continuation);
+            // base::await_suspend(continuation);
             return _coroutine;
         }
 
         T await_resume()
         {
+            // base::await_resume();
             return _coroutine.promise().state().value();
         }
 
@@ -147,7 +131,6 @@ public:
     }
 
 private:
-
     std::coroutine_handle<promise_type> _coroutine;
     impl::shared_state<T>& _state;
 };
@@ -158,14 +141,12 @@ namespace impl
 template <>
 class task_promise<void>
 {
-    friend struct final_awaitable;
-
 public:
     std::suspend_always initial_suspend() noexcept { return {}; }
 
     auto final_suspend() noexcept
     {
-        return final_awaitable{};
+        return symmetric_transfer_awaitable{ _continuation };
     }
 
     void set_continuation(std::coroutine_handle<> continuation) noexcept
@@ -195,7 +176,6 @@ public:
     }
 
 private:
-
     std::coroutine_handle<> _continuation;
     shared_state<void> _state;
 };

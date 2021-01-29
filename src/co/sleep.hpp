@@ -3,6 +3,7 @@
 #include <cassert>
 #include <co/std.hpp>
 #include <co/scheduler.hpp>
+#include <co/impl/awaitable_base.hpp>
 
 namespace co
 {
@@ -10,8 +11,9 @@ namespace co
 namespace impl
 {
 
-class awaitable_sleep_for
+class awaitable_sleep_for : public awaitable_base
 {
+    using base = awaitable_base;
 public:
     explicit awaitable_sleep_for(int64_t milliseconds)
         : _milliseconds(milliseconds)
@@ -24,9 +26,13 @@ public:
         uv_timer_init(get_scheduler().uv_loop(), &timer_req);
         timer_req.data = awaiting_coroutine.address();
         uv_timer_start(&timer_req, on_timer, _milliseconds, 0);
+        base::await_suspend(awaiting_coroutine);
     }
 
-    void await_resume() noexcept {}
+    void await_resume() noexcept
+    {
+        base::await_resume();
+    }
 private:
 
     static void on_timer(uv_timer_t* timer_req)
@@ -43,6 +49,9 @@ private:
 
 } // namespace impl
 
+namespace this_thread
+{
+
 template <class Rep, class Period>
 impl::awaitable_sleep_for sleep_for(std::chrono::duration<Rep, Period> sleep_duration)
 {
@@ -56,5 +65,7 @@ impl::awaitable_sleep_for sleep_until(std::chrono::time_point<Clock, Duration> s
 {
     return sleep_for(sleep_time - Clock::now());
 }
+
+} // namespace this_thread
 
 }

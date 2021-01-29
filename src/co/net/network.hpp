@@ -4,14 +4,16 @@
 #include <uv.h>
 #include <co/std.hpp>
 #include <co/scheduler.hpp>
+#include <co/impl/awaitable_base.hpp>
 
 namespace co::net
 {
 
 using tcp_uv_ptr = std::unique_ptr<uv_tcp_t>;
 
-class awaitable_read
+class awaitable_read : public co::impl::awaitable_base
 {
+    using base = co::impl::awaitable_base;
 public:
     explicit awaitable_read(uv_tcp_t& tcp_handle, char* buffer_ptr, size_t buffer_len)
         : _tcp_handle(tcp_handle)
@@ -32,13 +34,16 @@ public:
         if (ret != 0)
         {
             _status = ret;
-            co::get_scheduler().ready(awaiting_coroutine);
+            co::impl::get_scheduler().ready(awaiting_coroutine);
         }
+        base::await_suspend(awaiting_coroutine);
     }
 
     size_t await_resume()
     {
         using namespace std::string_literals;
+
+        base::await_resume();
 
         if (_status != 0)
             throw std::runtime_error("read error: "s + uv_strerror(_status));
@@ -80,7 +85,7 @@ private:
             self._read_len = static_cast<size_t>(nread);
 
         /*int ret = */uv_read_stop(stream);
-        co::get_scheduler().ready(self._coro);
+        co::impl::get_scheduler().ready(self._coro);
     }
 
 private:
@@ -92,8 +97,9 @@ private:
     size_t _buffer_len;
 };
 
-class awaitable_write
+class awaitable_write : public co::impl::awaitable_base
 {
+    using base = co::impl::awaitable_base;
 public:
     explicit awaitable_write(uv_tcp_t& tcp_handle, const char* buffer_ptr, size_t buffer_len)
         : _tcp_handle(tcp_handle)
@@ -113,13 +119,16 @@ public:
         if (ret != 0)
         {
             _status = ret;
-            co::get_scheduler().ready(awaiting_coroutine);
+            co::impl::get_scheduler().ready(awaiting_coroutine);
         }
+        base::await_suspend(awaiting_coroutine);
     }
 
     void await_resume()
     {
         using namespace std::string_literals;
+
+        base::await_resume();
 
         if (_status != 0)
             throw std::runtime_error("read error: "s + uv_strerror(_status));
@@ -133,7 +142,7 @@ private:
 
         auto& self = *static_cast<awaitable_write*>(handle->data);
         self._status = status;
-        co::get_scheduler().ready(self._coro);
+        co::impl::get_scheduler().ready(self._coro);
     }
 
 private:
@@ -144,8 +153,9 @@ private:
     std::array<uv_buf_t, 1> _bufs;
 };
 
-class awaitable_shutdown
+class awaitable_shutdown : public co::impl::awaitable_base
 {
+    using base = co::impl::awaitable_base;
 public:
     explicit awaitable_shutdown(uv_tcp_t& tcp_handle)
         : _tcp_handle(tcp_handle)
@@ -161,13 +171,16 @@ public:
         if (ret != 0)
         {
             _status = ret;
-            co::get_scheduler().ready(awaiting_coroutine);
+            co::impl::get_scheduler().ready(awaiting_coroutine);
         }
+        base::await_suspend(awaiting_coroutine);
     }
 
     void await_resume()
     {
         using namespace std::string_literals;
+
+        base::await_resume();
 
         if (_status != 0)
             throw std::runtime_error("shutdown error: "s + uv_strerror(_status));
@@ -181,7 +194,7 @@ private:
 
         auto& self = *static_cast<awaitable_shutdown*>(handle->data);
         self._status = status;
-        co::get_scheduler().ready(self._coro);
+        co::impl::get_scheduler().ready(self._coro);
     }
 
 private:
@@ -237,8 +250,9 @@ private:
     tcp_uv_ptr _tcp_ptr;
 };
 
-class awaitable_connect
+class awaitable_connect : public co::impl::awaitable_base
 {
+    using base = co::impl::awaitable_base;
 public:
     explicit awaitable_connect(const std::string& ip, uint16_t port)
         : _ip(ip)
@@ -250,25 +264,25 @@ public:
 
     void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
     {
-        std::cout << "connect_suspend\n";
         _coro = awaiting_coroutine;
-        uv_tcp_init(co::get_scheduler().uv_loop(), _tcp_ptr.get());
+        uv_tcp_init(co::impl::get_scheduler().uv_loop(), _tcp_ptr.get());
         _connect.data = static_cast<void*>(this);
         struct sockaddr_in dest;
         uv_ip4_addr(_ip.c_str(), _port, &dest);
         int ret = uv_tcp_connect(&_connect, _tcp_ptr.get(), (const struct sockaddr*)&dest, on_connect);
-        std::cout << ret << "\n";
         if (ret != 0)
         {
             _status = ret;
-            co::get_scheduler().ready(awaiting_coroutine);
+            co::impl::get_scheduler().ready(awaiting_coroutine);
         }
+        base::await_suspend(awaiting_coroutine);
     }
 
     tcp await_resume()
     {
-        std::cout << "connect_resume\n";
         using namespace std::string_literals;
+
+        base::await_resume();
 
         if (_status != 0)
             throw std::runtime_error("connection error: "s + uv_strerror(_status));
@@ -279,12 +293,11 @@ public:
 private:
     static void on_connect(uv_connect_t* connect, int status)
     {
-        std::cout << "on connect\n";
         assert(connect != nullptr);
         assert(connect->data != nullptr);
         auto& self = *static_cast<awaitable_connect*>(connect->data);
         self._status = status;
-        co::get_scheduler().ready(self._coro);
+        co::impl::get_scheduler().ready(self._coro);
     }
 
 private:

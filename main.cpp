@@ -9,6 +9,8 @@
 #include <co/sleep.hpp>
 #include <co/mutex.hpp>
 #include <co/net/network.hpp>
+#include <co/thread.hpp>
+#include <co/co.hpp>
 
 using namespace std::chrono_literals;
 
@@ -95,7 +97,7 @@ co::task<void> task10()
 {
     for (size_t i = 0; i < 1; i++)
     {
-        co_await co::sleep_for(10000ms);
+        co_await co::this_thread::sleep_for(3s);
         std::cout << "task10 running\n";
     }
     std::cout << "task10 finished\n";
@@ -103,10 +105,10 @@ co::task<void> task10()
 
 co::task<void> task1()
 {
-    co::get_scheduler().spawn(task10());
-    for (size_t i = 0; i < 10; i++)
+    co::thread(task10()).detach();
+    for (size_t i = 0; i < 3; i++)
     {
-        co_await co::sleep_for(1000ms);
+        co_await co::this_thread::sleep_for(1s);
         std::cout << "task1 running\n";
     }
     std::cout << "task1 finished\n";
@@ -114,9 +116,9 @@ co::task<void> task1()
 
 co::task<void> task2_nested()
 {
-    for (size_t i = 0; i < 30; i++)
+    for (size_t i = 0; i < 10; i++)
     {
-        co_await co::sleep_for(300ms);
+        co_await co::this_thread::sleep_for(300ms);
         std::cout << "task2_nested running\n";
     }
     std::cout << "task2_nested finished\n";
@@ -131,34 +133,32 @@ co::task<void> task2()
 
 void scheduler_usage()
 {
-    auto& scheduler = co::get_scheduler();
-
-    scheduler.spawn(task2());
-    scheduler.spawn(task1());
-    scheduler.run();
+    co::loop([] () -> co::task<void> 
+    {
+        co::thread(task2()).detach();
+        co::thread(task1()).detach();
+        co_return;
+    }());
 }
 
 co::task<void> client_work(const std::string& ip, uint16_t port)
 {
-    std::cout << "cobbect\n";
     auto socket = std::make_shared<co::net::tcp>(co_await co::net::connect(ip, port));
     // co_await socket.read_n(&bytes[0], 30);
-    co::get_scheduler().spawn([socket] () -> co::task<void>
+    co::thread([socket] () -> co::task<void>
     {
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 3; i++)
         {
-            const std::string to_write = "abba";
+            const std::string to_write = "abba" + std::to_string(i);
             co_await socket->write(to_write.data(), to_write.size());
-            co_await co::sleep_for(1000ms);
-            // std::cout << "send done!\n";
+            co_await co::this_thread::sleep_for(1000ms);
         }
         std::cout << "shutdown\n";
         co_await socket->shutdown();
-    }());
+    }(), "writer").detach();
 
     while (true)
     {
-        std::cout << "read\n";
         std::string bytes(30, 0);
         const size_t len = co_await socket->read(&bytes[0], 30);
         bytes.resize(len);
@@ -170,37 +170,41 @@ co::task<void> client_work(const std::string& ip, uint16_t port)
 
 void net_usage()
 {
-    auto& scheduler = co::get_scheduler();
-    scheduler.spawn(client_work("0.0.0.0", 50007));
-    scheduler.run();
+    co::loop(client_work("0.0.0.0", 50007));
 }
 
 void mutex_usage()
 {
-    auto& scheduler = co::get_scheduler();
     co::mutex mutex;
-    scheduler.spawn([&]() -> co::task<void>
+    co::loop([&]() -> co::task<void>
     {
-        auto scoped_lock = co_await mutex.lock();
-        std::cout << "task0 got lock\n";
-        co_await co::sleep_for(1s);
-        std::cout << "task0 release lock\n";
+        co::thread([&]() -> co::task<void>
+        {
+            std::cout << "task0 about to get lock\n";
+            auto scoped_lock = co_await mutex.lock();
+            std::cout << "task0 got lock\n";
+            co_await co::this_thread::sleep_for(1s);
+            std::cout << "task0 release lock\n";
+        }()).detach();
+        co::thread([&]() -> co::task<void>
+        {
+            auto scoped_lock = co_await mutex.lock();
+            std::cout << "task1 got lock\n";
+            co_await co::this_thread::sleep_for(1s);
+            std::cout << "task1 release lock\n";
+        }()).detach();
+        auto th = co::thread([&]() -> co::task<void>
+        {
+            auto scoped_lock = co_await mutex.lock();
+            std::cout << "task2 got lock\n";
+            co_await co::this_thread::sleep_for(1s);
+            std::cout << "task2 release lock\n";
+            co_return;
+
+        }());
+        co_await th.join();
+        co_return;
     }());
-    scheduler.spawn([&]() -> co::task<void>
-    {
-        auto scoped_lock = co_await mutex.lock();
-        std::cout << "task1 got lock\n";
-        co_await co::sleep_for(1s);
-        std::cout << "task1 release lock\n";
-    }());
-    scheduler.spawn([&]() -> co::task<void>
-    {
-        auto scoped_lock = co_await mutex.lock();
-        std::cout << "task2 got lock\n";
-        co_await co::sleep_for(1s);
-        std::cout << "task2 release lock\n";
-    }());
-    scheduler.run();
 }
 
 int main()
@@ -209,7 +213,7 @@ int main()
 
     // eager_usage();
     // lazy_usage();
-    // scheduler_usage();
-    // net_usage();
+    scheduler_usage();
+    net_usage();
     mutex_usage();
 }
