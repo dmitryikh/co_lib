@@ -45,7 +45,7 @@ public:
         _state.set_value(std::move(value));
     }
 
-    shared_state<void>& state()
+    shared_state<T>& state()
     {
         return _state;
     }

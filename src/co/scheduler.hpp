@@ -28,6 +28,7 @@ public:
 
     void ready(coroutine_handle handle)
     {
+        assert(handle);
         _ready.push(handle);
     }
 

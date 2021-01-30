@@ -181,25 +181,31 @@ void mutex_usage()
         co::thread([&]() -> co::task<void>
         {
             std::cout << "task0 about to get lock\n";
-            auto scoped_lock = co_await mutex.lock();
+            co_await mutex.lock();
             std::cout << "task0 got lock\n";
             co_await co::this_thread::sleep_for(1s);
             std::cout << "task0 release lock\n";
+            mutex.unlock();
         }()).detach();
         co::thread([&]() -> co::task<void>
         {
-            auto scoped_lock = co_await mutex.lock();
+            co_await mutex.lock();
             std::cout << "task1 got lock\n";
             co_await co::this_thread::sleep_for(1s);
             std::cout << "task1 release lock\n";
+            mutex.unlock();
         }()).detach();
         auto th = co::thread([&]() -> co::task<void>
         {
-            auto scoped_lock = co_await mutex.lock();
+            while (co_await mutex.lock_for(200ms) != co::event_status::ok)
+            {
+                std::cout << "task2 trying to get lock\n";
+            }
+            // auto scoped_lock = co_await mutex.lock();
             std::cout << "task2 got lock\n";
             co_await co::this_thread::sleep_for(1s);
             std::cout << "task2 release lock\n";
-            co_return;
+            mutex.unlock();
 
         }());
         co_await th.join();

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mutex> // for scoped_lock
-#include <queue>
+#include <list>
 #include <co/std.hpp>
 #include <co/scheduler.hpp>
 #include <co/impl/awaitable_base.hpp>
@@ -13,38 +13,39 @@ class mutex;
 
 namespace impl
 {
-
-class mutex_awaitable : public awaitable_base
-{
-    using base = awaitable_base;
-public:
-    explicit mutex_awaitable(mutex& mtx)
-        : _mutex(mtx)
-    {}
-
-    bool await_suspend(std::coroutine_handle<> awaiting_coroutine);
-
-    bool await_ready() const noexcept { return false; }
-
-    std::scoped_lock<mutex> await_resume()
+    // TODO: replace with intrusive list
+    struct event_node
     {
-        base::await_resume();
-        return std::scoped_lock<mutex>{ std::adopt_lock, _mutex };
-    }
+        event ev;
+        std::optional<std::list<event_node*>::iterator> it;
+    };
 
-private:
-    mutex& _mutex;
-};
-
-} // namespace impl
+}
 
 class mutex
 {
-    friend class impl::mutex_awaitable;
 public:
-    impl::mutex_awaitable lock()
+    co::task<void> lock()
     {
-        return impl::mutex_awaitable{ *this };
+        if (try_lock())
+            co_return;
+
+        impl::event_node event;
+        event.it = _waiting_queue.insert(_waiting_queue.end(), &event);
+
+        co_await event.ev.wait();
+    }
+
+    template <class Rep, class Period>
+    co::task<event_status> lock_for(std::chrono::duration<Rep, Period> sleep_duration)
+    {
+        if (try_lock())
+            co_return event_status::ok;
+
+        impl::event_node event;
+        event.it = _waiting_queue.insert(_waiting_queue.end(), &event);
+
+        co_return co_await event.ev.wait_for(sleep_duration);
     }
 
     ~mutex()
@@ -73,38 +74,20 @@ public:
         if (!_is_locked)
             return;
 
-
-        if (_waiting_queue.empty())
+        while (!_waiting_queue.empty())
         {
-            _is_locked = false;
-            return;
+            auto ptr = *_waiting_queue.begin();
+            assert(ptr != nullptr);
+            ptr->it = std::nullopt;
+            _waiting_queue.pop_front();
+            if (ptr->ev.notify())
+                return;
         }
-
-        auto coro = _waiting_queue.front();
-        _waiting_queue.pop();
-        co::impl::get_scheduler().ready(coro);
+        _is_locked = false;
     }
 private:
     bool _is_locked = false;
-    std::queue<std::coroutine_handle<>> _waiting_queue;
+    std::list<impl::event_node*> _waiting_queue;
 };
-
-namespace impl
-{
-
-bool mutex_awaitable::await_suspend(std::coroutine_handle<> awaiting_coroutine)
-{
-    // NOTE: base::await_suspend needs to be called uncoditionally, because
-    // every time will called await_resume
-    base::await_suspend(awaiting_coroutine);
-
-    if (_mutex.try_lock())
-        return false;
-
-    _mutex._waiting_queue.push(awaiting_coroutine);
-    return true;
-}
-
-} // namespace impl
 
 } // namespace co
