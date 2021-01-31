@@ -1,5 +1,6 @@
 [requires]
 libuv/1.40.0
+boost/1.75.0
 
 [generators]
 cmake
