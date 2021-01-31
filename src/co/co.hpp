@@ -13,7 +13,7 @@ inline void loop()
 
 inline void loop(task<void>&& task)
 {
-    co::thread(std::move(task), "main");
+    co::thread(std::move(task), "main").detach();
     loop();
 }
 

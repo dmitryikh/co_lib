@@ -42,9 +42,40 @@ public:
         co::impl::get_scheduler().ready(_thread_task._coroutine);
     }
 
+    ~thread()
+    {
+        if (!_detached && !is_joined())
+        {
+            // TODO: terminate is to offensive, diagnostic needed
+            // std::terminate();
+        }
+    }
+
+    void detach()
+    {
+        _detached = true;
+    }
+
     task<void> join()
     {
         co_await _event_ptr->wait();
+    }
+
+    task<status> join(const stop_token& token)
+    {
+        co_return co_await _event_ptr->wait(token);
+    }
+
+    template <class Clock, class Duration>
+    task<status> join_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
+    {
+        co_await _event_ptr->wait_until(sleep_time, token);
+    }
+
+    template <class Rep, class Period>
+    task<status> join_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
+    {
+        co_await _event_ptr->wait_for(sleep_duration, token);
     }
 
     bool is_joined() const
@@ -70,6 +101,7 @@ public:
 private:
     static inline uint64_t id = 0;
 
+    bool _detached = false;
     std::shared_ptr<impl::thread_storage> _thread_storage_ptr;
     std::shared_ptr<event> _event_ptr;
     task<void, true> _thread_task;

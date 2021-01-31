@@ -105,7 +105,7 @@ co::task<void> task10()
 
 co::task<void> task1()
 {
-    co::thread{ task10() };
+    co::thread(task10()).detach();
     for (size_t i = 0; i < 3; i++)
     {
         co_await co::this_thread::sleep_for(1s);
@@ -135,8 +135,8 @@ void scheduler_usage()
 {
     co::loop([] () -> co::task<void> 
     {
-        co::thread{ task2() };
-        co::thread{ task1() };
+        co::thread(task2()).detach();
+        co::thread(task1()).detach();
         co_return;
     }());
 }
@@ -155,7 +155,7 @@ co::task<void> client_work(const std::string& ip, uint16_t port)
         }
         std::cout << "shutdown\n";
         co_await socket->shutdown();
-    }(), "writer");
+    }(), "writer").detach();
 
     while (true)
     {
@@ -186,7 +186,7 @@ void mutex_usage()
             co_await co::this_thread::sleep_for(1s);
             std::cout << "task0 release lock\n";
             mutex.unlock();
-        }());
+        }()).detach();
         co::thread([&]() -> co::task<void>
         {
             co_await mutex.lock();
@@ -194,14 +194,13 @@ void mutex_usage()
             co_await co::this_thread::sleep_for(1s);
             std::cout << "task1 release lock\n";
             mutex.unlock();
-        }());
+        }()).detach();
         auto th = co::thread([&]() -> co::task<void>
         {
             while (co_await mutex.lock_for(200ms) != co::ok)
             {
                 std::cout << "task2 trying to get lock\n";
             }
-            // auto scoped_lock = co_await mutex.lock();
             std::cout << "task2 got lock\n";
             co_await co::this_thread::sleep_for(1s);
             std::cout << "task2 release lock\n";
