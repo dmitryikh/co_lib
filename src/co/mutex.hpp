@@ -1,9 +1,9 @@
 #pragma once
 
-#include <mutex> // for scoped_lock
 #include <list>
 #include <co/std.hpp>
 #include <co/scheduler.hpp>
+#include <co/stop_token.hpp>
 #include <co/impl/awaitable_base.hpp>
 
 namespace co
@@ -25,7 +25,7 @@ namespace impl
 class mutex
 {
 public:
-    co::task<void> lock()
+    task<void> lock()
     {
         if (try_lock())
             co_return;
@@ -36,16 +36,27 @@ public:
         co_await event.ev.wait();
     }
 
-    template <class Rep, class Period>
-    co::task<event_status> lock_for(std::chrono::duration<Rep, Period> sleep_duration)
+    task<status> lock(const stop_token& token)
     {
         if (try_lock())
-            co_return event_status::ok;
+            co_return ok;
 
         impl::event_node event;
         event.it = _waiting_queue.insert(_waiting_queue.end(), &event);
 
-        co_return co_await event.ev.wait_for(sleep_duration);
+        co_return co_await event.ev.wait(token);
+    }
+
+    template <class Rep, class Period>
+    task<status> lock_for(std::chrono::duration<Rep, Period> sleep_duration, const stop_token& token = {})
+    {
+        if (try_lock())
+            co_return ok;
+
+        impl::event_node event;
+        event.it = _waiting_queue.insert(_waiting_queue.end(), &event);
+
+        co_return co_await event.ev.wait_for(sleep_duration, token);
     }
 
     ~mutex()

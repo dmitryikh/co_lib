@@ -4,18 +4,15 @@
 #include <co/std.hpp>
 #include <co/scheduler.hpp>
 #include <co/stop_token.hpp>
+#include <co/status.hpp>
 
 namespace co
 {
-// TODO:
-// sleep with cancellation:
-// 1. set_on_cancel_callback
-// 2. set timer
-// 3. on cancel: uv_timer_stop, unset_on_cancel_callback, schedule to ready
-// 4. on timer: unset_on_cancel_callback, schedule to ready
-
 
 class event;
+
+namespace impl
+{
 
 enum class event_status
 {
@@ -25,9 +22,6 @@ enum class event_status
     cancel,
     timeout
 };
-
-namespace impl
-{
 
 class awaitable_wait_for : public awaitable_base
 {
@@ -42,7 +36,7 @@ public:
 
     bool await_ready() const noexcept;
     void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept;
-    event_status await_resume() noexcept;
+    status await_resume() noexcept;
 
 private:
     co::stop_callback_func stop_callback_func();
@@ -70,13 +64,13 @@ public:
 
     bool notify()
     {
-        if (_status >= event_status::ok)
+        if (_status >= impl::event_status::ok)
             return false;
 
-        if (_status == event_status::waiting)
+        if (_status == impl::event_status::waiting)
             impl::get_scheduler().ready(_waiting_coro);
 
-        _status = event_status::ok;
+        _status = impl::event_status::ok;
         return true;
     }
 
@@ -94,7 +88,7 @@ public:
     template <class Rep, class Period>
     impl::awaitable_wait_for wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
     {
-        if (_status == event_status::waiting)
+        if (_status == impl::event_status::waiting)
             throw std::logic_error("event already waiting");
 
 
@@ -105,7 +99,7 @@ public:
     };
 
 private:
-    event_status _status = event_status::init;
+    impl::event_status _status = impl::event_status::init;
     bool _notified = false;
     std::coroutine_handle<> _waiting_coro;
 };
@@ -172,7 +166,7 @@ namespace impl
         base::await_suspend(awaiting_coroutine);
     }
 
-    event_status awaitable_wait_for::await_resume() noexcept
+    status awaitable_wait_for::await_resume() noexcept
     {
         base::await_resume();
         assert(_event._status > event_status::waiting);
@@ -182,7 +176,20 @@ namespace impl
         // has been deleted
         if (timer_req.data == static_cast<void*>(this))  // check that we got here after await_suspend()
             uv_timer_stop(&timer_req);
-        return _event._status;
+
+        switch(_event._status)
+        {
+            case event_status::init:
+            case event_status::waiting:
+                assert(false);
+                return co::undefined;
+            case event_status::ok:
+                return co::ok;
+            case event_status::cancel:
+                return co::cancel;
+            case event_status::timeout:
+                return co::timeout;
+        }
     }
 
 }  // namespace impl

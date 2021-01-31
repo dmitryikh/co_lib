@@ -197,7 +197,7 @@ void mutex_usage()
         }()).detach();
         auto th = co::thread([&]() -> co::task<void>
         {
-            while (co_await mutex.lock_for(200ms) != co::event_status::ok)
+            while (co_await mutex.lock_for(200ms) != co::ok)
             {
                 std::cout << "task2 trying to get lock\n";
             }
