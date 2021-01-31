@@ -6,10 +6,15 @@
 namespace co
 {
 
+inline void loop()
+{
+    co::impl::get_scheduler().run();
+}
+
 inline void loop(task<void>&& task)
 {
-    co::thread(std::move(task), "main").detach();
-    co::impl::get_scheduler().run();
+    co::thread(std::move(task), "main");
+    loop();
 }
 
 }

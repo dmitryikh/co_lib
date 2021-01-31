@@ -7,13 +7,15 @@
 namespace co
 {
 
-template <typename T>
+template <typename T, bool>
 class task;
+
+class thread;
 
 namespace impl
 {
 
-template <typename T>
+template <typename T, bool self_destroy>
 class task_promise
 {
 public:
@@ -21,7 +23,7 @@ public:
 
     auto final_suspend() noexcept
     {
-        return symmetric_transfer_awaitable{ _continuation };
+        return symmetric_transfer_awaitable{ _continuation, self_destroy };
     }
 
     void set_continuation(std::coroutine_handle<> continuation) noexcept
@@ -29,10 +31,10 @@ public:
         _continuation = continuation;
     }
 
-    task<T> get_return_object() noexcept
+    task<T, self_destroy> get_return_object() noexcept
     {
-        using coroutine_handle = std::coroutine_handle<task_promise<T>>;
-        return task<T>{ coroutine_handle::from_promise(*this), _state };
+        using coroutine_handle = std::coroutine_handle<task_promise<T, self_destroy>>;
+        return task<T, self_destroy>{ coroutine_handle::from_promise(*this) };
     }
 
     void unhandled_exception()
@@ -58,11 +60,12 @@ private:
 } // namespace impl
 
 
-template<typename T>
+template<typename T, bool self_destroy = false>
 class task
 {
+    friend class thread;
 public:
-    using promise_type = impl::task_promise<T>;
+    using promise_type = impl::task_promise<T, self_destroy>;
 
 private:
 
@@ -99,13 +102,12 @@ private:
 
 public:
 
-    explicit task(std::coroutine_handle<promise_type> coroutine, impl::shared_state<T>& state)
+    explicit task(std::coroutine_handle<promise_type> coroutine)
         : _coroutine(coroutine)
-        , _state(state)
     {}
 
     task(task&& t) noexcept
-        : task(t._coroutine, t._state)
+        : task(t._coroutine)
     {
         t._coroutine = nullptr;
     }
@@ -116,13 +118,8 @@ public:
 
     ~task()
     {
-        if (_coroutine)
+        if (_coroutine && !self_destroy)
             _coroutine.destroy();
-    }
-
-    bool is_done() const
-    {
-        return _state.is_done();
     }
 
     auto operator co_await() const
@@ -132,21 +129,20 @@ public:
 
 private:
     std::coroutine_handle<promise_type> _coroutine;
-    impl::shared_state<T>& _state;
 };
 
 namespace impl
 {
 
-template <>
-class task_promise<void>
+template <bool self_destroy>
+class task_promise<void, self_destroy>
 {
 public:
     std::suspend_always initial_suspend() noexcept { return {}; }
 
     auto final_suspend() noexcept
     {
-        return symmetric_transfer_awaitable{ _continuation };
+        return symmetric_transfer_awaitable{ _continuation, self_destroy };
     }
 
     void set_continuation(std::coroutine_handle<> continuation) noexcept
@@ -154,10 +150,10 @@ public:
         _continuation = continuation;
     }
 
-    task<void> get_return_object() noexcept
+    task<void, self_destroy> get_return_object() noexcept
     {
-        using coroutine_handle = std::coroutine_handle<task_promise<void>>;
-        return task<void>{ coroutine_handle::from_promise(*this), _state };
+        using coroutine_handle = std::coroutine_handle<task_promise<void, self_destroy>>;
+        return task<void, self_destroy>{ coroutine_handle::from_promise(*this) };
     }
 
     void unhandled_exception()

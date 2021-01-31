@@ -98,9 +98,13 @@ public:
         return impl::awaitable_wait_for(*this, milliseconds, token);
     };
 
+    bool is_notified() const
+    {
+        return _status == impl::event_status::ok;
+    }
+
 private:
     impl::event_status _status = impl::event_status::init;
-    bool _notified = false;
     std::coroutine_handle<> _waiting_coro;
 };
 
