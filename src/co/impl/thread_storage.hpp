@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <co/stop_token.hpp>
 
 namespace co::impl
 {
@@ -9,7 +10,7 @@ struct thread_storage
 {
     std::string name;
     uint64_t id;
-    // cancelation token
+    stop_source stop;
 };
 
 inline std::unique_ptr<impl::thread_storage> create_thread_storage(const std::string& thread_name, uint64_t id)

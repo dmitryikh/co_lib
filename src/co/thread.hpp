@@ -212,6 +212,21 @@ public:
         return _thread_task.is_done();
     }
 
+    stop_source get_stop_source() const
+    {
+        return _thread_storage_ptr->stop;
+    }
+
+    stop_token get_stop_token() const
+    {
+        return _thread_storage_ptr->stop.get_token();
+    }
+
+    void request_stop() const
+    {
+        _thread_storage_ptr->stop.request_stop();
+    }
+
 private:
     static inline uint64_t id = 0;
 
@@ -231,6 +246,16 @@ namespace this_thread
     const uint64_t get_id()
     {
         return co::impl::this_thread_storage_ref().id;
+    }
+
+    stop_token get_stop_token()
+    {
+        return co::impl::this_thread_storage_ref().stop.get_token();
+    }
+
+    bool stop_requested()
+    {
+        return co::impl::this_thread_storage_ref().stop.stop_requested();
     }
 };
 

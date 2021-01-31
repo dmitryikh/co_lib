@@ -27,7 +27,8 @@ public:
 
     void await_resume() noexcept
     {
-        set_this_thread_storage_ptr(_thread_storage);
+        if (_thread_storage)
+            set_this_thread_storage_ptr(_thread_storage);
     }
 
 private:

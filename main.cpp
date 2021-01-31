@@ -213,13 +213,49 @@ void mutex_usage()
     }());
 }
 
+void stop_token_usage()
+{
+    co::loop([]() -> co::task<void>
+    {
+        auto th = co::thread([]() -> co::task<void>
+        {
+            while (true)
+            {
+                std::cout << "thread1: about to sleep\n";
+                co_await co::this_thread::sleep_for(2s, co::this_thread::get_stop_token());
+                if (co::this_thread::stop_requested())
+                    co_return;
+            }
+        }());
+
+        auto th2 = co::thread([stop = th.get_stop_token()]() -> co::task<void>
+        {
+            while (true)
+            {
+                std::cout << "thread2: about to sleep\n";
+                co_await co::this_thread::sleep_for(600ms, stop);
+                if (stop.stop_requested())
+                    co_return;
+            }
+        }());
+
+        co_await co::this_thread::sleep_for(2500ms);
+        th.request_stop();
+        std::cout << "stop request sended\n";
+        co_await th2.join();
+        co_await th.join();
+        std::cout << "joined\n";
+    }());
+}
+
 int main()
 {
     // usage();
 
     // eager_usage();
     // lazy_usage();
-    scheduler_usage();
-    net_usage();
-    mutex_usage();
+    // scheduler_usage();
+    // net_usage();
+    // mutex_usage();
+    stop_token_usage();
 }
