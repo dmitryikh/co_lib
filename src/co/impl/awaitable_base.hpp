@@ -57,14 +57,12 @@ public:
         , _is_destroy(is_destroy)
     {}
 
-    bool await_ready() const noexcept { return false; }
+    bool await_ready() const noexcept { return _is_destroy; }
 
     std::coroutine_handle<> await_suspend(std::coroutine_handle<> coro) noexcept
     {
 
         auto continuation = _continuation;
-        if (_is_destroy)
-            coro.destroy();
         if (continuation)
             return continuation;
         else
@@ -78,7 +76,7 @@ public:
     {
         // NOTE: it's not expected that symmetric_transfer_awaitable will be resumed
         // because symmetric_transfer_awaitable should be used in final_suspend
-        assert(true);
+        assert(_is_destroy);
     }
 
 private:

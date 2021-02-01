@@ -145,7 +145,7 @@ co::task<void> client_work(const std::string& ip, uint16_t port)
 {
     auto socket = std::make_shared<co::net::tcp>(co_await co::net::connect(ip, port));
     // co_await socket.read_n(&bytes[0], 30);
-    co::thread([socket] () -> co::task<void>
+    co::thread([] (auto socket) -> co::task<void>
     {
         for (int i = 0; i < 3; i++)
         {
@@ -155,7 +155,7 @@ co::task<void> client_work(const std::string& ip, uint16_t port)
         }
         std::cout << "shutdown\n";
         co_await socket->shutdown();
-    }(), "writer").detach();
+    }(socket), "writer").detach();
 
     while (true)
     {
@@ -175,10 +175,10 @@ void net_usage()
 
 void mutex_usage()
 {
-    co::mutex mutex;
-    co::loop([&]() -> co::task<void>
+    co::loop([]() -> co::task<void>
     {
-        co::thread([&]() -> co::task<void>
+        co::mutex mutex;
+        auto th1 = co::thread([](auto& mutex) -> co::task<void>
         {
             std::cout << "task0 about to get lock\n";
             co_await mutex.lock();
@@ -186,16 +186,16 @@ void mutex_usage()
             co_await co::this_thread::sleep_for(1s);
             std::cout << "task0 release lock\n";
             mutex.unlock();
-        }()).detach();
-        co::thread([&]() -> co::task<void>
+        }(mutex));
+        auto th2 = co::thread([](auto& mutex) -> co::task<void>
         {
             co_await mutex.lock();
             std::cout << "task1 got lock\n";
             co_await co::this_thread::sleep_for(1s);
             std::cout << "task1 release lock\n";
             mutex.unlock();
-        }()).detach();
-        auto th = co::thread([&]() -> co::task<void>
+        }(mutex));
+        auto th3 = co::thread([](auto& mutex) -> co::task<void>
         {
             while (co_await mutex.lock_for(200ms) != co::ok)
             {
@@ -206,8 +206,10 @@ void mutex_usage()
             std::cout << "task2 release lock\n";
             mutex.unlock();
 
-        }());
-        co_await th.join();
+        }(mutex));
+        co_await th1.join();
+        co_await th2.join();
+        co_await th3.join();
         co_return;
     }());
 }
@@ -227,7 +229,7 @@ void stop_token_usage()
             }
         }());
 
-        auto th2 = co::thread([stop = th.get_stop_token()]() -> co::task<void>
+        auto th2 = co::thread([](auto stop) -> co::task<void>
         {
             while (true)
             {
@@ -236,7 +238,7 @@ void stop_token_usage()
                 if (stop.stop_requested())
                     co_return;
             }
-        }());
+        }(th.get_stop_token()));
 
         co_await co::this_thread::sleep_for(2500ms);
         th.request_stop();
@@ -247,14 +249,37 @@ void stop_token_usage()
     }());
 }
 
+void dangling_ref()
+{
+    co::loop([]() -> co::task<void>
+    {
+        // This is crashed:
+        // auto i_ptr = std::make_unique<int>(10);
+        // auto task = [i_ptr = std::move(i_ptr)]() -> co::task<void>
+        // {
+        //     std::cout << "i is " << *i_ptr << std::endl;
+        //     co_return;
+        // }();
+        // co_await task;
+
+        auto i_ptr = std::make_unique<int>(10);
+        auto task = [](auto i_ptr) -> co::task<void>
+        {
+            std::cout << "i is " << *i_ptr << std::endl;
+            co_return;
+        }(std::move(i_ptr));
+        co_await task;
+    }());
+}
+
 int main()
 {
     // usage();
-
     // eager_usage();
     // lazy_usage();
     scheduler_usage();
     net_usage();
     mutex_usage();
     stop_token_usage();
+    dangling_ref();
 }

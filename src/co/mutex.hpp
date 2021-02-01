@@ -56,7 +56,10 @@ public:
         impl::event_node event;
         event.it = _waiting_queue.insert(_waiting_queue.end(), &event);
 
-        co_return co_await event.ev.wait_for(sleep_duration, token);
+        const auto status = co_await event.ev.wait_for(sleep_duration, token);
+        if (event.it)
+            _waiting_queue.erase(*event.it);
+        co_return  status;
     }
 
     ~mutex()
