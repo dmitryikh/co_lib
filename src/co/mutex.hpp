@@ -4,23 +4,10 @@
 #include <co/std.hpp>
 #include <co/scheduler.hpp>
 #include <co/stop_token.hpp>
-#include <co/impl/awaitable_base.hpp>
+#include <co/impl/waiting_queue.hpp>
 
 namespace co
 {
-
-class mutex;
-
-namespace impl
-{
-    // TODO: replace with intrusive list
-    struct event_node
-    {
-        event ev;
-        std::optional<std::list<event_node*>::iterator> it;
-    };
-
-}
 
 class mutex
 {
@@ -30,10 +17,7 @@ public:
         if (try_lock())
             co_return;
 
-        impl::event_node event;
-        event.it = _waiting_queue.insert(_waiting_queue.end(), &event);
-
-        co_await event.ev.wait();
+        co_await _waiting_queue.wait();
     }
 
     task<status> lock(const stop_token& token)
@@ -41,10 +25,7 @@ public:
         if (try_lock())
             co_return ok;
 
-        impl::event_node event;
-        event.it = _waiting_queue.insert(_waiting_queue.end(), &event);
-
-        co_return co_await event.ev.wait(token);
+        co_return co_await _waiting_queue.wait(token);
     }
 
     template <class Rep, class Period>
@@ -53,13 +34,7 @@ public:
         if (try_lock())
             co_return ok;
 
-        impl::event_node event;
-        event.it = _waiting_queue.insert(_waiting_queue.end(), &event);
-
-        const auto status = co_await event.ev.wait_for(sleep_duration, token);
-        if (event.it)
-            _waiting_queue.erase(*event.it);
-        co_return  status;
+        co_return co_await _waiting_queue.wait_for(sleep_duration, token);
     }
 
     ~mutex()
@@ -88,20 +63,12 @@ public:
         if (!_is_locked)
             return;
 
-        while (!_waiting_queue.empty())
-        {
-            auto ptr = *_waiting_queue.begin();
-            assert(ptr != nullptr);
-            ptr->it = std::nullopt;
-            _waiting_queue.pop_front();
-            if (ptr->ev.notify())
-                return;
-        }
-        _is_locked = false;
+        if (!_waiting_queue.notify_one())
+            _is_locked = false;
     }
 private:
     bool _is_locked = false;
-    std::list<impl::event_node*> _waiting_queue;
+    impl::waiting_queue _waiting_queue;
 };
 
 } // namespace co

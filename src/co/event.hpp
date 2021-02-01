@@ -62,7 +62,7 @@ class event
     friend class impl::awaitable_wait_for;
 public:
 
-    bool notify()
+    bool notify() noexcept
     {
         if (_status >= impl::event_status::ok)
             return false;
