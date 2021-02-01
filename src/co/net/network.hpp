@@ -4,7 +4,7 @@
 #include <uv.h>
 #include <co/std.hpp>
 #include <co/scheduler.hpp>
-#include <co/impl/awaitable_base.hpp>
+#include <co/event.hpp>
 
 namespace co::net
 {

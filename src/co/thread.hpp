@@ -2,9 +2,9 @@
 
 #include <co/std.hpp>
 #include <co/impl/shared_state.hpp>
-#include <co/impl/awaitable_base.hpp>
 #include <co/impl/thread_storage.hpp>
 #include <co/event.hpp>
+#include <co/task.hpp>
 
 namespace co
 {
@@ -12,7 +12,7 @@ namespace co
 namespace impl
 {
 
-inline task<void, true> create_thread_main_task(task<void> task, std::shared_ptr<event> finish, std::shared_ptr<thread_storage> thread_storage)
+inline thread_task create_thread_main_task(task<void> task, std::shared_ptr<event> finish, std::shared_ptr<thread_storage> thread_storage)
 {
     try
     {
@@ -104,7 +104,7 @@ private:
     bool _detached = false;
     std::shared_ptr<impl::thread_storage> _thread_storage_ptr;
     std::shared_ptr<event> _event_ptr;
-    task<void, true> _thread_task;
+    impl::thread_task _thread_task;
 };
 
 namespace this_thread

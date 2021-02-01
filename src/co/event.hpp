@@ -3,6 +3,7 @@
 #include <chrono>
 #include <co/std.hpp>
 #include <co/scheduler.hpp>
+#include <co/impl/thread_storage.hpp>
 #include <co/stop_token.hpp>
 #include <co/status.hpp>
 
@@ -23,16 +24,20 @@ enum class event_status
     timeout
 };
 
-class awaitable_wait_for : public awaitable_base
+class wait_for_awaiter
 {
-    using base = awaitable_base;
 public:
-    awaitable_wait_for(event& event, int64_t milliseconds, const co::stop_token& token)
-        : _milliseconds(milliseconds)
+    wait_for_awaiter(event& event, int64_t milliseconds, const co::stop_token& token)
+        : _thread_storage(get_this_thread_storage_ptr())
+        , _milliseconds(milliseconds)
         , _event(event)
         , _token(token)
         , _stop_callback(_token, stop_callback_func())
-    {}
+    {
+        // we can't run async code outside of co::thread. Then _thread_storage should be
+        // defined in any point of time
+        assert(_thread_storage != nullptr);
+    }
 
     bool await_ready() const noexcept;
     void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept;
@@ -42,6 +47,7 @@ private:
     co::stop_callback_func stop_callback_func();
     static void on_timer(uv_timer_t* timer_req);
 
+    thread_storage* _thread_storage = nullptr;  // the thread to which the awaiter belongs
     uv_timer_t timer_req;
     const int64_t _milliseconds;
     event& _event;
@@ -59,7 +65,7 @@ private:
 /// happened. After notification all event::wait() will return immidiately
 class event
 {
-    friend class impl::awaitable_wait_for;
+    friend class impl::wait_for_awaiter;
 public:
 
     bool notify() noexcept
@@ -74,19 +80,19 @@ public:
         return true;
     }
 
-    [[nodiscard("co_await me")]] impl::awaitable_wait_for wait(const co::stop_token& token = {})
+    [[nodiscard("co_await me")]] impl::wait_for_awaiter wait(const co::stop_token& token = {})
     {
         return wait_for(std::chrono::milliseconds::max(), token);
     };
 
     template <class Clock, class Duration>
-    [[nodiscard("co_await me")]] impl::awaitable_wait_for wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
+    [[nodiscard("co_await me")]] impl::wait_for_awaiter wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
     {
         return wait_for(sleep_time - Clock::now(), token);
     }
 
     template <class Rep, class Period>
-    [[nodiscard("co_await me")]] impl::awaitable_wait_for wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
+    [[nodiscard("co_await me")]] impl::wait_for_awaiter wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
     {
         if (_status == impl::event_status::waiting)
             throw std::logic_error("event already waiting");
@@ -95,7 +101,7 @@ public:
         using std::chrono::duration_cast;
         const int64_t milliseconds = duration_cast<std::chrono::milliseconds>(sleep_duration).count();
 
-        return impl::awaitable_wait_for(*this, milliseconds, token);
+        return impl::wait_for_awaiter(*this, milliseconds, token);
     };
 
     bool is_notified() const
@@ -110,7 +116,7 @@ private:
 
 namespace impl
 {
-    co::stop_callback_func awaitable_wait_for::stop_callback_func()
+    co::stop_callback_func wait_for_awaiter::stop_callback_func()
     {
         return [this] ()
         {
@@ -125,22 +131,22 @@ namespace impl
         };
     }
 
-    void awaitable_wait_for::on_timer(uv_timer_t* timer_req)
+    void wait_for_awaiter::on_timer(uv_timer_t* timer_req)
     {
         assert(timer_req != nullptr);
         assert(timer_req->data != nullptr);
 
-        auto& awaitable = *static_cast<awaitable_wait_for*>(timer_req->data);
-        if (awaitable._event._status > event_status::waiting)
+        auto& awaiter = *static_cast<wait_for_awaiter*>(timer_req->data);
+        if (awaiter._event._status > event_status::waiting)
         {
             // the waiter of the event is already notified. do nothing
             return;
         }
-        awaitable._event._status = event_status::timeout;
-        get_scheduler().ready(awaitable._event._waiting_coro);
+        awaiter._event._status = event_status::timeout;
+        get_scheduler().ready(awaiter._event._waiting_coro);
     }
 
-    bool awaitable_wait_for::await_ready() const noexcept
+    bool wait_for_awaiter::await_ready() const noexcept
     {
         if (_event._status == event_status::ok)
             return true;
@@ -160,23 +166,25 @@ namespace impl
         return false;
     }
 
-    void awaitable_wait_for::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
+    void wait_for_awaiter::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
     {
         uv_timer_init(get_scheduler().uv_loop(), &timer_req);
         _event._waiting_coro = awaiting_coroutine;
         _event._status = event_status::waiting;
         timer_req.data = static_cast<void*>(this);
         uv_timer_start(&timer_req, on_timer, _milliseconds, 0);
-        base::await_suspend(awaiting_coroutine);
+        set_this_thread_storage_ptr(nullptr);
     }
 
-    status awaitable_wait_for::await_resume() noexcept
+    status wait_for_awaiter::await_resume() noexcept
     {
-        base::await_resume();
         assert(_event._status > event_status::waiting);
 
+        if (_thread_storage)
+            set_this_thread_storage_ptr(_thread_storage);
+
         // NOTE: may be need to set timer_req.data = nullptr to avoid dangling
-        // pointer in case of on_timer() will be called after awaitable_wait_for
+        // pointer in case of on_timer() will be called after wait_for_awaiter
         // has been deleted
         if (timer_req.data == static_cast<void*>(this))  // check that we got here after await_suspend()
             uv_timer_stop(&timer_req);

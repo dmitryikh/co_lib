@@ -1,21 +1,58 @@
 #pragma once
 
+#include <cassert>
 #include <co/std.hpp>
 #include <co/impl/shared_state.hpp>
-#include <co/impl/awaitable_base.hpp>
 
 namespace co
 {
-
-template <typename T, bool>
-class task;
 
 class thread;
 
 namespace impl
 {
 
-template <typename T, bool self_destroy>
+template <typename T, typename FinalAwaiter>
+class task_template;
+
+// NOTE: we don't need to change thread_storage_ptr here because we don't change
+// the active co::thread. We are just returning control to the parent frame
+// NOTE: the frame will be destroyed in task's destructor
+class symmetric_transfer_awaiter
+{
+public:
+    symmetric_transfer_awaiter(std::coroutine_handle<> continuation)
+        : _continuation(continuation)
+    {}
+
+    bool await_ready() const noexcept { return false; }
+
+    std::coroutine_handle<> await_suspend(std::coroutine_handle<>) noexcept
+    {
+
+        return _continuation;
+    }
+
+    void await_resume() noexcept
+    {
+        // NOTE: it's not expected to be resumed because
+        // symmetric_transfer_awaiter should be used in final_suspend
+        assert(false);
+    }
+
+private:
+    std::coroutine_handle<> _continuation;
+};
+
+class never_awaiter : public std::suspend_never
+{
+public:
+    never_awaiter(std::coroutine_handle<>)
+        : std::suspend_never()
+    {}
+};
+
+template <typename T, typename FinalAwaiter>
 class task_promise
 {
 public:
@@ -23,7 +60,7 @@ public:
 
     auto final_suspend() noexcept
     {
-        return symmetric_transfer_awaitable{ _continuation, self_destroy };
+        return FinalAwaiter{ _continuation };
     }
 
     void set_continuation(std::coroutine_handle<> continuation) noexcept
@@ -31,10 +68,10 @@ public:
         _continuation = continuation;
     }
 
-    task<T, self_destroy> get_return_object() noexcept
+    task_template<T, FinalAwaiter> get_return_object() noexcept
     {
-        using coroutine_handle = std::coroutine_handle<task_promise<T, self_destroy>>;
-        return task<T, self_destroy>{ coroutine_handle::from_promise(*this) };
+        using coroutine_handle = std::coroutine_handle<task_promise>;
+        return task_template<T, FinalAwaiter>{ coroutine_handle::from_promise(*this) };
     }
 
     void unhandled_exception()
@@ -57,21 +94,18 @@ private:
     shared_state<T> _state;
 };
 
-} // namespace impl
 
-
-template<typename T, bool self_destroy = false>
-class task
+template<typename T, typename FinalAwaiter>
+class task_template
 {
-    friend class thread;
+    friend class co::thread;
 public:
-    using promise_type = impl::task_promise<T, self_destroy>;
+    using promise_type = task_promise<T, FinalAwaiter>;
+    using value = T;
 
 private:
-
-    class awaitable : public co::impl::awaitable_base
+    class awaitable
     {
-        using base = co::impl::awaitable_base;
     public:
         awaitable(std::coroutine_handle<promise_type> coroutine) noexcept
             : _coroutine(coroutine)
@@ -86,13 +120,11 @@ private:
             std::coroutine_handle<> continuation) noexcept
         {
             _coroutine.promise().set_continuation(continuation);
-            // base::await_suspend(continuation);
             return _coroutine;
         }
 
         T await_resume()
         {
-            // base::await_resume();
             return _coroutine.promise().state().value();
         }
 
@@ -102,23 +134,23 @@ private:
 
 public:
 
-    explicit task(std::coroutine_handle<promise_type> coroutine)
+    explicit task_template(std::coroutine_handle<promise_type> coroutine)
         : _coroutine(coroutine)
     {}
 
-    task(task&& t) noexcept
-        : task(t._coroutine)
+    task_template(task_template&& t) noexcept
+        : task_template(t._coroutine)
     {
         t._coroutine = nullptr;
     }
 
-    task(const task&) = delete;
-    task& operator=(const task&) = delete;
-    task& operator=(task&& other) = delete;
+    task_template(const task_template&) = delete;
+    task_template& operator=(const task_template&) = delete;
+    task_template& operator=(task_template&& other) = delete;
 
-    ~task()
+    ~task_template()
     {
-        if (_coroutine && !self_destroy)
+        if (_coroutine && !std::is_same_v<FinalAwaiter, impl::never_awaiter>)
             _coroutine.destroy();
     }
 
@@ -131,18 +163,15 @@ private:
     std::coroutine_handle<promise_type> _coroutine;
 };
 
-namespace impl
-{
-
-template <bool self_destroy>
-class task_promise<void, self_destroy>
+template <typename FinalAwaiter>
+class task_promise<void, FinalAwaiter>
 {
 public:
     std::suspend_always initial_suspend() noexcept { return {}; }
 
     auto final_suspend() noexcept
     {
-        return symmetric_transfer_awaitable{ _continuation, self_destroy };
+        return FinalAwaiter{ _continuation };
     }
 
     void set_continuation(std::coroutine_handle<> continuation) noexcept
@@ -150,10 +179,10 @@ public:
         _continuation = continuation;
     }
 
-    task<void, self_destroy> get_return_object() noexcept
+    task_template<void, FinalAwaiter> get_return_object() noexcept
     {
-        using coroutine_handle = std::coroutine_handle<task_promise<void, self_destroy>>;
-        return task<void, self_destroy>{ coroutine_handle::from_promise(*this) };
+        using coroutine_handle = std::coroutine_handle<task_promise<void, FinalAwaiter>>;
+        return task_template<void, FinalAwaiter>{ coroutine_handle::from_promise(*this) };
     }
 
     void unhandled_exception()
@@ -176,6 +205,11 @@ private:
     shared_state<void> _state;
 };
 
+using thread_task = impl::task_template<void, never_awaiter>;
+
 } // namespace impl
+
+template <typename T>
+using task = impl::task_template<T, impl::symmetric_transfer_awaiter>;
 
 }

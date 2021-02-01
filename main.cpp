@@ -278,9 +278,9 @@ int main()
     // usage();
     // eager_usage();
     // lazy_usage();
-    // scheduler_usage();
+    scheduler_usage();
     net_usage();
-    // mutex_usage();
-    // stop_token_usage();
-    // dangling_ref();
+    mutex_usage();
+    stop_token_usage();
+    dangling_ref();
 }
