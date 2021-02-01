@@ -143,29 +143,30 @@ void scheduler_usage()
 
 co::task<void> client_work(const std::string& ip, uint16_t port)
 {
-    auto socket = std::make_shared<co::net::tcp>(co_await co::net::connect(ip, port));
+    auto socket = co_await co::net::connect(ip, port);
     // co_await socket.read_n(&bytes[0], 30);
-    co::thread([] (auto socket) -> co::task<void>
+    auto th = co::thread([] (auto& socket) -> co::task<void>
     {
         for (int i = 0; i < 3; i++)
         {
             const std::string to_write = "abba" + std::to_string(i);
-            co_await socket->write(to_write.data(), to_write.size());
+            co_await socket.write(to_write.data(), to_write.size());
             co_await co::this_thread::sleep_for(1000ms);
         }
         std::cout << "shutdown\n";
-        co_await socket->shutdown();
-    }(socket), "writer").detach();
+        co_await socket.shutdown();
+    }(socket), "writer");
 
     while (true)
     {
         std::string bytes(30, 0);
-        const size_t len = co_await socket->read(&bytes[0], 30);
+        const size_t len = co_await socket.read(&bytes[0], 30);
         bytes.resize(len);
         if (len == 0)
             break;
         std::cout << "read res: " << bytes << "\n";
     }
+    co_await th.join();
 }
 
 void net_usage()
@@ -277,9 +278,9 @@ int main()
     // usage();
     // eager_usage();
     // lazy_usage();
-    scheduler_usage();
+    // scheduler_usage();
     net_usage();
-    mutex_usage();
-    stop_token_usage();
-    dangling_ref();
+    // mutex_usage();
+    // stop_token_usage();
+    // dangling_ref();
 }

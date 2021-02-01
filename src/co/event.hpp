@@ -74,19 +74,19 @@ public:
         return true;
     }
 
-    impl::awaitable_wait_for wait(const co::stop_token& token = {})
+    [[nodiscard("co_await me")]] impl::awaitable_wait_for wait(const co::stop_token& token = {})
     {
         return wait_for(std::chrono::milliseconds::max(), token);
     };
 
     template <class Clock, class Duration>
-    impl::awaitable_wait_for wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
+    [[nodiscard("co_await me")]] impl::awaitable_wait_for wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
     {
         return wait_for(sleep_time - Clock::now(), token);
     }
 
     template <class Rep, class Period>
-    impl::awaitable_wait_for wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
+    [[nodiscard("co_await me")]] impl::awaitable_wait_for wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
     {
         if (_status == impl::event_status::waiting)
             throw std::logic_error("event already waiting");

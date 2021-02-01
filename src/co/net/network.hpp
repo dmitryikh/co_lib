@@ -9,228 +9,175 @@
 namespace co::net
 {
 
-using tcp_uv_ptr = std::unique_ptr<uv_tcp_t>;
-
-class awaitable_read : public co::impl::awaitable_base
-{
-    using base = co::impl::awaitable_base;
-public:
-    explicit awaitable_read(uv_tcp_t& tcp_handle, char* buffer_ptr, size_t buffer_len)
-        : _tcp_handle(tcp_handle)
-        , _buffer_ptr(buffer_ptr)
-        , _buffer_len(buffer_len)
-    {
-        assert(buffer_ptr != nullptr);
-        assert(buffer_len > 0);
-    }
-
-    bool await_ready() const noexcept { return false; }
-
-    void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
-    {
-        _coro = awaiting_coroutine;
-        _tcp_handle.data = static_cast<void*>(this);
-        int ret = uv_read_start((uv_stream_t*)&_tcp_handle, alloc, on_read);
-        if (ret != 0)
-        {
-            _status = ret;
-            co::impl::get_scheduler().ready(awaiting_coroutine);
-        }
-        base::await_suspend(awaiting_coroutine);
-    }
-
-    size_t await_resume()
-    {
-        using namespace std::string_literals;
-
-        base::await_resume();
-
-        if (_status != 0)
-            throw std::runtime_error("read error: "s + uv_strerror(_status));
-
-        return _read_len;
-    }
-
-private:
-    static void alloc(uv_handle_t* handle, size_t /*suggested_size*/, uv_buf_t* buf)
-    {
-        assert(handle != nullptr);
-        assert(handle->data != nullptr);
-
-        auto& self = *static_cast<awaitable_read*>(handle->data);
-        buf->base = self._buffer_ptr;
-        buf->len = self._buffer_len;
-    }
-
-    static void on_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* /*buf*/)
-    {
-        assert(stream != nullptr);
-        assert(stream->data != nullptr);
-
-        auto& self = *static_cast<awaitable_read*>(stream->data);
-        self._status = 0;
-        self._read_len = 0;
-
-        if (nread == 0)
-        {
-            // nread might be 0, which does not indicate an error or EOF. This
-            // is equivalent to EAGAIN or EWOULDBLOCK under read(2).
-            return;
-        }
-        if (nread == UV_EOF)
-            self._read_len = 0;
-        else if (nread < 0)
-            self._status = -nread;
-        else if (nread > 0)
-            self._read_len = static_cast<size_t>(nread);
-
-        /*int ret = */uv_read_stop(stream);
-        co::impl::get_scheduler().ready(self._coro);
-    }
-
-private:
-    int _status = 0;
-    size_t _read_len = 0;
-    std::coroutine_handle<> _coro;
-    uv_tcp_t& _tcp_handle;
-    char* _buffer_ptr;
-    size_t _buffer_len;
-};
-
-class awaitable_write : public co::impl::awaitable_base
-{
-    using base = co::impl::awaitable_base;
-public:
-    explicit awaitable_write(uv_tcp_t& tcp_handle, const char* buffer_ptr, size_t buffer_len)
-        : _tcp_handle(tcp_handle)
-        , _bufs{ uv_buf_init(const_cast<char*>(buffer_ptr), buffer_len) }
-    {
-        assert(buffer_ptr != nullptr);
-        assert(buffer_len > 0);
-    }
-
-    bool await_ready() const noexcept { return false; }
-
-    void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
-    {
-        _coro = awaiting_coroutine;
-        _write_handle.data = static_cast<void*>(this);
-        int ret = uv_write((uv_write_t*)&_write_handle, (uv_stream_t*)&_tcp_handle, _bufs.data(), _bufs.size(), on_write);
-        if (ret != 0)
-        {
-            _status = ret;
-            co::impl::get_scheduler().ready(awaiting_coroutine);
-        }
-        base::await_suspend(awaiting_coroutine);
-    }
-
-    void await_resume()
-    {
-        using namespace std::string_literals;
-
-        base::await_resume();
-
-        if (_status != 0)
-            throw std::runtime_error("read error: "s + uv_strerror(_status));
-    }
-
-private:
-    static void on_write(uv_write_t* handle, int status)
-    {
-        assert(handle != nullptr);
-        assert(handle->data != nullptr);
-
-        auto& self = *static_cast<awaitable_write*>(handle->data);
-        self._status = status;
-        co::impl::get_scheduler().ready(self._coro);
-    }
-
-private:
-    int _status = 0;
-    std::coroutine_handle<> _coro;
-    uv_write_t _write_handle;
-    uv_tcp_t& _tcp_handle;
-    std::array<uv_buf_t, 1> _bufs;
-};
-
-class awaitable_shutdown : public co::impl::awaitable_base
-{
-    using base = co::impl::awaitable_base;
-public:
-    explicit awaitable_shutdown(uv_tcp_t& tcp_handle)
-        : _tcp_handle(tcp_handle)
-    {}
-
-    bool await_ready() const noexcept { return false; }
-
-    void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
-    {
-        _coro = awaiting_coroutine;
-        _shutdown_handle.data = static_cast<void*>(this);
-        int ret = uv_shutdown(&_shutdown_handle, (uv_stream_t*)&_tcp_handle, on_shutdown);
-        if (ret != 0)
-        {
-            _status = ret;
-            co::impl::get_scheduler().ready(awaiting_coroutine);
-        }
-        base::await_suspend(awaiting_coroutine);
-    }
-
-    void await_resume()
-    {
-        using namespace std::string_literals;
-
-        base::await_resume();
-
-        if (_status != 0)
-            throw std::runtime_error("shutdown error: "s + uv_strerror(_status));
-    }
-
-private:
-    static void on_shutdown(uv_shutdown_t* handle, int status)
-    {
-        assert(handle != nullptr);
-        assert(handle->data != nullptr);
-
-        auto& self = *static_cast<awaitable_shutdown*>(handle->data);
-        self._status = status;
-        co::impl::get_scheduler().ready(self._coro);
-    }
-
-private:
-    int _status = 0;
-    uv_shutdown_t _shutdown_handle;
-    std::coroutine_handle<> _coro;
-    uv_tcp_t& _tcp_handle;
-};
-
 class tcp
 {
-public:
-    tcp(tcp_uv_ptr tcp_ptr)
+    friend task<tcp> connect(const std::string& ip, uint16_t port);
+private:
+    tcp(std::unique_ptr<uv_tcp_t> tcp_ptr)
         : _tcp_ptr(std::move(tcp_ptr))
     {}
 
+public:
     tcp(const tcp&) = delete;
     tcp& operator=(const tcp&) = delete;
 
-    tcp(tcp&& other)
-    : tcp(std::move(other._tcp_ptr))
-    {}
+    tcp(tcp&& other) = default;
+    tcp& operator=(tcp&& other) = default;
 
-    awaitable_read read(char* data, size_t size)
+    task<size_t> read(char* data, size_t len)
     {
-        return awaitable_read(*_tcp_ptr.get(), data, size);
+        struct read_state
+        {
+            char* buffer_ptr;
+            size_t buffer_len;
+            int read_status;
+            size_t read_len;
+            event& ev;
+        };
+
+        event ev;
+
+        auto state = read_state
+        {
+            data,
+            len,
+            0,
+            0,
+            ev
+        };
+
+        auto alloc = [](uv_handle_t* handle, size_t /*suggested_size*/, uv_buf_t* buf)
+        {
+            assert(handle != nullptr);
+            assert(handle->data != nullptr);
+
+            auto& state = *static_cast<read_state*>(handle->data);
+            buf->base = state.buffer_ptr;
+            buf->len = state.buffer_len;
+        };
+
+        auto on_read = [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* /*buf*/)
+        {
+            assert(stream != nullptr);
+            assert(stream->data != nullptr);
+
+            auto& state = *static_cast<read_state*>(stream->data);
+
+            if (nread == 0)
+            {
+                // nread might be 0, which does not indicate an error or EOF. This
+                // is equivalent to EAGAIN or EWOULDBLOCK under read(2).
+                return;
+            }
+            if (nread == UV_EOF)
+                state.read_len = 0;
+            else if (nread < 0)
+                state.read_status = -nread;
+            else if (nread > 0)
+                state.read_len = static_cast<size_t>(nread);
+
+            /*int ret = */uv_read_stop(stream);
+            state.ev.notify();
+        };
+
+        assert(_tcp_ptr);
+        _tcp_ptr->data = static_cast<void*>(&state);
+        int ret = uv_read_start((uv_stream_t*)_tcp_ptr.get(), alloc, on_read);
+        using namespace std::string_literals;
+        if (ret != 0)
+            throw std::runtime_error("read error: "s + uv_strerror(ret));
+
+        co_await ev.wait();
+
+        if (state.read_status != 0)
+            throw std::runtime_error("read error: "s + uv_strerror(state.read_status));
+
+        co_return state.read_len;
     }
 
-    awaitable_write write(const char* data, size_t size)
+    task<void> write(const char* data, size_t len)
     {
-        return awaitable_write(*_tcp_ptr.get(), data, size);
+        struct write_state
+        {
+            int status;
+            event& ev;
+        };
+
+        event ev;
+        std::array<uv_buf_t, 1> bufs = { uv_buf_init(const_cast<char*>(data), len) };
+
+        auto state = write_state
+        {
+            0,
+            ev
+        };
+
+        auto on_write = [](uv_write_t* handle, int status)
+        {
+            assert(handle != nullptr);
+            assert(handle->data != nullptr);
+
+            auto& state = *static_cast<write_state*>(handle->data);
+            state.status = status;
+            state.ev.notify();
+        };
+
+        uv_write_t write_handle;
+        write_handle.data = static_cast<void*>(&state);
+        assert(_tcp_ptr);
+        int ret = uv_write((uv_write_t*)&write_handle, (uv_stream_t*)_tcp_ptr.get(), bufs.data(), bufs.size(), on_write);
+        using namespace std::string_literals;
+        if (ret != 0)
+            throw std::runtime_error("write error: "s + uv_strerror(ret));
+
+        co_await ev.wait();
+
+        if (state.status != 0)
+            throw std::runtime_error("write error: "s + uv_strerror(state.status));
+
+        co_return;
     }
 
-    awaitable_shutdown shutdown()
+    task<void> shutdown()
     {
-        return awaitable_shutdown(*_tcp_ptr.get());
+        struct shutdown_state
+        {
+            int status;
+            event& ev;
+        };
+
+        event ev;
+
+        auto state = shutdown_state
+        {
+            0,
+            ev
+        };
+
+        auto on_shutdown = [](uv_shutdown_t* handle, int status)
+        {
+            assert(handle != nullptr);
+            assert(handle->data != nullptr);
+
+            auto& state = *static_cast<shutdown_state*>(handle->data);
+            state.status = status;
+            state.ev.notify();
+        };
+
+        uv_shutdown_t shutdown_handle;
+        shutdown_handle.data = static_cast<void*>(&state);
+        assert(_tcp_ptr);
+        int ret = uv_shutdown(&shutdown_handle, (uv_stream_t*)_tcp_ptr.get(), on_shutdown);
+        using namespace std::string_literals;
+        if (ret != 0)
+            throw std::runtime_error("shutdown error: "s + uv_strerror(ret));
+
+        co_await ev.wait();
+
+        if (state.status != 0)
+            throw std::runtime_error("shutdown error: "s + uv_strerror(state.status));
+
+        co_return;
     }
 
     ~tcp()
@@ -247,72 +194,57 @@ private:
     }
 
 private:
-    tcp_uv_ptr _tcp_ptr;
+    std::unique_ptr<uv_tcp_t> _tcp_ptr;
 };
 
-class awaitable_connect : public co::impl::awaitable_base
+task<tcp> connect(const std::string& ip, uint16_t port)
 {
-    using base = co::impl::awaitable_base;
-public:
-    explicit awaitable_connect(const std::string& ip, uint16_t port)
-        : _ip(ip)
-        , _port(port)
-        , _tcp_ptr(std::make_unique<uv_tcp_t>())
-    {}
-
-    bool await_ready() const noexcept { return false; }
-
-    void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
+    struct connect_state
     {
-        _coro = awaiting_coroutine;
-        uv_tcp_init(co::impl::get_scheduler().uv_loop(), _tcp_ptr.get());
-        _connect.data = static_cast<void*>(this);
-        struct sockaddr_in dest;
-        uv_ip4_addr(_ip.c_str(), _port, &dest);
-        int ret = uv_tcp_connect(&_connect, _tcp_ptr.get(), (const struct sockaddr*)&dest, on_connect);
-        if (ret != 0)
-        {
-            _status = ret;
-            co::impl::get_scheduler().ready(awaiting_coroutine);
-        }
-        base::await_suspend(awaiting_coroutine);
-    }
+        int status;
+        event& ev;
+    };
 
-    tcp await_resume()
+    event ev;
+
+    auto state = connect_state
     {
-        using namespace std::string_literals;
+        0,
+        ev
+    };
 
-        base::await_resume();
-
-        if (_status != 0)
-            throw std::runtime_error("connection error: "s + uv_strerror(_status));
-
-        return tcp{ std::move(_tcp_ptr) };
-    }
-
-private:
-    static void on_connect(uv_connect_t* connect, int status)
+    auto on_connect = [](uv_connect_t* connect, int status)
     {
         assert(connect != nullptr);
         assert(connect->data != nullptr);
-        auto& self = *static_cast<awaitable_connect*>(connect->data);
-        self._status = status;
-        co::impl::get_scheduler().ready(self._coro);
-    }
 
-private:
-    int _status = 0;
-    std::coroutine_handle<> _coro;
-    uv_connect_t _connect;
-    tcp_uv_ptr _tcp_ptr;
-    std::string _ip;
-    uint16_t _port;
-};
+        auto& state = *static_cast<connect_state*>(connect->data);
+        state.status = status;
+        state.ev.notify();
+    };
 
+    struct sockaddr_in dest;
+    int ret = uv_ip4_addr(ip.c_str(), port, &dest);
+    using namespace std::string_literals;
+    if (ret != 0)
+        throw std::runtime_error("address error: "s + uv_strerror(ret));
 
-awaitable_connect connect(const std::string& ip, uint16_t port)
-{
-    return awaitable_connect(ip, port);
+    auto tcp_ptr = std::make_unique<uv_tcp_t>();
+    uv_tcp_init(co::impl::get_scheduler().uv_loop(), tcp_ptr.get());
+
+    uv_connect_t connect;
+    connect.data = static_cast<void*>(&state);
+
+    ret = uv_tcp_connect(&connect, tcp_ptr.get(), (const struct sockaddr*)&dest, on_connect);
+    if (ret != 0)
+        throw std::runtime_error("connect error: "s + uv_strerror(ret));
+
+    co_await ev.wait();
+
+    if (state.status != 0)
+        throw std::runtime_error("connect error: "s + uv_strerror(state.status));
+
+    co_return tcp{ std::move(tcp_ptr) };
 }
 
 }
