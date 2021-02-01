@@ -12,7 +12,7 @@ namespace co
 class mutex
 {
 public:
-    task<void> lock()
+    func<void> lock()
     {
         if (try_lock())
             co_return;
@@ -20,7 +20,7 @@ public:
         co_await _waiting_queue.wait();
     }
 
-    task<status> lock(const stop_token& token)
+    func<status> lock(const stop_token& token)
     {
         if (try_lock())
             co_return ok;
@@ -29,7 +29,7 @@ public:
     }
 
     template <class Rep, class Period>
-    task<status> lock_for(std::chrono::duration<Rep, Period> sleep_duration, const stop_token& token = {})
+    func<status> lock_for(std::chrono::duration<Rep, Period> sleep_duration, const stop_token& token = {})
     {
         if (try_lock())
             co_return ok;

@@ -3,7 +3,7 @@
 #include <queue>
 #include <uv.h>
 #include <co/std.hpp>
-#include <co/task.hpp>
+#include <co/func.hpp>
 
 namespace co::impl
 {

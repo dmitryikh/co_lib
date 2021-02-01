@@ -13,11 +13,11 @@ namespace impl
 {
 
 template <typename T, typename FinalAwaiter>
-class task_template;
+class func_template;
 
 // NOTE: we don't need to change thread_storage_ptr here because we don't change
 // the active co::thread. We are just returning control to the parent frame
-// NOTE: the frame will be destroyed in task's destructor
+// NOTE: the frame will be destroyed in func's destructor
 class symmetric_transfer_awaiter
 {
 public:
@@ -53,7 +53,7 @@ public:
 };
 
 template <typename T, typename FinalAwaiter>
-class task_promise
+class func_promise
 {
 public:
     std::suspend_always initial_suspend() noexcept { return {}; }
@@ -68,10 +68,10 @@ public:
         _continuation = continuation;
     }
 
-    task_template<T, FinalAwaiter> get_return_object() noexcept
+    func_template<T, FinalAwaiter> get_return_object() noexcept
     {
-        using coroutine_handle = std::coroutine_handle<task_promise>;
-        return task_template<T, FinalAwaiter>{ coroutine_handle::from_promise(*this) };
+        using coroutine_handle = std::coroutine_handle<func_promise>;
+        return func_template<T, FinalAwaiter>{ coroutine_handle::from_promise(*this) };
     }
 
     void unhandled_exception()
@@ -96,11 +96,11 @@ private:
 
 
 template<typename T, typename FinalAwaiter>
-class task_template
+class func_template
 {
     friend class co::thread;
 public:
-    using promise_type = task_promise<T, FinalAwaiter>;
+    using promise_type = func_promise<T, FinalAwaiter>;
     using value = T;
 
 private:
@@ -134,21 +134,21 @@ private:
 
 public:
 
-    explicit task_template(std::coroutine_handle<promise_type> coroutine)
+    explicit func_template(std::coroutine_handle<promise_type> coroutine)
         : _coroutine(coroutine)
     {}
 
-    task_template(task_template&& t) noexcept
-        : task_template(t._coroutine)
+    func_template(func_template&& t) noexcept
+        : func_template(t._coroutine)
     {
         t._coroutine = nullptr;
     }
 
-    task_template(const task_template&) = delete;
-    task_template& operator=(const task_template&) = delete;
-    task_template& operator=(task_template&& other) = delete;
+    func_template(const func_template&) = delete;
+    func_template& operator=(const func_template&) = delete;
+    func_template& operator=(func_template&& other) = delete;
 
-    ~task_template()
+    ~func_template()
     {
         if (_coroutine && !std::is_same_v<FinalAwaiter, impl::never_awaiter>)
             _coroutine.destroy();
@@ -164,7 +164,7 @@ private:
 };
 
 template <typename FinalAwaiter>
-class task_promise<void, FinalAwaiter>
+class func_promise<void, FinalAwaiter>
 {
 public:
     std::suspend_always initial_suspend() noexcept { return {}; }
@@ -179,10 +179,10 @@ public:
         _continuation = continuation;
     }
 
-    task_template<void, FinalAwaiter> get_return_object() noexcept
+    func_template<void, FinalAwaiter> get_return_object() noexcept
     {
-        using coroutine_handle = std::coroutine_handle<task_promise<void, FinalAwaiter>>;
-        return task_template<void, FinalAwaiter>{ coroutine_handle::from_promise(*this) };
+        using coroutine_handle = std::coroutine_handle<func_promise<void, FinalAwaiter>>;
+        return func_template<void, FinalAwaiter>{ coroutine_handle::from_promise(*this) };
     }
 
     void unhandled_exception()
@@ -205,11 +205,11 @@ private:
     shared_state<void> _state;
 };
 
-using thread_task = impl::task_template<void, never_awaiter>;
+using thread_func = impl::func_template<void, never_awaiter>;
 
 } // namespace impl
 
 template <typename T>
-using task = impl::task_template<T, impl::symmetric_transfer_awaiter>;
+using func = impl::func_template<T, impl::symmetric_transfer_awaiter>;
 
 }

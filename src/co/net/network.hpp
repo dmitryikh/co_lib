@@ -11,7 +11,7 @@ namespace co::net
 
 class tcp
 {
-    friend task<tcp> connect(const std::string& ip, uint16_t port);
+    friend func<tcp> connect(const std::string& ip, uint16_t port);
 private:
     tcp(std::unique_ptr<uv_tcp_t> tcp_ptr)
         : _tcp_ptr(std::move(tcp_ptr))
@@ -24,7 +24,7 @@ public:
     tcp(tcp&& other) = default;
     tcp& operator=(tcp&& other) = default;
 
-    task<size_t> read(char* data, size_t len)
+    func<size_t> read(char* data, size_t len)
     {
         struct read_state
         {
@@ -95,7 +95,7 @@ public:
         co_return state.read_len;
     }
 
-    task<void> write(const char* data, size_t len)
+    func<void> write(const char* data, size_t len)
     {
         struct write_state
         {
@@ -138,7 +138,7 @@ public:
         co_return;
     }
 
-    task<void> shutdown()
+    func<void> shutdown()
     {
         struct shutdown_state
         {
@@ -197,7 +197,7 @@ private:
     std::unique_ptr<uv_tcp_t> _tcp_ptr;
 };
 
-task<tcp> connect(const std::string& ip, uint16_t port)
+func<tcp> connect(const std::string& ip, uint16_t port)
 {
     struct connect_state
     {

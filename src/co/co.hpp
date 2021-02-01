@@ -11,9 +11,9 @@ inline void loop()
     co::impl::get_scheduler().run();
 }
 
-inline void loop(task<void>&& task)
+inline void loop(func<void>&& func)
 {
-    co::thread(std::move(task), "main").detach();
+    co::thread(std::move(func), "main").detach();
     loop();
 }
 

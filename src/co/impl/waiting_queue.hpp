@@ -29,7 +29,7 @@ class waiting_queue
     using wakers_list = intrusive_list<waker, &waker::hook>;
 public:
 
-    task<void> wait()
+    func<void> wait()
     {
         waker w;
         _wakers_list.push_back(w);
@@ -38,19 +38,19 @@ public:
             w.hook.unlink();
     };
 
-    task<status> wait(const co::stop_token& token)
+    func<status> wait(const co::stop_token& token)
     {
         return wait_for(std::chrono::milliseconds::max(), token);
     };
 
     template <class Clock, class Duration>
-    task<status> wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
+    func<status> wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
     {
         return wait_for(sleep_time - Clock::now(), token);
     }
 
     template <class Rep, class Period>
-    task<status> wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
+    func<status> wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
     {
         waker w;
         _wakers_list.push_back(w);

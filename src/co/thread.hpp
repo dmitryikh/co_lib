@@ -4,7 +4,7 @@
 #include <co/impl/shared_state.hpp>
 #include <co/impl/thread_storage.hpp>
 #include <co/event.hpp>
-#include <co/task.hpp>
+#include <co/func.hpp>
 
 namespace co
 {
@@ -12,17 +12,17 @@ namespace co
 namespace impl
 {
 
-inline thread_task create_thread_main_task(task<void> task, std::shared_ptr<event> finish, std::shared_ptr<thread_storage> thread_storage)
+inline thread_func create_thread_main_func(func<void> func, std::shared_ptr<event> finish, std::shared_ptr<thread_storage> thread_storage)
 {
     try
     {
         set_this_thread_storage_ptr(thread_storage.get());
-        co_await task;
+        co_await func;
     }
     catch (const std::exception& exc)
     {
         // TODO: terminate here
-        std::cerr << "task error: " << exc.what() << "\n";
+        std::cerr << "func error: " << exc.what() << "\n";
     }
     finish->notify();
 }
@@ -34,12 +34,12 @@ class thread
 {
 public:
 
-    explicit thread(task<void>&& task, const std::string& thread_name = "")
+    explicit thread(func<void>&& func, const std::string& thread_name = "")
         : _thread_storage_ptr(impl::create_thread_storage(thread_name, ++id))
         , _event_ptr(std::make_shared<event>())
-        , _thread_task(impl::create_thread_main_task(std::move(task), _event_ptr, _thread_storage_ptr))
+        , _thread_func(impl::create_thread_main_func(std::move(func), _event_ptr, _thread_storage_ptr))
     {
-        co::impl::get_scheduler().ready(_thread_task._coroutine);
+        co::impl::get_scheduler().ready(_thread_func._coroutine);
     }
 
     ~thread()
@@ -56,24 +56,24 @@ public:
         _detached = true;
     }
 
-    task<void> join()
+    func<void> join()
     {
         co_await _event_ptr->wait();
     }
 
-    task<status> join(const stop_token& token)
+    func<status> join(const stop_token& token)
     {
         co_return co_await _event_ptr->wait(token);
     }
 
     template <class Clock, class Duration>
-    task<status> join_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
+    func<status> join_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
     {
         co_await _event_ptr->wait_until(sleep_time, token);
     }
 
     template <class Rep, class Period>
-    task<status> join_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
+    func<status> join_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
     {
         co_await _event_ptr->wait_for(sleep_duration, token);
     }
@@ -104,7 +104,7 @@ private:
     bool _detached = false;
     std::shared_ptr<impl::thread_storage> _thread_storage_ptr;
     std::shared_ptr<event> _event_ptr;
-    impl::thread_task _thread_task;
+    impl::thread_func _thread_func;
 };
 
 namespace this_thread

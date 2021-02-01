@@ -8,13 +8,13 @@ namespace co::this_thread
 {
 
 template <class Rep, class Period>
-task<status> sleep_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
+func<status> sleep_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
 {
     co_return co_await event{}.wait_for(sleep_duration, token);
 }
 
 template <class Clock, class Duration>
-task<status> sleep_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
+func<status> sleep_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
 {
     co_return co_await event{}.wait_until(sleep_time, token);
 }

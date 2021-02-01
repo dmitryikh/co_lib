@@ -93,59 +93,59 @@ void lazy_usage()
     res2.value();
 }
 
-co::task<void> task10()
+co::func<void> func10()
 {
     for (size_t i = 0; i < 1; i++)
     {
         co_await co::this_thread::sleep_for(3s);
-        std::cout << "task10 running\n";
+        std::cout << "func10 running\n";
     }
-    std::cout << "task10 finished\n";
+    std::cout << "func10 finished\n";
 }
 
-co::task<void> task1()
+co::func<void> func1()
 {
-    co::thread(task10()).detach();
+    co::thread(func10()).detach();
     for (size_t i = 0; i < 3; i++)
     {
         co_await co::this_thread::sleep_for(1s);
-        std::cout << "task1 running\n";
+        std::cout << "func1 running\n";
     }
-    std::cout << "task1 finished\n";
+    std::cout << "func1 finished\n";
 }
 
-co::task<void> task2_nested()
+co::func<void> func2_nested()
 {
     for (size_t i = 0; i < 10; i++)
     {
         co_await co::this_thread::sleep_for(300ms);
-        std::cout << "task2_nested running\n";
+        std::cout << "func2_nested running\n";
     }
-    std::cout << "task2_nested finished\n";
+    std::cout << "func2_nested finished\n";
     throw std::runtime_error("exceptioN!!");
 }
 
-co::task<void> task2()
+co::func<void> func2()
 {
-    std::cout << "task2 running\n";
-    co_await task2_nested();
+    std::cout << "func2 running\n";
+    co_await func2_nested();
 }
 
 void scheduler_usage()
 {
-    co::loop([] () -> co::task<void> 
+    co::loop([] () -> co::func<void> 
     {
-        co::thread(task2()).detach();
-        co::thread(task1()).detach();
+        co::thread(func2()).detach();
+        co::thread(func1()).detach();
         co_return;
     }());
 }
 
-co::task<void> client_work(const std::string& ip, uint16_t port)
+co::func<void> client_work(const std::string& ip, uint16_t port)
 {
     auto socket = co_await co::net::connect(ip, port);
     // co_await socket.read_n(&bytes[0], 30);
-    auto th = co::thread([] (auto& socket) -> co::task<void>
+    auto th = co::thread([] (auto& socket) -> co::func<void>
     {
         for (int i = 0; i < 3; i++)
         {
@@ -176,35 +176,35 @@ void net_usage()
 
 void mutex_usage()
 {
-    co::loop([]() -> co::task<void>
+    co::loop([]() -> co::func<void>
     {
         co::mutex mutex;
-        auto th1 = co::thread([](auto& mutex) -> co::task<void>
+        auto th1 = co::thread([](auto& mutex) -> co::func<void>
         {
-            std::cout << "task0 about to get lock\n";
+            std::cout << "func0 about to get lock\n";
             co_await mutex.lock();
-            std::cout << "task0 got lock\n";
+            std::cout << "func0 got lock\n";
             co_await co::this_thread::sleep_for(1s);
-            std::cout << "task0 release lock\n";
+            std::cout << "func0 release lock\n";
             mutex.unlock();
         }(mutex));
-        auto th2 = co::thread([](auto& mutex) -> co::task<void>
+        auto th2 = co::thread([](auto& mutex) -> co::func<void>
         {
             co_await mutex.lock();
-            std::cout << "task1 got lock\n";
+            std::cout << "func1 got lock\n";
             co_await co::this_thread::sleep_for(1s);
-            std::cout << "task1 release lock\n";
+            std::cout << "func1 release lock\n";
             mutex.unlock();
         }(mutex));
-        auto th3 = co::thread([](auto& mutex) -> co::task<void>
+        auto th3 = co::thread([](auto& mutex) -> co::func<void>
         {
             while (co_await mutex.lock_for(200ms) != co::ok)
             {
-                std::cout << "task2 trying to get lock\n";
+                std::cout << "func2 trying to get lock\n";
             }
-            std::cout << "task2 got lock\n";
+            std::cout << "func2 got lock\n";
             co_await co::this_thread::sleep_for(1s);
-            std::cout << "task2 release lock\n";
+            std::cout << "func2 release lock\n";
             mutex.unlock();
 
         }(mutex));
@@ -217,9 +217,9 @@ void mutex_usage()
 
 void stop_token_usage()
 {
-    co::loop([]() -> co::task<void>
+    co::loop([]() -> co::func<void>
     {
-        auto th = co::thread([]() -> co::task<void>
+        auto th = co::thread([]() -> co::func<void>
         {
             while (true)
             {
@@ -230,7 +230,7 @@ void stop_token_usage()
             }
         }());
 
-        auto th2 = co::thread([](auto stop) -> co::task<void>
+        auto th2 = co::thread([](auto stop) -> co::func<void>
         {
             while (true)
             {
@@ -252,24 +252,24 @@ void stop_token_usage()
 
 void dangling_ref()
 {
-    co::loop([]() -> co::task<void>
+    co::loop([]() -> co::func<void>
     {
         // This is crashed:
         // auto i_ptr = std::make_unique<int>(10);
-        // auto task = [i_ptr = std::move(i_ptr)]() -> co::task<void>
+        // auto func = [i_ptr = std::move(i_ptr)]() -> co::func<void>
         // {
         //     std::cout << "i is " << *i_ptr << std::endl;
         //     co_return;
         // }();
-        // co_await task;
+        // co_await func;
 
         auto i_ptr = std::make_unique<int>(10);
-        auto task = [](auto i_ptr) -> co::task<void>
+        auto func = [](auto i_ptr) -> co::func<void>
         {
             std::cout << "i is " << *i_ptr << std::endl;
             co_return;
         }(std::move(i_ptr));
-        co_await task;
+        co_await func;
     }());
 }
 
