@@ -167,4 +167,9 @@ private:
 
 };
 
+namespace impl
+{
+    const stop_token dummy_stop_token{};
+}
+
 }  // namespace co

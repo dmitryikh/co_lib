@@ -5,7 +5,8 @@
 #include <co/scheduler.hpp>
 #include <co/impl/thread_storage.hpp>
 #include <co/stop_token.hpp>
-#include <co/status.hpp>
+#include <co/result.hpp>
+#include <co/error_code.hpp>
 
 namespace co
 {
@@ -24,9 +25,19 @@ enum class event_status
     timeout
 };
 
+template <bool Interruptible>
 class wait_for_awaiter
 {
+    constexpr static int64_t max_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::milliseconds::max()).count();
 public:
+    wait_for_awaiter(event& event)
+        : wait_for_awaiter(event, max_milliseconds, impl::dummy_stop_token)
+    {}
+
+    wait_for_awaiter(event& event, int64_t milliseconds)
+        : wait_for_awaiter(event, milliseconds, impl::dummy_stop_token)
+    {}
+
     wait_for_awaiter(event& event, int64_t milliseconds, const co::stop_token& token)
         : _thread_storage(get_this_thread_storage_ptr())
         , _milliseconds(milliseconds)
@@ -41,7 +52,7 @@ public:
 
     bool await_ready() const noexcept;
     void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept;
-    status await_resume() noexcept;
+    std::conditional_t<Interruptible, result<void>, void> await_resume() noexcept;
 
 private:
     co::stop_callback_func stop_callback_func();
@@ -65,7 +76,8 @@ private:
 /// happened. After notification all event::wait() will return immidiately
 class event
 {
-    friend class impl::wait_for_awaiter;
+    friend class impl::wait_for_awaiter<true>;
+    friend class impl::wait_for_awaiter<false>;
 public:
 
     bool notify() noexcept
@@ -80,19 +92,24 @@ public:
         return true;
     }
 
-    [[nodiscard("co_await me")]] impl::wait_for_awaiter wait(const co::stop_token& token = {})
+    [[nodiscard("co_await me")]] impl::wait_for_awaiter<false> wait()
+    {
+        return impl::wait_for_awaiter<false>(*this);
+    };
+
+    [[nodiscard("co_await me")]] impl::wait_for_awaiter<true> wait(const co::stop_token& token)
     {
         return wait_for(std::chrono::milliseconds::max(), token);
     };
 
     template <class Clock, class Duration>
-    [[nodiscard("co_await me")]] impl::wait_for_awaiter wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
+    [[nodiscard("co_await me")]] impl::wait_for_awaiter<true> wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = impl::dummy_stop_token)
     {
         return wait_for(sleep_time - Clock::now(), token);
     }
 
     template <class Rep, class Period>
-    [[nodiscard("co_await me")]] impl::wait_for_awaiter wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
+    [[nodiscard("co_await me")]] impl::wait_for_awaiter<true> wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = impl::dummy_stop_token)
     {
         if (_status == impl::event_status::waiting)
             throw std::logic_error("event already waiting");
@@ -101,7 +118,7 @@ public:
         using std::chrono::duration_cast;
         const int64_t milliseconds = duration_cast<std::chrono::milliseconds>(sleep_duration).count();
 
-        return impl::wait_for_awaiter(*this, milliseconds, token);
+        return impl::wait_for_awaiter<true>(*this, milliseconds, token);
     };
 
     bool is_notified() const
@@ -116,7 +133,8 @@ private:
 
 namespace impl
 {
-    co::stop_callback_func wait_for_awaiter::stop_callback_func()
+    template <bool Interruptible>
+    co::stop_callback_func wait_for_awaiter<Interruptible>::stop_callback_func()
     {
         return [this] ()
         {
@@ -131,7 +149,8 @@ namespace impl
         };
     }
 
-    void wait_for_awaiter::on_timer(uv_timer_t* timer_req)
+    template <bool Interruptible>
+    void wait_for_awaiter<Interruptible>::on_timer(uv_timer_t* timer_req)
     {
         assert(timer_req != nullptr);
         assert(timer_req->data != nullptr);
@@ -146,7 +165,8 @@ namespace impl
         get_scheduler().ready(awaiter._event._waiting_coro);
     }
 
-    bool wait_for_awaiter::await_ready() const noexcept
+    template <bool Interruptible>
+    bool wait_for_awaiter<Interruptible>::await_ready() const noexcept
     {
         if (_event._status == event_status::ok)
             return true;
@@ -166,7 +186,8 @@ namespace impl
         return false;
     }
 
-    void wait_for_awaiter::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
+    template <bool Interruptible>
+    void wait_for_awaiter<Interruptible>::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
     {
         uv_timer_init(get_scheduler().uv_loop(), &timer_req);
         _event._waiting_coro = awaiting_coroutine;
@@ -176,7 +197,9 @@ namespace impl
         set_this_thread_storage_ptr(nullptr);
     }
 
-    status wait_for_awaiter::await_resume() noexcept
+    /// @brief await_resume specialization for Interruptible = true. In this case we return error_code
+    template<>
+    result<void> wait_for_awaiter<true>::await_resume() noexcept
     {
         assert(_event._status > event_status::waiting);
 
@@ -194,13 +217,39 @@ namespace impl
             case event_status::init:
             case event_status::waiting:
                 assert(false);
-                return co::undefined;
+                // TODO: critical logic error
+                std::terminate();
             case event_status::ok:
-                return co::ok;
+                return co::ok();
             case event_status::cancel:
                 return co::cancel;
             case event_status::timeout:
                 return co::timeout;
+        }
+    }
+
+    template<>
+    void wait_for_awaiter<false>::await_resume() noexcept
+    {
+        assert(_event._status == event_status::ok);
+
+        if (_thread_storage)
+            set_this_thread_storage_ptr(_thread_storage);
+
+        if (timer_req.data == static_cast<void*>(this))  // check that we got here after await_suspend()
+            uv_timer_stop(&timer_req);
+
+        switch(_event._status)
+        {
+            case event_status::init:
+            case event_status::waiting:
+            case event_status::cancel:
+            case event_status::timeout:
+                assert(false);
+                // TODO: critical logic error
+                std::terminate();
+            case event_status::ok:
+                return;
         }
     }
 

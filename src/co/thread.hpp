@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <co/std.hpp>
 #include <co/impl/shared_state.hpp>
 #include <co/impl/thread_storage.hpp>
@@ -61,19 +62,19 @@ public:
         co_await _event_ptr->wait();
     }
 
-    func<status> join(const stop_token& token)
+    func<result<void>> join(const stop_token& token)
     {
         co_return co_await _event_ptr->wait(token);
     }
 
     template <class Clock, class Duration>
-    func<status> join_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
+    func<result<void>> join_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
     {
         co_await _event_ptr->wait_until(sleep_time, token);
     }
 
     template <class Rep, class Period>
-    func<status> join_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
+    func<result<void>> join_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
     {
         co_await _event_ptr->wait_for(sleep_duration, token);
     }

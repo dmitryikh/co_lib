@@ -160,10 +160,18 @@ co::func<void> client_work(const std::string& ip, uint16_t port)
     while (true)
     {
         std::string bytes(30, 0);
-        const size_t len = co_await socket.read(&bytes[0], 30);
-        bytes.resize(len);
-        if (len == 0)
+        auto res = co_await socket.read(&bytes[0], 30);
+        if (res == co::err(co::net::eof))
+        {
             break;
+        }
+        else if (!res)
+        {
+            std::cerr << res << "\n";
+            auto _ = co_await socket.shutdown();
+            break;
+        }
+        bytes.resize(res.value());
         std::cout << "read res: " << bytes << "\n";
     }
     co_await th.join();
@@ -198,7 +206,7 @@ void mutex_usage()
         }(mutex));
         auto th3 = co::thread([](auto& mutex) -> co::func<void>
         {
-            while (co_await mutex.lock_for(200ms) != co::ok)
+            while (!co_await mutex.lock_for(200ms))
             {
                 std::cout << "func2 trying to get lock\n";
             }
@@ -224,8 +232,8 @@ void stop_token_usage()
             while (true)
             {
                 std::cout << "thread1: about to sleep\n";
-                co_await co::this_thread::sleep_for(2s, co::this_thread::get_stop_token());
-                if (co::this_thread::stop_requested())
+                const auto res = co_await co::this_thread::sleep_for(2s, co::this_thread::get_stop_token());
+                if (!res && res.assume_error() == co::cancel)
                     co_return;
             }
         }());
@@ -235,8 +243,8 @@ void stop_token_usage()
             while (true)
             {
                 std::cout << "thread2: about to sleep\n";
-                co_await co::this_thread::sleep_for(600ms, stop);
-                if (stop.stop_requested())
+                const auto res = co_await co::this_thread::sleep_for(600ms, stop);
+                if (!res && res.assume_error() == co::cancel)
                     co_return;
             }
         }(th.get_stop_token()));
@@ -280,7 +288,7 @@ int main()
     // lazy_usage();
     scheduler_usage();
     net_usage();
-    mutex_usage();
-    stop_token_usage();
-    dangling_ref();
+    // mutex_usage();
+    // stop_token_usage();
+    // dangling_ref();
 }

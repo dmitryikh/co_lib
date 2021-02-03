@@ -5,6 +5,8 @@
 #include <co/std.hpp>
 #include <co/scheduler.hpp>
 #include <co/event.hpp>
+#include <co/result.hpp>
+#include <co/net/error_code.hpp>
 
 namespace co::net
 {
@@ -24,7 +26,7 @@ public:
     tcp(tcp&& other) = default;
     tcp& operator=(tcp&& other) = default;
 
-    func<size_t> read(char* data, size_t len)
+    func<result<size_t>> read(char* data, size_t len)
     {
         struct read_state
         {
@@ -85,17 +87,21 @@ public:
         int ret = uv_read_start((uv_stream_t*)_tcp_ptr.get(), alloc, on_read);
         using namespace std::string_literals;
         if (ret != 0)
-            throw std::runtime_error("read error: "s + uv_strerror(ret));
+            co_return co::err(other_net);
 
         co_await ev.wait();
 
         if (state.read_status != 0)
-            throw std::runtime_error("read error: "s + uv_strerror(state.read_status));
+            co_return co::err(other_net);
+
+
+        if (state.read_len == 0)
+            co_return co::err(eof);
 
         co_return state.read_len;
     }
 
-    func<void> write(const char* data, size_t len)
+    func<result<void>> write(const char* data, size_t len)
     {
         struct write_state
         {
@@ -135,10 +141,10 @@ public:
         if (state.status != 0)
             throw std::runtime_error("write error: "s + uv_strerror(state.status));
 
-        co_return;
+        co_return co::ok();
     }
 
-    func<void> shutdown()
+    func<result<void>> shutdown()
     {
         struct shutdown_state
         {
@@ -170,14 +176,16 @@ public:
         int ret = uv_shutdown(&shutdown_handle, (uv_stream_t*)_tcp_ptr.get(), on_shutdown);
         using namespace std::string_literals;
         if (ret != 0)
-            throw std::runtime_error("shutdown error: "s + uv_strerror(ret));
+            co_return other_net;
+            // throw std::runtime_error("shutdown error: "s + uv_strerror(ret));
 
         co_await ev.wait();
 
         if (state.status != 0)
-            throw std::runtime_error("shutdown error: "s + uv_strerror(state.status));
+            co_return other_net;
+            // throw std::runtime_error("shutdown error: "s + uv_strerror(state.status));
 
-        co_return;
+        co_return co::ok();
     }
 
     ~tcp()

@@ -20,19 +20,19 @@ public:
         co_await _waiting_queue.wait();
     }
 
-    func<status> lock(const stop_token& token)
+    func<result<void>> lock(const stop_token& token)
     {
         if (try_lock())
-            co_return ok;
+            co_return co::ok();
 
         co_return co_await _waiting_queue.wait(token);
     }
 
     template <class Rep, class Period>
-    func<status> lock_for(std::chrono::duration<Rep, Period> sleep_duration, const stop_token& token = {})
+    func<result<void>> lock_for(std::chrono::duration<Rep, Period> sleep_duration, const stop_token& token = {})
     {
         if (try_lock())
-            co_return ok;
+            co_return co::ok();
 
         co_return co_await _waiting_queue.wait_for(sleep_duration, token);
     }
