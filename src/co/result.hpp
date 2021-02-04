@@ -146,7 +146,7 @@ std::ostream& operator<< (std::ostream& out, const result<T>& r)
 {
     if (r.is_err())
     {
-        out << "ERR " << r.err() << " " << r.what();
+        out << "ERR " << r.err().category().name() << "::" << r.err().message() << "(" << r.err().value() << ") " << r.what();
     }
     else
     {
