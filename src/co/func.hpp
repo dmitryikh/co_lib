@@ -123,9 +123,14 @@ private:
             return _coroutine;
         }
 
-        T await_resume()
+        T await_resume() requires (!std::is_same_v<T, void>)
         {
-            return _coroutine.promise().state().value();
+            return std::move(_coroutine.promise().state().value());
+        }
+
+        void await_resume() requires (std::is_same_v<T, void>)
+        {
+            _coroutine.promise().state().value();
         }
 
     public:

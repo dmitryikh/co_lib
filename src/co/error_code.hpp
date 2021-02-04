@@ -9,14 +9,15 @@ enum class error_code
 {
     cancel = 1,
     timeout = 2,
-    other = 3
+    broken = 3,
+    other = 4
 };
 
 struct error_code_category : std::error_category
 {
     const char* name() const noexcept override
     {
-        return "co_base errors";
+        return "co_lib";
     }
 
     std::string message(int ev) const override
@@ -27,6 +28,8 @@ struct error_code_category : std::error_category
             return "cancel";
         case error_code::timeout:
             return "timeout";
+        case error_code::broken:
+            return "broken";
         case error_code::other:
             return "other";
         }
@@ -55,6 +58,7 @@ using error_code = impl::error_code;
 
 constexpr auto cancel = error_code::cancel;
 constexpr auto timeout = error_code::timeout;
+constexpr auto broken = error_code::broken;
 constexpr auto other = error_code::other;
 
 }  // namespace co

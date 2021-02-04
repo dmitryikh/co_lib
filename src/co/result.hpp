@@ -44,6 +44,10 @@ private:
     using result_type = impl::outcome::result<T, impl::error_code_desc>;
 
 public:
+    using ok_type = T;
+    using err_type = impl::error_code_desc;
+
+public:
     /// construct errors
     result(impl::error_code_desc&& errc)
         : _res(impl::outcome::failure(std::move(errc)))
@@ -192,5 +196,19 @@ auto ok(T&& t)
 {
     return impl::outcome::success(std::forward<T>(t));
 }
+
+namespace impl
+{
+
+template <typename T>
+struct is_result : std::false_type {};
+
+template <typename T>
+struct is_result<result<T>> : std::true_type {};
+
+}  // namespace impl
+
+template <typename T>
+inline constexpr bool is_result_v = impl::is_result<T>::value;
 
 }  // namespace co

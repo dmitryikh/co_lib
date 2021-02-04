@@ -14,6 +14,7 @@
 #include <co/channel.hpp>
 #include <co/one_shot.hpp>
 #include <co/condition_variable.hpp>
+#include <co/future.hpp>
 
 using namespace std::chrono_literals;
 
@@ -428,6 +429,23 @@ void cond_var_usage()
     }());
 }
 
+void future_usage()
+{
+    co::loop([]() -> co::func<void>
+    {
+        co::promise<std::string> promise;
+        auto future = promise.get_future();
+
+        co::thread([](auto promise) -> co::func<void>
+        {
+            co_await co::this_thread::sleep_for(1000ms);
+            promise.set_value("hello world");
+        }(std::move(promise))).detach();
+
+        std::cout << co_await future.get() << std::endl;
+    }());
+}
+
 int main()
 {
     // usage();
@@ -440,5 +458,6 @@ int main()
     // dangling_ref();
     // channel_usage();
     // one_shot_usage();
-    cond_var_usage();
+    // cond_var_usage();
+    future_usage();
 }
