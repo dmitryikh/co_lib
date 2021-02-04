@@ -44,13 +44,27 @@ private:
     using result_type = impl::outcome::result<T, impl::error_code_desc>;
 
 public:
+    /// construct errors
     result(impl::error_code_desc&& errc)
         : _res(impl::outcome::failure(std::move(errc)))
     {}
 
+    result(const impl::error_code_desc& errc)
+        : _res(impl::outcome::failure(errc))
+    {}
+
+    result(const std::error_code& errc)
+        : _res(impl::outcome::failure(errc))
+    {}
+
+    /// construct successful result
+    result(impl::outcome::success_type<void>&& success) requires (std::is_same_v<T, void>)
+        : _res(std::move(success))
+    {}
+
     template <typename Arg>
-    result(Arg&& arg)
-        : _res(std::forward<Arg>(arg))
+    result(impl::outcome::success_type<Arg>&& success) requires (std::is_constructible_v<T, Arg>)
+        : _res(std::move(success))
     {}
 
     bool is_err() const noexcept

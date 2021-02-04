@@ -33,7 +33,7 @@ public:
             co_return co::err(co::closed);
 
         if (_event.is_notified())
-            co_return pop_actual();
+            co_return co::ok(pop_actual());
 
         auto res = co_await _event.wait(token);
         if (res.is_err())
@@ -43,7 +43,7 @@ public:
         if (_closed)
             co_return co::err(co::closed);
 
-        co_return pop_actual();
+        co_return co::ok(pop_actual());
     }
 
     template <class Rep, class Period>
@@ -53,7 +53,7 @@ public:
             co_return co::err(co::closed);
 
         if (_event.is_notified())
-            co_return pop_actual();
+            co_return co::ok(pop_actual());
 
         auto res = co_await _event.wait_for(sleep_duration, token);
         if (res.is_err())
@@ -63,7 +63,7 @@ public:
         if (_closed)
             co_return co::err(co::closed);
 
-        co_return pop_actual();
+        co_return co::ok(pop_actual());
     }
 
     template <class Clock, class Duration>

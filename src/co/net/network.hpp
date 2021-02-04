@@ -250,7 +250,7 @@ func<result<tcp>> connect(const std::string& ip, uint16_t port)
     if (state.status != 0)
         co_return co::err(other_net);
 
-    co_return tcp{ std::move(tcp_ptr) };
+    co_return co::ok(tcp{ std::move(tcp_ptr) });
 }
 
 }
