@@ -13,6 +13,7 @@
 #include <co/co.hpp>
 #include <co/channel.hpp>
 #include <co/one_shot.hpp>
+#include <co/condition_variable.hpp>
 
 using namespace std::chrono_literals;
 
@@ -377,6 +378,55 @@ void one_shot_usage()
         co_await th2.join();
     }());
 }
+void cond_var_usage()
+{
+    co::loop([]() -> co::func<void>
+    {
+        co::condition_variable cv;
+        std::string data;
+        bool ready = false;
+
+        auto th1 = co::thread([](auto& cv, auto& data, auto& ready) -> co::func<void>
+        {
+            co_await co::this_thread::sleep_for(100ms);
+            data = "hello world";
+            ready = true;
+            cv.notify_one();
+        }(cv, data, ready));
+
+        auto th2 = co::thread([](auto& cv, auto& data, auto& ready) -> co::func<void>
+        {
+            try
+            {
+                (co_await cv.wait_for(200ms, [&]() { return ready; })).unwrap();
+                std::cout << co::this_thread::get_name() << ": data is ready: " << data << "\n";
+                ready = false;
+            }
+            catch (const co::exception& coexc)
+            {
+                std::cout << co::this_thread::get_name() << ": coexc: " << coexc << "\n";
+            }
+        }(cv, data, ready), "consumer1");
+
+        auto th3 = co::thread([](auto& cv, auto& data, auto& ready) -> co::func<void>
+        {
+            try
+            {
+                (co_await cv.wait_for(200ms, [&]() { return ready; })).unwrap();
+                std::cout << co::this_thread::get_name() << ": data is ready: " << data << "\n";
+                ready = false;
+            }
+            catch (const co::exception& coexc)
+            {
+                std::cout << co::this_thread::get_name() << ": coexc: " << coexc << "\n";
+            }
+        }(cv, data, ready), "consumer2");
+
+        co_await th1.join();
+        co_await th2.join();
+        co_await th3.join();
+    }());
+}
 
 int main()
 {
@@ -389,5 +439,6 @@ int main()
     // stop_token_usage();
     // dangling_ref();
     // channel_usage();
-    one_shot_usage();
+    // one_shot_usage();
+    cond_var_usage();
 }
