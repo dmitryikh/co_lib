@@ -12,6 +12,7 @@
 #include <co/thread.hpp>
 #include <co/co.hpp>
 #include <co/channel.hpp>
+#include <co/one_shot.hpp>
 
 using namespace std::chrono_literals;
 
@@ -332,7 +333,49 @@ void channel_usage()
         co_await th2.join();
         co_await th3.join();
     }());
+}
 
+void one_shot_usage()
+{
+    co::loop([]() -> co::func<void>
+    {
+        co::one_shot<std::string> ch;
+        auto th1 = co::thread([](auto& ch) -> co::func<void>
+        {
+            try
+            {
+                co_await co::this_thread::sleep_for(50ms);
+                ch.push("hello world!").unwrap();
+                co_await co::this_thread::sleep_for(50ms);
+                ch.push("hello world2!").unwrap(); // should throw
+            }
+            catch (const co::exception& coexc)
+            {
+                std::cout << "coexc: " << coexc << "\n";
+            }
+            ch.close();
+        }(ch), "producer");
+
+        auto th2 = co::thread([](auto& ch) -> co::func<void>
+        {
+            while (true)
+            {
+                auto val = co_await ch.pop_for(10ms);
+                if (val == co::closed)
+                    break;
+                if (val == co::timeout)
+                {
+                    std::cout << co::this_thread::get_name() << ": timeouted\n";
+                    continue;
+                }
+                std::cout << co::this_thread::get_name() << ": poped " << val.unwrap() << "\n";
+                break;
+            }
+        }(ch), "consumer");
+
+        co_await th1.join();
+        co_await th2.join();
+    }());
 }
 
 int main()
@@ -345,5 +388,6 @@ int main()
     // mutex_usage();
     // stop_token_usage();
     // dangling_ref();
-    channel_usage();
+    // channel_usage();
+    one_shot_usage();
 }
