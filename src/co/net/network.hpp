@@ -13,7 +13,7 @@ namespace co::net
 
 class tcp
 {
-    friend func<tcp> connect(const std::string& ip, uint16_t port);
+    friend func<result<tcp>> connect(const std::string& ip, uint16_t port);
 private:
     tcp(std::unique_ptr<uv_tcp_t> tcp_ptr)
         : _tcp_ptr(std::move(tcp_ptr))
@@ -98,7 +98,7 @@ public:
         if (state.read_len == 0)
             co_return co::err(eof);
 
-        co_return state.read_len;
+        co_return co::ok(state.read_len);
     }
 
     func<result<void>> write(const char* data, size_t len)
@@ -134,12 +134,12 @@ public:
         int ret = uv_write((uv_write_t*)&write_handle, (uv_stream_t*)_tcp_ptr.get(), bufs.data(), bufs.size(), on_write);
         using namespace std::string_literals;
         if (ret != 0)
-            throw std::runtime_error("write error: "s + uv_strerror(ret));
+            co_return co::err(other_net);
 
         co_await ev.wait();
 
         if (state.status != 0)
-            throw std::runtime_error("write error: "s + uv_strerror(state.status));
+            co_return co::err(other_net);
 
         co_return co::ok();
     }
@@ -176,14 +176,12 @@ public:
         int ret = uv_shutdown(&shutdown_handle, (uv_stream_t*)_tcp_ptr.get(), on_shutdown);
         using namespace std::string_literals;
         if (ret != 0)
-            co_return other_net;
-            // throw std::runtime_error("shutdown error: "s + uv_strerror(ret));
+            co_return co::err(other_net);
 
         co_await ev.wait();
 
         if (state.status != 0)
-            co_return other_net;
-            // throw std::runtime_error("shutdown error: "s + uv_strerror(state.status));
+            co_return co::err(other_net);
 
         co_return co::ok();
     }
@@ -205,7 +203,7 @@ private:
     std::unique_ptr<uv_tcp_t> _tcp_ptr;
 };
 
-func<tcp> connect(const std::string& ip, uint16_t port)
+func<result<tcp>> connect(const std::string& ip, uint16_t port)
 {
     struct connect_state
     {
@@ -235,7 +233,7 @@ func<tcp> connect(const std::string& ip, uint16_t port)
     int ret = uv_ip4_addr(ip.c_str(), port, &dest);
     using namespace std::string_literals;
     if (ret != 0)
-        throw std::runtime_error("address error: "s + uv_strerror(ret));
+        co_return co::err(wrong_address);
 
     auto tcp_ptr = std::make_unique<uv_tcp_t>();
     uv_tcp_init(co::impl::get_scheduler().uv_loop(), tcp_ptr.get());
@@ -245,12 +243,12 @@ func<tcp> connect(const std::string& ip, uint16_t port)
 
     ret = uv_tcp_connect(&connect, tcp_ptr.get(), (const struct sockaddr*)&dest, on_connect);
     if (ret != 0)
-        throw std::runtime_error("connect error: "s + uv_strerror(ret));
+        co_return co::err(other_net);
 
     co_await ev.wait();
 
     if (state.status != 0)
-        throw std::runtime_error("connect error: "s + uv_strerror(state.status));
+        co_return co::err(other_net);
 
     co_return tcp{ std::move(tcp_ptr) };
 }

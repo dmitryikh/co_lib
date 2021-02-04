@@ -15,9 +15,12 @@ class connection
     constexpr static size_t READ_BUFFER_MAX = 1 * 1024 * 1024;
     constexpr static size_t WRITE_BUFFER = 64 * 1024;
 public:
-    static func<connection> connect(const std::string& ip, uint16_t port)
+    static func<result<connection>> connect(const std::string& ip, uint16_t port)
     {
-        co_return connection{ co_await co::net::connect(ip, port) };
+        auto tcp = co_await co::net::connect(ip, port);
+        if (tcp.is_err())
+            co_return co::err(tcp.err());
+        co_return co::ok(connection{ std::move(tcp.unwrap()) });
     };
 
     connection(co::net::tcp socket)
@@ -28,17 +31,24 @@ public:
 
     func<result<void>> write(const command& cmd)
     {
-        if (!_write_buffer.empty())
+        try
         {
-            const size_t reserve = _write_buffer.capacity() - _write_buffer.size();
-            if (cmd.bytes_estimation() > reserve)
+            if (!_write_buffer.empty())
             {
-                BOOST_OUTCOME_CO_TRYV(co_await flush());
+                const size_t reserve = _write_buffer.capacity() - _write_buffer.size();
+                if (cmd.bytes_estimation() > reserve)
+                {
+                    (co_await flush()).unwrap();
+                }
             }
-        }
 
-        cmd.serialize(_write_buffer);
-        co_return co::ok();
+            cmd.serialize(_write_buffer);
+            co_return co::ok();
+        }
+        catch (const co::exception& coexc)
+        {
+            co_return co::err(coexc);
+        }
     }
 
     func<result<void>> flush()
@@ -50,30 +60,34 @@ public:
 
     func<result<reply>> read()
     {
-        CO_RESULT_TRY(type_id, co_await read_char());
-        switch (type_id)
+        try
         {
-            case '+':
+            const char type_id = co_await read_char();
+            switch (type_id)
             {
-                CO_RESULT_TRY(reply, co_await read_string());
-                co_return co::ok(reply_string{ std::move(reply) });
+                case '+':
+                {
+                    co_return co::ok(reply_string{ co_await read_string() });
+                }
+                case '-':
+                {
+                    co_return co::ok(reply_error{ co_await read_string() });
+                }
+                case ':':
+                {
+                    co_return co::ok(co_await read_int());
+                }
+                case '$':
+                    co_return co::ok(co_await read_bulk_string());
+                case '*':
+                    co_return co::ok(co_await read_array());
             }
-            case '-':
-            {
-                CO_RESULT_TRY(reply, co_await read_string());
-                co_return co::ok(reply_error{ std::move(reply) });
-            }
-            case ':':
-            {
-                CO_RESULT_TRY(num, co_await read_int());
-                co_return co::ok(num);
-            }
-            case '$':
-                co_return co_await read_bulk_string();
-            case '*':
-                co_return co_await read_array();
+                co_return co::err(unknown_data_type);
         }
-        co_return co::err(unknown_data_type);
+        catch (const co::exception& coexc)
+        {
+            co_return co::err(coexc);  // implicitly convert co::exception to co::result with error inside
+        }
     }
 
     func<void> shutdown()
@@ -82,10 +96,10 @@ public:
     }
 
 private:
-    func<result<std::string>> read_string()
+    func<std::string> read_string()
     {
-        CO_RESULT_TRY(len, co_await read_until('\r'));
-        CO_RESULT_TRYV(co_await read_n(len + 2));
+        const size_t len = co_await read_until('\r');
+        co_await read_n(len + 2);
 
         assert(_read_buffer.size() >= len + 2);
 
@@ -95,14 +109,14 @@ private:
         co_return reply;
     }
 
-    func<result<std::string>> read_string_n(size_t n)
+    func<std::string> read_string_n(size_t n)
     {
-        CO_RESULT_TRYV(co_await read_n(n + 2));
+        co_await read_n(n + 2);
 
         assert(_read_buffer.size() >= n + 2);
 
         if (_read_buffer[n] != '\r' || _read_buffer[n + 1] != '\n')
-            co_return co::err(protocol_error);
+            throw co::exception(protocol_error, "expecting \\r\\n while reading fixed lenght string");
 
         auto reply = std::string{ _read_buffer.begin(), _read_buffer.begin() + n };
         _read_buffer.erase(_read_buffer.begin(), _read_buffer.begin() + n + 2);
@@ -111,10 +125,10 @@ private:
     }
 
 
-    func<result<int64_t>> read_int()
+    func<int64_t> read_int()
     {
-        CO_RESULT_TRY(len, co_await read_until('\r'));
-        CO_RESULT_TRYV(co_await read_n(len + 2));
+        const size_t len = co_await read_until('\r');
+        co_await read_n(len + 2);
 
         assert(_read_buffer.size() >= len + 2);
 
@@ -131,7 +145,7 @@ private:
         while (pos < len)
         {
             if (!std::isdigit(_read_buffer[pos]))
-                co_return co::err(protocol_error);
+                throw co::exception(protocol_error, "integer contains no digit symbol");
 
             res = res * 10;
             res += _read_buffer[pos] - '0';
@@ -143,55 +157,54 @@ private:
         co_return res * sign;
     }
 
-    func<result<reply>> read_bulk_string()
+    func<reply> read_bulk_string()
     {
-        CO_RESULT_TRY(len, co_await read_int());
+        const int64_t len = co_await read_int();
         if (len == -1)
-            co_return co::ok(reply_null{});
+            co_return reply_null{};
 
         if (len < 0)
-            co_return co::err(protocol_error);
+            throw co::exception(protocol_error, "got negative length while parsing bulk string");
 
-        CO_RESULT_TRY(str, co_await read_string_n(static_cast<size_t>(len)));
-        co_return co::ok(reply_bulk_string{ std::move(str) });
+        auto str = co_await read_string_n(static_cast<size_t>(len));
+        co_return reply_bulk_string{ std::move(str) };
     }
 
-    func<result<reply>> read_array()
+    func<reply> read_array()
     {
-        CO_RESULT_TRY(len, co_await read_int());
+        const int64_t len = co_await read_int();
         if (len == -1)
-            co_return co::ok(reply_null{});
+            co_return reply_null{};
 
         if (len < 0)
-            co_return co::err(protocol_error);
+            throw co::exception(protocol_error, "got negative length while parsing array");
 
         reply_array array;
         array.reserve(len);
 
         for (size_t i = 0; i < len; i++)
         {
-            CO_RESULT_TRY(repl, co_await read());
-            array.push_back(std::move(repl));
+            array.push_back((co_await read()).unwrap());
         }
-        co_return co::ok(array);
+        co_return array;
     }
 
-    func<result<char>> read_char()
+    func<char> read_char()
     {
-        CO_RESULT_TRYV(co_await read_n(1));
+        co_await read_n(1);
         const char c = _read_buffer[0];
         _read_buffer.pop_front();
         co_return c;
     }
 
-    func<result<size_t>> read_until(char until)
+    func<size_t> read_until(char until)
     {
         auto it = _read_buffer.begin();
         while (true)
         {
             if (it == _read_buffer.end())
             {
-                CO_RESULT_TRYV(co_await read_to_buffer());
+                co_await read_to_buffer();
             }
             if (*it ==  until)
                 co_return std::distance(_read_buffer.begin(), it);
@@ -199,11 +212,11 @@ private:
         }
     }
 
-    func<result<size_t>> read_n(size_t n)
+    func<size_t> read_n(size_t n)
     {
         while (_read_buffer.size() < n)
         {
-            BOOST_OUTCOME_CO_TRYV(co_await read_to_buffer());
+            co_await read_to_buffer();
         }
 
         assert(_read_buffer.size() >= n);
@@ -217,29 +230,23 @@ private:
     //     _read_buffer.erase(_read_buffer.begin(), _read_buffer.begin() + n);
     // }
 
-    func<result<void>> read_to_buffer()
+    func<void> read_to_buffer()
     {
         std::array<char, 16 * 1024> buffer;
-        auto len = co_await _socket.read(buffer.data(), buffer.size());
-        if (!len && len.assume_error() == co::net::eof)
+        const auto res = co_await _socket.read(buffer.data(), buffer.size());
+        if (res == co::net::eof)
         {
-            if (len.assume_error() == co::net::eof)
-            {
-                // connection is closed by foreign host
-                co_await shutdown();
-            }
-            co_return len.as_failure();
+            // connection is closed by foreign host
+            co_await shutdown();
+            res.unwrap();  // will throw the error as exception
         }
+        const size_t len = res.unwrap();
 
         // TODO: officially redis supports mesasges up to 512MB
-        if (_read_buffer.size() + len.value() > READ_BUFFER_MAX)
-        {
-            // TODO: redis error codes
-            co_return buffer_overflow;
-        }
+        if (_read_buffer.size() + len > READ_BUFFER_MAX)
+            throw co::exception(buffer_overflow, "read buffer exceeds its size");
 
-        _read_buffer.insert(_read_buffer.end(), buffer.begin(), buffer.begin() + len.value());
-        co_return co::ok();
+        _read_buffer.insert(_read_buffer.end(), buffer.begin(), buffer.begin() + len);
     }
 
 private:

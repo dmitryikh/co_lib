@@ -222,9 +222,9 @@ namespace impl
             case event_status::ok:
                 return co::ok();
             case event_status::cancel:
-                return co::cancel;
+                return co::err(co::cancel);
             case event_status::timeout:
-                return co::timeout;
+                return co::err(co::timeout);
         }
     }
 

@@ -143,7 +143,7 @@ void scheduler_usage()
 
 co::func<void> client_work(const std::string& ip, uint16_t port)
 {
-    auto socket = co_await co::net::connect(ip, port);
+    auto socket = (co_await co::net::connect(ip, port)).unwrap();
     // co_await socket.read_n(&bytes[0], 30);
     auto th = co::thread([] (auto& socket) -> co::func<void>
     {
@@ -161,17 +161,17 @@ co::func<void> client_work(const std::string& ip, uint16_t port)
     {
         std::string bytes(30, 0);
         auto res = co_await socket.read(&bytes[0], 30);
-        if (res == co::err(co::net::eof))
+        if (res == co::net::eof)
         {
             break;
         }
-        else if (!res)
+        else if (res.is_err())
         {
             std::cerr << res << "\n";
             auto _ = co_await socket.shutdown();
             break;
         }
-        bytes.resize(res.value());
+        bytes.resize(res.unwrap());
         std::cout << "read res: " << bytes << "\n";
     }
     co_await th.join();
@@ -206,7 +206,7 @@ void mutex_usage()
         }(mutex));
         auto th3 = co::thread([](auto& mutex) -> co::func<void>
         {
-            while (!co_await mutex.lock_for(200ms))
+            while (co_await mutex.lock_for(200ms) == co::timeout)
             {
                 std::cout << "func2 trying to get lock\n";
             }
@@ -233,7 +233,7 @@ void stop_token_usage()
             {
                 std::cout << "thread1: about to sleep\n";
                 const auto res = co_await co::this_thread::sleep_for(2s, co::this_thread::get_stop_token());
-                if (!res && res.assume_error() == co::cancel)
+                if (res == co::cancel)
                     co_return;
             }
         }());
@@ -244,7 +244,7 @@ void stop_token_usage()
             {
                 std::cout << "thread2: about to sleep\n";
                 const auto res = co_await co::this_thread::sleep_for(600ms, stop);
-                if (!res && res.assume_error() == co::cancel)
+                if (res == co::cancel)
                     co_return;
             }
         }(th.get_stop_token()));

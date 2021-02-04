@@ -54,7 +54,7 @@ public:
     {
         waker w;
         _wakers_list.push_back(w);
-        const auto status = co_await w._event.wait_for(sleep_duration, token);
+        auto status = co_await w._event.wait_for(sleep_duration, token);
         if (w.hook.is_linked())
             w.hook.unlink();
         co_return status;

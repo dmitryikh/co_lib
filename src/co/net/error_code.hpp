@@ -9,7 +9,8 @@ namespace co::net::impl
 enum class error_code
 {
     eof = 4,
-    other_net = 5
+    wrong_address = 5,
+    other_net = 6
 };
 
 struct error_code_category : std::error_category
@@ -25,6 +26,8 @@ struct error_code_category : std::error_category
         {
         case error_code::eof:
             return "eof";
+        case error_code::wrong_address:
+            return "wrong address";
         case error_code::other_net:
             return "other net";
         }
@@ -50,6 +53,7 @@ namespace co::net
 {
 
 const auto eof = make_error_code(impl::error_code::eof);
+const auto wrong_address = make_error_code(impl::error_code::wrong_address);
 const auto other_net = make_error_code(impl::error_code::other_net);
 
 }  // namespace co

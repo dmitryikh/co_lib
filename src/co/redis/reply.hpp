@@ -51,9 +51,35 @@ public:
 
     reply() = default;
 
-    reply(Variant&& v)
-        : _variant(std::move(v))
+    reply(const reply&) = default;
+    reply(reply&&) = default;
+
+    reply(reply_string&& r)
+        : _variant(std::move(r))
     {}
+
+    reply(reply_error&& r)
+        : _variant(std::move(r))
+    {}
+
+    reply(int64_t r)
+        : _variant(r)
+    {}
+
+    reply(reply_bulk_string&& r)
+        : _variant(std::move(r))
+    {}
+
+    reply(reply_null&& r)
+        : _variant(std::move(r))
+    {}
+
+    reply(reply_array&& r)
+        : _variant(std::move(r))
+    {}
+
+    reply& operator=(reply&&) = default;
+    reply& operator=(const reply&) = default;
 
     bool has_string() const noexcept
     {
