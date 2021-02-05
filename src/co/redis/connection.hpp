@@ -19,7 +19,7 @@ public:
     {
         auto tcp = co_await co::net::connect(ip, port);
         if (tcp.is_err())
-            co_return co::err(tcp.err());
+            co_return tcp.err();
         co_return co::ok(connection{ std::move(tcp.unwrap()) });
     };
 
@@ -53,6 +53,9 @@ public:
 
     func<result<void>> flush()
     {
+        if (_write_buffer.empty())
+            co_return co::ok();
+
         auto res = co_await _socket.write(_write_buffer.data(), _write_buffer.size());
         _write_buffer.clear();
         co_return res;
@@ -222,13 +225,6 @@ private:
         assert(_read_buffer.size() >= n);
         co_return n;
     }
-
-    // func<void> skip_n(size_t n)
-    // {
-    //     co_await read_n(n);
-    //     assert(_read_buffer.size() >= n);
-    //     _read_buffer.erase(_read_buffer.begin(), _read_buffer.begin() + n);
-    // }
 
     func<void> read_to_buffer()
     {
