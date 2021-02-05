@@ -156,6 +156,18 @@ public:
         co_return co_await _shared_state->get();
     }
 
+    template <class Rep, class Period>
+    co::func<T> get_for(
+        std::chrono::duration<Rep, Period> sleep_duration,
+        const stop_token& token = impl::dummy_stop_token
+    ) requires (co::is_result_v<T>)
+    {
+        check_shared_state();
+        co_return co_await _shared_state->get_for(sleep_duration, token);
+    }
+
+    // TODO: add all get_for, get_until
+
 private:
     void check_shared_state() const noexcept(false)
     {
