@@ -14,7 +14,7 @@ namespace outcome = BOOST_OUTCOME_V2_NAMESPACE;
 }  // namespace impl
 
 template <typename T>
-class result
+class [[nodiscard]] result
 {
 private:
     using result_type = impl::outcome::result<T, error_desc>;
@@ -159,6 +159,11 @@ std::ostream& operator<< (std::ostream& out, const result<T>& r)
         }
     }
     return out;
+}
+
+error_desc err(const co::exception& coexc)
+{
+    return coexc.err();
 }
 
 template <typename... Args>
