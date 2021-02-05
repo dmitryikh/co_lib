@@ -11,49 +11,25 @@ namespace impl
 
 namespace outcome = BOOST_OUTCOME_V2_NAMESPACE;
 
-class error_code_desc : public std::error_code
-{
-public:
-    error_code_desc() = default;  // outcome::result needs that
-
-    error_code_desc(const std::error_code& errc, const char* desc)
-        : errc(errc)
-        , desc(desc)
-    {}
-
-    error_code_desc(const std::error_code& errc)
-        : errc(errc)
-    {}
-
-    error_code_desc(const co::exception& coexc)
-        : errc(coexc._errc)
-        , desc(coexc._desc)
-    {}
-
-public:
-    std::error_code errc{};
-    const char* desc = "";  // error descriprion
-};
-
 }  // namespace impl
 
 template <typename T>
 class result
 {
 private:
-    using result_type = impl::outcome::result<T, impl::error_code_desc>;
+    using result_type = impl::outcome::result<T, error_desc>;
 
 public:
     using ok_type = T;
-    using err_type = impl::error_code_desc;
+    using err_type = error_desc;
 
 public:
     /// construct errors
-    result(impl::error_code_desc&& errc)
+    result(error_desc&& errc)
         : _res(impl::outcome::failure(std::move(errc)))
     {}
 
-    result(const impl::error_code_desc& errc)
+    result(const error_desc& errc)
         : _res(impl::outcome::failure(errc))
     {}
 
@@ -76,14 +52,19 @@ public:
         return _res.has_error();
     }
 
-    const std::error_code& err() const noexcept
+    const std::error_code& errc() const noexcept
     {
-        return _res.assume_error().errc;
+        return _res.error().errc;
+    }
+
+    const error_desc& err() const noexcept
+    {
+        return _res.error();
     }
 
     const char* what() const noexcept
     {
-        return _res.assume_error().desc;
+        return _res.error().what();
     }
 
     bool is_ok() const noexcept
@@ -91,40 +72,40 @@ public:
         return _res.has_value();
     }
 
-    auto value() noexcept requires (!std::is_same_v<T, void>) 
-    {
-        return _res.assume_value();
-    }
+    // auto value() noexcept requires (!std::is_same_v<T, void>) 
+    // {
+    //     return _res.as_value();
+    // }
 
-    auto value() const noexcept requires (!std::is_same_v<T, void>)
-    {
-        return _res.assume_value();
-    }
+    // auto value() const noexcept requires (!std::is_same_v<T, void>)
+    // {
+    //     return _res.as_value();
+    // }
 
     void unwrap() const& noexcept(false) requires std::is_same_v<T, void> 
     {
         if (is_err())
-            throw co::exception(_res.assume_error().errc, _res.assume_error().desc);
+            throw co::exception(_res.assume_error());
     }
 
     std::add_lvalue_reference_t<T> unwrap() & noexcept(false) requires (!std::is_same_v<T, void>)
     {
         if (is_err())
-            throw co::exception(_res.assume_error().errc, _res.assume_error().desc);
+            throw co::exception(_res.assume_error());
         return _res.assume_value();
     }
 
     std::add_lvalue_reference_t<const T> unwrap() const& noexcept(false) requires (!std::is_same_v<T, void>)
     {
         if (is_err())
-            throw co::exception(_res.assume_error().errc, _res.assume_error().desc);
+            throw co::exception(_res.assume_error());
         return _res.assume_value();
     }
 
     std::add_rvalue_reference_t<T> unwrap() && noexcept(false) requires (!std::is_same_v<T, void>)
     {
         if (is_err())
-            throw co::exception(_res.assume_error().errc, _res.assume_error().desc);
+            throw co::exception(_res.assume_error());
         return std::move(_res.assume_value());
     }
 
@@ -181,7 +162,7 @@ std::ostream& operator<< (std::ostream& out, const result<T>& r)
 }
 
 template <typename... Args>
-impl::error_code_desc err(Args&&... args)
+error_desc err(Args&&... args)
 {
     return { std::forward<Args>(args)... };
 }
