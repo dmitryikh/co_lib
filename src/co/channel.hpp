@@ -146,11 +146,13 @@ public:
         return res;
     }
 
-    func<result<T>> pop()
+    func<result<T>> pop(const co::stop_token& token = impl::dummy_stop_token)
     {
         while (_queue.empty() && !_closed)
         {
-            co_await _consumer_waiting_queue.wait();
+            auto res = co_await _consumer_waiting_queue.wait(token);
+            if (res.is_err())
+                co_return res.err();
         }
 
         if (_closed && _queue.empty())
