@@ -234,9 +234,9 @@ private:
         {
             // connection is closed by foreign host
             co_await shutdown();
-            res.unwrap();  // will throw the error as exception
         }
-        const size_t len = res.unwrap();
+
+        const size_t len = res.unwrap();  // will throw the error as exception
 
         // TODO: officially redis supports mesasges up to 512MB
         if (_read_buffer.size() + len > READ_BUFFER_MAX)

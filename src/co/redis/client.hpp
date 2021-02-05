@@ -90,7 +90,7 @@ private:
                 (co_await _conn.write(std::move(cmd))).unwrap();
 
                 // TODO: implement better flush policy
-                co_await _conn.flush();
+                (co_await _conn.flush()).unwrap();
             }
         }
         catch (const co::exception& coexc)
@@ -125,7 +125,6 @@ private:
         {
             if (!_result.is_err())
                 _result = coexc.errc();
-
         }
         co_await _conn.shutdown();
     }
@@ -163,19 +162,38 @@ public:
 
     co::future<co::result<reply>> get(const std::string& key)
     {
-        auto req = impl::request{ {{"GET", key}} };
-        auto future = req.get_future();
-        auto res = _req_channel.try_push(std::move(req));
-        if (res.is_err())
-            req.set_reply(res.err());
-
-        return future;
+        return send_command({{ "GET", key }});
     }
 
     co::future<co::result<reply>> set(const std::string& key, const std::string& value)
     {
-        auto req = impl::request{ {{"SET", key, value}} };
+        return send_command({{ "SET", key, value }});
+    }
+
+    bool is_connected() const
+    {
+        return _is_connected;
+    }
+
+    void flush()
+    {
+    }
+
+private:
+    co::future<co::result<reply>> send_command(command&& cmd)
+    {
+        auto req = impl::request{ std::move(cmd) };
         auto future = req.get_future();
+        if (_stop_source.stop_requested())
+        {
+            req.set_reply(co::err(co::cancel));
+            return future;
+        }
+        if (!_is_connected)
+        {
+            req.set_reply(co::err(co::closed));
+            return future;
+        }
         auto res = _req_channel.try_push(std::move(req));
         if (res.is_err())
             req.set_reply(res.err());
@@ -183,7 +201,6 @@ public:
         return future;
     }
 
-private:
     co::func<void> reconnect_loop_func()
     {
         auto token = _stop_source.get_token();
@@ -191,16 +208,16 @@ private:
         {
             try
             {
-                std::cout << "try to connect to redis\n";
                 auto con = co_await co::redis::connection::connect(_ip, _port);
-                std::cout << "redis connected\n";
                 auto coproc = impl::connection_processor(std::move(con.unwrap()), _req_channel);
+                _is_connected = true;
                 (co_await coproc.join(token)).unwrap();
             }
             catch (const co::exception& coexc)
             {
                 std::cerr << "redis:client: " << coexc << "\n";
             }
+            _is_connected = false;
             if (!token.stop_requested())
             {
                 // wait before reconnect

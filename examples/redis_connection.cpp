@@ -2,6 +2,7 @@
 #include <co/redis/client.hpp>
 #include <co/co.hpp>
 
+using namespace std::chrono_literals;
 
 int main()
 {
@@ -28,13 +29,16 @@ int main()
     {
         auto client = co::redis::client("127.0.0.1", 6379);
 
-        auto f1 = client.set("112", "sun");
-        auto f2 = client.get("112");
-        auto f3 = client.get("113");
+        for (int i = 0;; i++)
+        {
+            auto f1 = client.set("112", "sun");
+            auto f2 = client.get("112");
 
-        std::cout << co_await f1.get() << std::endl;
-        std::cout << co_await f2.get() << std::endl;
-        std::cout << co_await f3.get() << std::endl;
+            std::cout << i << ": " << co_await f1.get_for(10s) << std::endl;
+            std::cout << i << ": " << co_await f2.get_for(10s) << std::endl;
+
+            co_await co::this_thread::sleep_for(300ms);
+        }
 
         client.stop();
         co_await client.join();
