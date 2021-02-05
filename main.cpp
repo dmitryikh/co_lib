@@ -15,6 +15,7 @@
 #include <co/one_shot.hpp>
 #include <co/condition_variable.hpp>
 #include <co/future.hpp>
+#include <co/when_any.hpp>
 
 using namespace std::chrono_literals;
 
@@ -446,6 +447,59 @@ void future_usage()
     }());
 }
 
+void try_when_any()
+{
+    co::loop([]() -> co::func<void>
+    {
+        std::cout << "when_any example " << std::endl;
+        co::stop_source stop;
+        auto task1 = [](auto token) -> co::func<int>
+        {
+            auto res = co_await co::this_thread::sleep_for(20ms, token);
+            if (res == co::cancel)
+                co_return -1;
+            co_return 42;
+        }(stop.get_token());
+
+        auto task2 = [](auto token) -> co::func<int>
+        {
+            auto res = co_await co::this_thread::sleep_for(10ms, token);
+            if (res == co::cancel)
+                co_return -1;
+            co_return 24;
+        }(stop.get_token());
+
+        const auto [res1, res2] = co_await co::when_any(std::move(task1), std::move(task2), stop);
+        std::cout << "res1 = " << res1 << std::endl;
+        std::cout << "res2 = " << res2 << std::endl;
+    }());
+
+    co::loop([]() -> co::func<void>
+    {
+        std::cout << "when_all example " << std::endl;
+        co::stop_source stop;
+        auto task1 = [](auto token) -> co::func<int>
+        {
+            auto res = co_await co::this_thread::sleep_for(20ms, token);
+            if (res == co::cancel)
+                co_return -1;
+            co_return 42;
+        }(stop.get_token());
+
+        auto task2 = [](auto token) -> co::func<int>
+        {
+            auto res = co_await co::this_thread::sleep_for(10ms, token);
+            if (res == co::cancel)
+                co_return -1;
+            co_return 24;
+        }(stop.get_token());
+
+        const auto [res1, res2] = co_await co::when_all(std::move(task1), std::move(task2), stop.get_token());
+        std::cout << "res1 = " << res1 << std::endl;
+        std::cout << "res2 = " << res2 << std::endl;
+    }());
+}
+
 int main()
 {
     // usage();
@@ -459,5 +513,6 @@ int main()
     // channel_usage();
     // one_shot_usage();
     // cond_var_usage();
-    future_usage();
+    // future_usage();
+    try_when_any();
 }
