@@ -152,7 +152,39 @@ public:
         {
             auto res = co_await _consumer_waiting_queue.wait(token);
             if (res.is_err())
+            {
+                _consumer_waiting_queue.notify_one();
                 co_return res.err();
+            }
+        }
+
+        if (_closed && _queue.empty())
+            co_return co::err(co::closed);
+
+        assert(!_queue.empty());
+        result<T> res = co::ok(std::move(_queue.front()));
+        _queue.pop_front();
+        _producer_waiting_queue.notify_one();
+        co_return res;
+    }
+
+    template <class Rep, class Period>
+    func<result<T>> pop_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = impl::dummy_stop_token)
+    {
+        return pop_until(std::chrono::steady_clock::now() + sleep_duration, token);
+    }
+
+    template <class Clock, class Duration>
+    func<result<T>> pop_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = impl::dummy_stop_token)
+    {
+        while (_queue.empty() && !_closed)
+        {
+            auto res = co_await _consumer_waiting_queue.wait_until(sleep_time, token);
+            if (res.is_err())
+            {
+                _consumer_waiting_queue.notify_one();
+                co_return res.err();
+            }
         }
 
         if (_closed && _queue.empty())
