@@ -33,6 +33,7 @@ int main()
         {
             auto f1 = client.set("112", "sun");
             auto f2 = client.get("112");
+            // client.flush();
 
             std::cout << i << ": " << co_await f1.get_for(10s) << std::endl;
             std::cout << i << ": " << co_await f2.get_for(10s) << std::endl;

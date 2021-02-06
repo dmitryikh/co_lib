@@ -35,14 +35,17 @@ public:
     co::promise<co::result<reply>> _promise;
 };
 
+class flush_message
+{};
+
 class connection_processor
 {
 public:
-    connection_processor(connection&& conn, co::channel<request>& in)
+    connection_processor(connection&& conn, co::channel<request>& in, co::channel<flush_message>& flush_ch)
         : _conn(std::move(conn))
-        , _in(in)
-        , _write_loop(write_loop_func())
+        , _write_loop(write_loop_func(in))
         , _read_loop(read_loop_func())
+        , _flush_loop(flush_loop_func(flush_ch))
     {}
 
     co::func<co::result<void>> join(const co::stop_token& stop)
@@ -56,6 +59,7 @@ public:
 
         co_await _write_loop.join();
         co_await _read_loop.join();
+        co_await _flush_loop.join();
 
         if (_result.is_ok() && !_in_fly.empty())
             throw co::exception(co::other, "logic error: result is ok but in fly queue is not empty");
@@ -71,7 +75,7 @@ public:
     }
 
 private:
-    co::func<void> write_loop_func()
+    co::func<void> write_loop_func(co::channel<request>& in)
     {
         try
         {
@@ -79,7 +83,7 @@ private:
 
             while (!token.stop_requested())
             {
-                auto req = co_await _in.pop(token);
+                auto req = co_await in.pop(token);
                 if (req == co::cancel)
                     break;
                 if (req == co::closed)
@@ -88,16 +92,12 @@ private:
                 auto cmd = std::move(req.unwrap().cmd);
                 _in_fly.push(std::move(req.unwrap()));
                 (co_await _conn.write(std::move(cmd))).unwrap();
-
-                // TODO: implement better flush policy
-                (co_await _conn.flush()).unwrap();
             }
         }
         catch (const co::exception& coexc)
         {
             if (!_result.is_err())
                 _result = coexc.errc();
-
         }
         co_await _conn.shutdown();
     }
@@ -128,14 +128,40 @@ private:
         }
         co_await _conn.shutdown();
     }
+
+    co::func<void> flush_loop_func(co::channel<flush_message>& flush_ch)
+    {
+        using namespace std::chrono_literals;
+        const auto period = 15ms;
+        try
+        {
+            auto token = co::this_thread::get_stop_token();
+
+            while (!token.stop_requested())
+            {
+                auto res = co_await flush_ch.pop_for(period, token);
+                if (res.is_err())
+                    std::cout << "\n res = " << res.err() << "\n";
+                if (res == co::cancel)
+                    break;
+                (co_await _conn.flush()).unwrap();
+            }
+        }
+        catch (const co::exception& coexc)
+        {
+            if (!_result.is_err())
+                _result = coexc.errc();
+        }
+        co_await _conn.shutdown();
+    }
 private:
     connection _conn;
-    co::channel<request>& _in;
     std::queue<request> _in_fly;
     co::result<void> _result = co::ok();
 
     co::thread _write_loop;
     co::thread _read_loop;
+    co::thread _flush_loop;
 };
 
 }  // namespace impl
@@ -147,6 +173,7 @@ public:
         : _ip(ip)
         , _port(port)
         , _req_channel(1024)
+        , _flush_channel(2)
         , _reconnect_loop_thread(reconnect_loop_func())
     {}
 
@@ -177,6 +204,7 @@ public:
 
     void flush()
     {
+        _flush_channel.try_push(impl::flush_message{});
     }
 
 private:
@@ -209,7 +237,7 @@ private:
             try
             {
                 auto con = co_await co::redis::connection::connect(_ip, _port);
-                auto coproc = impl::connection_processor(std::move(con.unwrap()), _req_channel);
+                auto coproc = impl::connection_processor(std::move(con.unwrap()), _req_channel, _flush_channel);
                 _is_connected = true;
                 (co_await coproc.join(token)).unwrap();
             }
