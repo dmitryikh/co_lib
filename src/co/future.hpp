@@ -121,7 +121,32 @@ public:
         co_return base::value();
     }
 
-    // TODO: get_until
+    template <class Clock, class Duration>
+    co::func<result<T>> get_until(
+        std::chrono::time_point<Clock, Duration> sleep_time,
+        const stop_token& token = impl::dummy_stop_token
+    ) requires (!co::is_result_v<T>)
+    {
+        auto res = co_await wait_until(sleep_time, token);
+        if (res.is_err())
+            co_return res.err();
+
+        co_return co::ok(std::move(base::value()));
+    }
+
+    template <class Clock, class Duration>
+    co::func<T> get_until(
+        std::chrono::time_point<Clock, Duration> sleep_time,
+        const stop_token& token = impl::dummy_stop_token
+    ) requires (co::is_result_v<T>)
+    {
+        auto res = co_await wait_until(sleep_time, token);
+        if (res.is_err())
+            co_return res.err();
+
+        co_return std::move(base::value());
+    }
+
 private:
     co::condition_variable _cv;
 };
@@ -164,6 +189,16 @@ public:
     {
         check_shared_state();
         co_return co_await _shared_state->get_for(sleep_duration, token);
+    }
+
+    template <class Clock, class Duration>
+    co::func<T> get_until(
+        std::chrono::time_point<Clock, Duration> sleep_time,
+        const stop_token& token = impl::dummy_stop_token
+    ) requires (co::is_result_v<T>)
+    {
+        check_shared_state();
+        co_return co_await _shared_state->get_until(sleep_time, token);
     }
 
     // TODO: add all get_for, get_until

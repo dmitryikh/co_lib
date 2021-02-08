@@ -155,11 +155,11 @@ co::func<void> client_work(const std::string& ip, uint16_t port)
         for (int i = 0; i < 3; i++)
         {
             const std::string to_write = "abba" + std::to_string(i);
-            co_await socket.write(to_write.data(), to_write.size());
+            (co_await socket.write(to_write.data(), to_write.size())).unwrap();
             co_await co::this_thread::sleep_for(1000ms);
         }
         std::cout << "shutdown\n";
-        co_await socket.shutdown();
+        (co_await socket.shutdown()).unwrap();
     }(socket), "writer");
 
     while (true)
@@ -505,14 +505,13 @@ int main()
     // usage();
     // eager_usage();
     // lazy_usage();
-    // scheduler_usage();
-    // net_usage();
-    // mutex_usage();
-    // stop_token_usage();
-    // dangling_ref();
-    // channel_usage();
-    // one_shot_usage();
-    // cond_var_usage();
-    // future_usage();
-    try_when_any();
+    scheduler_usage();
+    net_usage();
+    mutex_usage();
+    stop_token_usage();
+    dangling_ref();
+    channel_usage();
+    one_shot_usage();
+    cond_var_usage();
+    future_usage();
 }
