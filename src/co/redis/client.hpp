@@ -7,6 +7,7 @@
 #include <co/thread.hpp>
 #include <co/redis/connection.hpp>
 #include <co/redis/command.hpp>
+#include <boost/circular_buffer.hpp>
 
 namespace co::redis
 {
@@ -42,11 +43,13 @@ using request = std::variant<request_command, request_flush>;
 
 class connection_processor
 {
+    static constexpr size_t in_fly_capacity = 1024;
 public:
     connection_processor(connection&& conn, co::channel<request>& in_ch)
         : _conn(std::move(conn))
-        , _write_loop(write_loop_func(in_ch))
-        , _read_loop(read_loop_func())
+        , _in_fly(in_fly_capacity)
+        , _write_loop(write_loop_func(in_ch), "write_loop")
+        , _read_loop(read_loop_func(), "read_loop")
     {}
 
     co::func<co::result<void>> join(const co::stop_token& stop)
@@ -68,7 +71,7 @@ public:
         {
             auto& request = _in_fly.front();
             request.set_reply(_result.err());
-            _in_fly.pop();
+            _in_fly.pop_front();
         }
 
         co_return _result;
@@ -94,7 +97,14 @@ private:
                 {
                     auto& req_cmd = std::get<request_command>(req);
                     auto cmd = std::move(req_cmd.cmd);
-                    _in_fly.push(std::move(req_cmd));
+
+                    if (_in_fly.size() >= in_fly_capacity)
+                    {
+                        (co_await _conn.flush()).unwrap();
+                        co_await _in_fly_cv.wait([&] () { return _in_fly.size() < in_fly_capacity; });
+                    }
+
+                    _in_fly.push_back(std::move(req_cmd));
                     (co_await _conn.write(std::move(cmd))).unwrap();
                 }
                 else if (std::holds_alternative<request_flush>(req))
@@ -131,7 +141,8 @@ private:
 
                 auto& request = _in_fly.front();
                 request.set_reply(co::ok(std::move(reply.unwrap())));
-                _in_fly.pop();
+                _in_fly.pop_front();
+                _in_fly_cv.notify_one();
             }
         }
         catch (const co::exception& coexc)
@@ -144,7 +155,8 @@ private:
 
 private:
     connection _conn;
-    std::queue<request_command> _in_fly;
+    boost::circular_buffer<request_command> _in_fly;
+    co::condition_variable _in_fly_cv;
     co::result<void> _result = co::ok();
 
     co::thread _write_loop;
@@ -163,6 +175,11 @@ public:
         , _reconnect_loop_thread(reconnect_loop_func())
     {}
 
+    void close()
+    {
+        _req_channel.close();
+    }
+
     void stop()
     {
         _stop_source.request_stop();
@@ -173,12 +190,12 @@ public:
         co_await _reconnect_loop_thread.join();
     }
 
-    co::future<co::result<reply>> get(const std::string& key)
+    co::func<co::future<co::result<reply>>> get(const std::string& key)
     {
         return send_command({{ "GET", key }});
     }
 
-    co::future<co::result<reply>> set(const std::string& key, const std::string& value)
+    co::func<co::future<co::result<reply>>> set(const std::string& key, const std::string& value)
     {
         return send_command({{ "SET", key, value }});
     }
@@ -188,43 +205,49 @@ public:
         return _is_connected;
     }
 
-    void flush()
+    co::func<void> wait_until_connected()
     {
-        auto _ = _req_channel.try_push(impl::request_flush{});
+        co_await _is_connected_cv.wait([&]() { return _is_connected; });
+    }
+
+    co::func<void> flush()
+    {
+        auto _ = co_await _req_channel.push(impl::request_flush{});
     }
 
 private:
-    co::future<co::result<reply>> send_command(command&& cmd)
+    co::func<co::future<co::result<reply>>> send_command(command cmd)
     {
         auto req = impl::request_command{ std::move(cmd) };
         auto future = req.get_future();
         if (_stop_source.stop_requested())
         {
             req.set_reply(co::err(co::cancel));
-            return future;
+            co_return future;
         }
         if (!_is_connected)
         {
             req.set_reply(co::err(co::closed));
-            return future;
+            co_return future;
         }
-        auto res = _req_channel.try_push(std::move(req));
+        auto res = co_await _req_channel.push(std::move(req));
         if (res.is_err())
             req.set_reply(res.err());
 
-        return future;
+        co_return std::move(future);
     }
 
     co::func<void> reconnect_loop_func()
     {
         auto token = _stop_source.get_token();
-        while (!token.stop_requested())
+        while (!token.stop_requested() && !_req_channel.is_closed())
         {
             try
             {
                 auto con = co_await co::redis::connection::connect(_ip, _port);
                 auto coproc = impl::connection_processor(std::move(con.unwrap()), _req_channel);
                 _is_connected = true;
+                _is_connected_cv.notify_all();
                 (co_await coproc.join(token)).unwrap();
             }
             catch (const co::exception& coexc)
@@ -232,7 +255,7 @@ private:
                 std::cerr << "redis:client: " << coexc << "\n";
             }
             _is_connected = false;
-            if (!token.stop_requested())
+            if (!token.stop_requested() && !_req_channel.is_closed())
             {
                 // wait before reconnect
                 using namespace std::chrono_literals;
@@ -244,6 +267,8 @@ private:
 private:
     const std::string _ip;
     const uint16_t _port;
+    bool _is_connected = false;
+    co::condition_variable _is_connected_cv;
     co::stop_source _stop_source;
     co::channel<impl::request> _req_channel;
     co::thread _reconnect_loop_thread;

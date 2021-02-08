@@ -69,17 +69,11 @@ public:
             switch (type_id)
             {
                 case '+':
-                {
                     co_return co::ok(reply_string{ co_await read_string() });
-                }
                 case '-':
-                {
                     co_return co::ok(reply_error{ co_await read_string() });
-                }
                 case ':':
-                {
                     co_return co::ok(co_await read_int());
-                }
                 case '$':
                     co_return co::ok(co_await read_bulk_string());
                 case '*':
@@ -95,7 +89,7 @@ public:
 
     func<void> shutdown()
     {
-        auto _ = co_await _socket.shutdown();
+        auto res = co_await _socket.shutdown();
     }
 
 private:

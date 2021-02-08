@@ -95,7 +95,7 @@ private:
 
 
 template<typename T, typename FinalAwaiter>
-class func_template
+class [[nodiscard]] func_template
 {
     friend class co::thread;
 public:

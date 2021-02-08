@@ -92,7 +92,7 @@ public:
     co::func<T> get()
     {
         co_await wait();
-        co_return base::value();
+        co_return std::move(base::value());
     }
 
     template <class Rep, class Period>
@@ -105,7 +105,7 @@ public:
         if (res.is_err())
             co_return res.err();
 
-        co_return co::ok(base::value());
+        co_return co::ok(std::move(base::value()));
     }
 
     template <class Rep, class Period>
@@ -118,7 +118,7 @@ public:
         if (res.is_err())
             co_return res.err();
 
-        co_return base::value();
+        co_return std::move(base::value());
     }
 
     template <class Clock, class Duration>

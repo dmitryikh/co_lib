@@ -204,6 +204,11 @@ public:
         _consumer_waiting_queue.notify_all();
     }
 
+    bool is_closed() const
+    {
+        return _closed;
+    }
+
 private:
     bool _closed = false;
     queue_type _queue;
