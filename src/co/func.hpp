@@ -29,7 +29,6 @@ public:
 
     std::coroutine_handle<> await_suspend(std::coroutine_handle<>) noexcept
     {
-
         return _continuation;
     }
 
@@ -156,7 +155,10 @@ public:
     ~func_template()
     {
         if (_coroutine && !std::is_same_v<FinalAwaiter, impl::never_awaiter>)
+        {
+            assert(_coroutine.done());
             _coroutine.destroy();
+        }
     }
 
     auto operator co_await() const

@@ -56,6 +56,11 @@ public:
         return _stop_requested;
     }
 
+    ~stop_state()
+    {
+        assert(_callbacks.empty());
+    }
+
 private:
     bool _stop_requested = false;
     stop_callback_list _callbacks;

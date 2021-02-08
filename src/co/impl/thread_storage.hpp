@@ -2,6 +2,7 @@
 
 #include <string>
 #include <co/stop_token.hpp>
+#include <co/impl/timer.hpp>
 
 namespace co::impl
 {
@@ -11,11 +12,12 @@ struct thread_storage
     std::string name;
     uint64_t id;
     stop_source stop;
+    timer _timer{};
 };
 
-inline std::unique_ptr<impl::thread_storage> create_thread_storage(const std::string& thread_name, uint64_t id)
+inline std::shared_ptr<impl::thread_storage> create_thread_storage(const std::string& thread_name, uint64_t id)
 {
-    auto storage = std::make_unique<impl::thread_storage>();
+    auto storage = std::make_shared<impl::thread_storage>();
     storage->id = id;
     if (thread_name.empty())
         storage->name = "co::thread" + std::to_string(storage->id);

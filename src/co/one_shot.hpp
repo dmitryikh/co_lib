@@ -1,7 +1,7 @@
 #pragma once
 
 #include <co/channel.hpp>
-#include <co/event.hpp>
+#include <co/timed_event.hpp>
 #include <co/exception.hpp>
 #include <co/error_code.hpp>
 #include <co/func.hpp>
@@ -109,7 +109,7 @@ private:
 
 private:
     bool _closed = false;
-    co::event _event;
+    co::timed_event _event;
     std::optional<T> _opt;
 };
 

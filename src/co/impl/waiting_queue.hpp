@@ -1,7 +1,7 @@
 #pragma once
 
 #include <co/impl/intrusive_list.hpp>
-#include <co/event.hpp>
+#include <co/timed_event.hpp>
 
 namespace co::impl
 {
@@ -20,7 +20,7 @@ public:
     }
 
 private:
-    event _event;
+    timed_event _event;
     intrusive_list_hook hook;
 };
 
@@ -85,6 +85,11 @@ public:
     bool empty() const
     {
         return _wakers_list.empty();
+    }
+
+    ~waiting_queue()
+    {
+        assert(empty());
     }
 
 private:
