@@ -11,13 +11,11 @@ template <typename T1, typename T2>
 co::func<std::tuple<T1, T2>> when_any(co::func<T1>&& f1, co::func<T2>&& f2, co::stop_source& stop)
 {
     co::timed_event finish;
-    // std::tuple<T1, T2> res;
     // need to use optional here because T1,2 could be not default constructable
     std::optional<T1> res1;
     std::optional<T2> res2;
     auto l1 = [&res1, &finish] (co::func<T1>&& f1) -> co::func<void>
     {
-        // std::get<0>(res) = co_await f1;
         res1 = co_await f1;
         finish.notify();
     };
