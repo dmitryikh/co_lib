@@ -12,8 +12,8 @@ namespace co::redis
 
 class connection
 {
-    constexpr static size_t READ_BUFFER_MAX = 1 * 1024 * 1024;
-    constexpr static size_t WRITE_BUFFER = 64 * 1024;
+    constexpr static size_t READ_BUFFER_MAX = 10 * 1024 * 1024;
+    constexpr static size_t WRITE_BUFFER = 64 * 1024 * 10;
 public:
     static func<result<connection>> connect(const std::string& ip, uint16_t port)
     {

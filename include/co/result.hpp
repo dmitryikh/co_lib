@@ -161,7 +161,7 @@ std::ostream& operator<< (std::ostream& out, const result<T>& r)
     return out;
 }
 
-error_desc err(const co::exception& coexc)
+inline error_desc err(const co::exception& coexc)
 {
     return coexc.err();
 }
@@ -172,7 +172,7 @@ error_desc err(Args&&... args)
     return { std::forward<Args>(args)... };
 }
 
-auto ok()
+inline auto ok()
 {
     return impl::outcome::success();
 }

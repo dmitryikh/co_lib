@@ -8,16 +8,16 @@ namespace co::net::impl
 
 enum class error_code
 {
-    eof = 4,
-    wrong_address = 5,
-    other_net = 6
+    eof = 1,
+    wrong_address = 2,
+    other_net = 3
 };
 
 struct error_code_category : std::error_category
 {
     const char* name() const noexcept override
     {
-        return "co_net errors";
+        return "co_net";
     }
 
     std::string message(int ev) const override
@@ -38,7 +38,7 @@ struct error_code_category : std::error_category
 
 const error_code_category global_error_code_category{};
 
-std::error_code make_error_code(error_code e)
+inline std::error_code make_error_code(error_code e)
 {
     return std::error_code{static_cast<int>(e), global_error_code_category};
 }

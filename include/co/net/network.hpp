@@ -78,7 +78,10 @@ public:
             else if (nread > 0)
                 state.read_len = static_cast<size_t>(nread);
 
-            /*int ret = */uv_read_stop(stream);
+            const int ret = uv_read_stop(stream);
+            if (ret != 0)
+                throw std::runtime_error("uv_read_stop failed");
+
             state.ev.notify();
         };
 
@@ -93,7 +96,6 @@ public:
 
         if (state.read_status != 0)
             co_return co::err(other_net);
-
 
         if (state.read_len == 0)
             co_return co::err(eof);
@@ -173,7 +175,7 @@ public:
         uv_shutdown_t shutdown_handle;
         shutdown_handle.data = static_cast<void*>(&state);
         assert(_tcp_ptr);
-        int ret = uv_shutdown(&shutdown_handle, (uv_stream_t*)_tcp_ptr.get(), on_shutdown);
+        const int ret = uv_shutdown(&shutdown_handle, (uv_stream_t*)_tcp_ptr.get(), on_shutdown);
         using namespace std::string_literals;
         if (ret != 0)
             co_return co::err(other_net);

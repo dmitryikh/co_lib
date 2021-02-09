@@ -69,13 +69,13 @@ private:
     error_desc _edesc;
 };
 
-std::ostream& operator<< (std::ostream& out, const co::exception& coexc)
+inline std::ostream& operator<< (std::ostream& out, const co::exception& coexc)
 {
     out << coexc.errc().category().name() << "::" << coexc.errc().message() << "(" << coexc.errc().value() << ") " << coexc.what();
     return out;
 }
 
-error_desc::error_desc(const co::exception& coexc)
+inline error_desc::error_desc(const co::exception& coexc)
     : error_desc(coexc.errc(), coexc.what())
 {}
 

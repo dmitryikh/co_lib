@@ -39,7 +39,7 @@ public:
     std::coroutine_handle<promise_type> _coroutine;
 };
 
-thread_func thread_func_promise::get_return_object() noexcept
+inline thread_func thread_func_promise::get_return_object() noexcept
 {
     using coroutine_handle = std::coroutine_handle<thread_func_promise>;
     return thread_func{ coroutine_handle::from_promise(*this) };
@@ -146,25 +146,27 @@ private:
 
 namespace this_thread
 {
-    const std::string& get_name()
-    {
-        return co::impl::this_thread_storage_ref().name;
-    }
 
-    const uint64_t get_id()
-    {
-        return co::impl::this_thread_storage_ref().id;
-    }
+inline const std::string& get_name()
+{
+    return co::impl::this_thread_storage_ref().name;
+}
 
-    stop_token get_stop_token()
-    {
-        return co::impl::this_thread_storage_ref().stop.get_token();
-    }
+inline const uint64_t get_id()
+{
+    return co::impl::this_thread_storage_ref().id;
+}
 
-    bool stop_requested()
-    {
-        return co::impl::this_thread_storage_ref().stop.stop_requested();
-    }
+inline stop_token get_stop_token()
+{
+    return co::impl::this_thread_storage_ref().stop.get_token();
+}
+
+inline bool stop_requested()
+{
+    return co::impl::this_thread_storage_ref().stop.stop_requested();
+}
+
 };
 
 

@@ -39,7 +39,7 @@ struct channel_error_code_category : std::error_category
 
 const channel_error_code_category global_channel_error_code_category{};
 
-std::error_code make_error_code(channel_error_code e)
+inline std::error_code make_error_code(channel_error_code e)
 {
     return std::error_code{static_cast<int>(e), global_channel_error_code_category};
 }

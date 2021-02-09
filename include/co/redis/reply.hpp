@@ -11,7 +11,7 @@ namespace co::redis
 class reply_string : public std::string
 {
 public:
-    using std::string::string;
+    // using std::string::string;
 
     reply_string(std::string&& str)
         : std::string(std::move(str))
@@ -31,7 +31,11 @@ public:
 class reply_bulk_string : public std::string
 {
 public:
-    using std::string::string;
+    // using std::string::string;
+    reply_bulk_string(reply_bulk_string&&) = default;
+    reply_bulk_string(const reply_bulk_string&) = delete;
+    reply_bulk_string& operator= (const reply_bulk_string&) = delete;
+    reply_bulk_string& operator= (reply_bulk_string&&) = default;
 
     reply_bulk_string(std::string&& str)
         : std::string(std::move(str))
@@ -51,8 +55,10 @@ public:
 
     reply() = default;
 
-    reply(const reply&) = default;
+    reply(const reply&) = delete;
     reply(reply&&) = default;
+    reply& operator=(reply&&) = default;
+    reply& operator=(const reply&) = delete;
 
     reply(reply_string&& r)
         : _variant(std::move(r))
@@ -77,9 +83,6 @@ public:
     reply(reply_array&& r)
         : _variant(std::move(r))
     {}
-
-    reply& operator=(reply&&) = default;
-    reply& operator=(const reply&) = default;
 
     bool has_string() const noexcept
     {

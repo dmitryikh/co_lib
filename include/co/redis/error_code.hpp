@@ -38,7 +38,7 @@ struct error_code_category : std::error_category
 
 const error_code_category global_error_code_category{};
 
-std::error_code make_error_code(error_code e)
+inline std::error_code make_error_code(error_code e)
 {
     return std::error_code{static_cast<int>(e), global_error_code_category};
 }

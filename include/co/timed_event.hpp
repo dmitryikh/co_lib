@@ -131,7 +131,7 @@ private:
 namespace impl
 {
 
-co::stop_callback_func timed_event_awaiter::stop_callback_func()
+inline co::stop_callback_func timed_event_awaiter::stop_callback_func()
 {
     return [this] ()
     {
@@ -148,7 +148,7 @@ co::stop_callback_func timed_event_awaiter::stop_callback_func()
     };
 }
 
-void timed_event_awaiter::on_timer(void* awaiter_ptr)
+inline void timed_event_awaiter::on_timer(void* awaiter_ptr)
 {
     assert(awaiter_ptr != nullptr);
 
@@ -164,7 +164,7 @@ void timed_event_awaiter::on_timer(void* awaiter_ptr)
     get_scheduler().ready(awaiter._event._waiting_coro);
 }
 
-bool timed_event_awaiter::await_ready() const noexcept
+inline bool timed_event_awaiter::await_ready() const noexcept
 {
     if (_event._status == event_status::ok)
         return true;
@@ -184,7 +184,7 @@ bool timed_event_awaiter::await_ready() const noexcept
     return false;
 }
 
-void timed_event_awaiter::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
+inline void timed_event_awaiter::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
 {
     _thread_storage->_timer.set_timer(_milliseconds, on_timer, static_cast<void*>(this));
     _event._waiting_coro = awaiting_coroutine;
@@ -192,7 +192,7 @@ void timed_event_awaiter::await_suspend(std::coroutine_handle<> awaiting_corouti
     set_this_thread_storage_ptr(nullptr);
 }
 
-result<void> timed_event_awaiter::await_resume() noexcept
+inline result<void> timed_event_awaiter::await_resume() noexcept
 {
     assert(_event._status > event_status::waiting);
 

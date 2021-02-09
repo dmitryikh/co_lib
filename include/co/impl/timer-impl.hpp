@@ -6,7 +6,7 @@
 namespace co::impl
 {
 
-co::func<void> timer::close()
+inline co::func<void> timer::close()
 {
     assert(_uv_timer_opt.has_value());
     assert(uv_is_active((uv_handle_t*) &(*_uv_timer_opt)) == 0 /*inactive*/);
