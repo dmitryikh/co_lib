@@ -7,13 +7,11 @@
 namespace co
 {
 
-class thread;
+template <typename T>
+class func;
 
 namespace impl
 {
-
-template <typename T, typename FinalAwaiter>
-class func_template;
 
 // NOTE: we don't need to change thread_storage_ptr here because we don't change
 // the active co::thread. We are just returning control to the parent frame
@@ -43,23 +41,52 @@ private:
     std::coroutine_handle<> _continuation;
 };
 
-class never_awaiter : public std::suspend_never
+template <typename Promise>
+class other_func_awaiter
 {
+    using type = typename Promise::type;
 public:
-    never_awaiter(std::coroutine_handle<>)
-        : std::suspend_never()
+    other_func_awaiter(std::coroutine_handle<Promise> coroutine) noexcept
+        : _coroutine(coroutine)
     {}
+
+    bool await_ready() const noexcept
+    {
+        return !_coroutine || _coroutine.done();
+    }
+
+    std::coroutine_handle<> await_suspend(
+        std::coroutine_handle<> continuation) noexcept
+    {
+        _coroutine.promise().set_continuation(continuation);
+        return _coroutine;
+    }
+
+    type await_resume() requires (!std::is_same_v<type, void>)
+    {
+        return std::move(_coroutine.promise().state().value());
+    }
+
+    void await_resume() requires (std::is_same_v<type, void>)
+    {
+        _coroutine.promise().state().value();
+    }
+
+public:
+    std::coroutine_handle<Promise> _coroutine;
 };
 
-template <typename T, typename FinalAwaiter>
-class func_promise
+template <typename T>
+class func_promise_base
 {
 public:
+    using type = T;
+
     std::suspend_always initial_suspend() noexcept { return {}; }
 
     auto final_suspend() noexcept
     {
-        return FinalAwaiter{ _continuation };
+        return symmetric_transfer_awaiter{ _continuation };
     }
 
     void set_continuation(std::coroutine_handle<> continuation) noexcept
@@ -67,20 +94,9 @@ public:
         _continuation = continuation;
     }
 
-    func_template<T, FinalAwaiter> get_return_object() noexcept
-    {
-        using coroutine_handle = std::coroutine_handle<func_promise>;
-        return func_template<T, FinalAwaiter>{ coroutine_handle::from_promise(*this) };
-    }
-
     void unhandled_exception()
     {
         _state.set_exception(std::current_exception());
-    }
-
-    void return_value(T value)
-    {
-        _state.set_value(std::move(value));
     }
 
     shared_state<T>& state()
@@ -88,135 +104,89 @@ public:
         return _state;
     }
 
-private:
+protected:
     std::coroutine_handle<> _continuation;
     shared_state<T> _state;
 };
 
-
-template<typename T, typename FinalAwaiter>
-class [[nodiscard]] func_template
+template <typename T>
+class func_promise : public func_promise_base<T>
 {
-    friend class co::thread;
 public:
-    using promise_type = func_promise<T, FinalAwaiter>;
+    auto get_return_object() noexcept
+    {
+        using coroutine_handle = std::coroutine_handle<func_promise>;
+        return func<T>{ coroutine_handle::from_promise(*this) };
+    }
+
+    void return_value(T value)
+    {
+        this->_state.set_value(std::move(value));
+    }
+};
+
+
+}  // namespace impl
+
+template<typename T>
+class [[nodiscard]] func
+{
+public:
+    using promise_type = impl::func_promise<T>;
     using value = T;
 
-private:
-    class awaitable
-    {
-    public:
-        awaitable(std::coroutine_handle<promise_type> coroutine) noexcept
-            : _coroutine(coroutine)
-        {}
-
-        bool await_ready() const noexcept
-        {
-            return !_coroutine || _coroutine.done();
-        }
-
-        std::coroutine_handle<> await_suspend(
-            std::coroutine_handle<> continuation) noexcept
-        {
-            _coroutine.promise().set_continuation(continuation);
-            return _coroutine;
-        }
-
-        T await_resume() requires (!std::is_same_v<T, void>)
-        {
-            return std::move(_coroutine.promise().state().value());
-        }
-
-        void await_resume() requires (std::is_same_v<T, void>)
-        {
-            _coroutine.promise().state().value();
-        }
-
-    public:
-        std::coroutine_handle<promise_type> _coroutine;
-    };
-
 public:
-
-    explicit func_template(std::coroutine_handle<promise_type> coroutine)
+    explicit func(std::coroutine_handle<promise_type> coroutine)
         : _coroutine(coroutine)
     {}
 
-    func_template(func_template&& t) noexcept
-        : func_template(t._coroutine)
+    func(func&& t) noexcept
+        : func(t._coroutine)
     {
         t._coroutine = nullptr;
     }
 
-    func_template(const func_template&) = delete;
-    func_template& operator=(const func_template&) = delete;
-    func_template& operator=(func_template&& other) = delete;
+    func(const func&) = delete;
+    func& operator=(const func&) = delete;
+    func& operator=(func&& other) = delete;
 
-    ~func_template()
+    ~func()
     {
-        if (_coroutine && !std::is_same_v<FinalAwaiter, impl::never_awaiter>)
-        {
-            assert(_coroutine.done());
-            _coroutine.destroy();
-        }
+        if (!_coroutine)
+            return;
+
+        assert(_coroutine.done());
+        _coroutine.destroy();
     }
 
     auto operator co_await() const
     {
-        return awaitable{ _coroutine };
+        return impl::other_func_awaiter<promise_type>{ _coroutine };
     }
 
 private:
     std::coroutine_handle<promise_type> _coroutine;
 };
 
-template <typename FinalAwaiter>
-class func_promise<void, FinalAwaiter>
+namespace impl
+{
+
+template <>
+class func_promise<void> : public func_promise_base<void>
 {
 public:
-    std::suspend_always initial_suspend() noexcept { return {}; }
-
-    auto final_suspend() noexcept
+    auto get_return_object() noexcept
     {
-        return FinalAwaiter{ _continuation };
-    }
-
-    void set_continuation(std::coroutine_handle<> continuation) noexcept
-    {
-        _continuation = continuation;
-    }
-
-    func_template<void, FinalAwaiter> get_return_object() noexcept
-    {
-        using coroutine_handle = std::coroutine_handle<func_promise<void, FinalAwaiter>>;
-        return func_template<void, FinalAwaiter>{ coroutine_handle::from_promise(*this) };
-    }
-
-    void unhandled_exception()
-    {
-        _state.set_exception(std::current_exception());
+        using coroutine_handle = std::coroutine_handle<func_promise>;
+        return func<void>{ coroutine_handle::from_promise(*this) };
     }
 
     void return_void()
     {
-        _state.set_value();
+        this->_state.set_value();
     }
-
-    shared_state<void>& state()
-    {
-        return _state;
-    }
-
-private:
-    std::coroutine_handle<> _continuation;
-    shared_state<void> _state;
 };
 
-using thread_func = impl::func_template<void, never_awaiter>;
+}  // namespace impl
 
-} // namespace impl
-
-template <typename T>
-using func = impl::func_template<T, impl::symmetric_transfer_awaiter>;
-
-}
+}  // namespace co

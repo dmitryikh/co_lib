@@ -13,6 +13,38 @@ namespace co
 namespace impl
 {
 
+class thread_func;
+
+class thread_func_promise : public func_promise_base<void>
+{
+public:
+    thread_func get_return_object() noexcept;
+
+    auto final_suspend() noexcept { return std::suspend_never{}; }
+
+    void return_void() { this->_state.set_value(); }
+};
+
+class [[nodiscard]] thread_func
+{
+public:
+    using promise_type = thread_func_promise;
+
+public:
+    auto operator co_await() const
+    {
+        return other_func_awaiter<promise_type>{ _coroutine };
+    }
+
+    std::coroutine_handle<promise_type> _coroutine;
+};
+
+thread_func thread_func_promise::get_return_object() noexcept
+{
+    using coroutine_handle = std::coroutine_handle<thread_func_promise>;
+    return thread_func{ coroutine_handle::from_promise(*this) };
+}
+
 inline thread_func create_thread_main_func(func<void> func, std::shared_ptr<timed_event> finish, std::shared_ptr<thread_storage> thread_storage)
 {
     try
@@ -43,6 +75,7 @@ public:
         , _event_ptr(std::make_shared<timed_event>())
         , _thread_func(impl::create_thread_main_func(std::move(func), _event_ptr, _thread_storage_ptr))
     {
+        // schedule the thread execution
         co::impl::get_scheduler().ready(_thread_func._coroutine);
     }
 
