@@ -25,13 +25,12 @@ co::func<std::tuple<T1, T2>> when_any(co::func<T1>&& f1, co::func<T2>&& f2, co::
 
     auto l2 = [&res2, &finish] (co::func<T2>&& f2) -> co::func<void>
     {
-        // std::get<1>(res) = co_await f2;
         res2 = co_await f2;
         finish.notify();
     };
     auto th2 = co::thread(l2(std::move(f2)));
 
-    co_await finish.wait(stop.get_token());
+    auto _ = co_await finish.wait(stop.get_token());
 
     stop.request_stop();
     co_await th1.join();
@@ -62,8 +61,8 @@ co::func<std::tuple<T1, T2>> when_all(co::func<T1>&& f1, co::func<T2>&& f2, cons
     };
     auto th2 = co::thread(l2(std::move(f2)));
 
-    co_await finish1.wait(token);
-    co_await finish2.wait(token);
+    auto _ = co_await finish1.wait(token);
+    _ = co_await finish2.wait(token);
 
     co_await th1.join();
     co_await th2.join();

@@ -8,19 +8,19 @@ int main()
 {
     co::loop([]() -> co::func<void>
     {
-        auto conn = (co_await co::redis::connection::connect("127.0.0.1", 6379)).unwrap();
-        (co_await conn.write({{"SET", "12", "twelve"}})).unwrap();
-        (co_await conn.flush()).unwrap();
+        auto conn = co_await co::redis::connection::connect("127.0.0.1", 6379).unwrap();
+        co_await conn.write({{"SET", "12", "twelve"}}).unwrap();
+        co_await conn.flush().unwrap();
         auto repl = co_await conn.read();
         std::cout << repl << std::endl;
 
-        (co_await conn.write({{"GET", "12"}})).unwrap();
-        (co_await conn.flush()).unwrap();
+        co_await conn.write({{"GET", "12"}}).unwrap();
+        co_await conn.flush().unwrap();
         repl = co_await conn.read();
         std::cout << repl << std::endl;
 
-        (co_await conn.write({{"GET", "13"}})).unwrap();
-        (co_await conn.flush()).unwrap();
+        co_await conn.write({{"GET", "13"}}).unwrap();
+        co_await conn.flush().unwrap();
         repl = co_await conn.read();
         std::cout << repl << std::endl;
     }());

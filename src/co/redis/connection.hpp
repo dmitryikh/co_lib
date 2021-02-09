@@ -38,7 +38,7 @@ public:
                 const size_t reserve = _write_buffer.capacity() - _write_buffer.size();
                 if (cmd.bytes_estimation() > reserve)
                 {
-                    (co_await flush()).unwrap();
+                    co_await flush().unwrap();
                 }
             }
 
@@ -181,7 +181,7 @@ private:
 
         for (size_t i = 0; i < len; i++)
         {
-            array.push_back((co_await read()).unwrap());
+            array.push_back(co_await read().unwrap());
         }
         co_return array;
     }

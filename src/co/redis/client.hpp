@@ -100,16 +100,16 @@ private:
 
                     if (_in_fly.size() >= in_fly_capacity)
                     {
-                        (co_await _conn.flush()).unwrap();
+                        co_await _conn.flush().unwrap();
                         co_await _in_fly_cv.wait([&] () { return _in_fly.size() < in_fly_capacity; });
                     }
 
                     _in_fly.push_back(std::move(req_cmd));
-                    (co_await _conn.write(std::move(cmd))).unwrap();
+                    co_await _conn.write(std::move(cmd)).unwrap();
                 }
                 else if (std::holds_alternative<request_flush>(req))
                 {
-                    (co_await _conn.flush()).unwrap();
+                    co_await _conn.flush().unwrap();
                 }
                 else
                 {
@@ -248,7 +248,7 @@ private:
                 auto coproc = impl::connection_processor(std::move(con.unwrap()), _req_channel);
                 _is_connected = true;
                 _is_connected_cv.notify_all();
-                (co_await coproc.join(token)).unwrap();
+                co_await coproc.join(token).unwrap();
             }
             catch (const co::exception& coexc)
             {

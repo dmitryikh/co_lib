@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <co/std.hpp>
+#include <co/result.hpp>
 #include <co/impl/shared_state.hpp>
 
 namespace co
@@ -128,6 +129,20 @@ public:
 
 }  // namespace impl
 
+template <typename T>
+co::func<typename T::ok_type> unwrap(co::func<T> orig) requires (co::is_result_v<T> && !std::is_void_v<typename T::ok_type>)
+{
+    auto res = co_await orig;
+    co_return std::move(res.unwrap());
+}
+
+template <typename T>
+co::func<typename T::ok_type> unwrap(co::func<T> orig) requires (co::is_result_v<T> && std::is_void_v<typename T::ok_type>)
+{
+    auto res = co_await orig;
+    res.unwrap();
+}
+
 template<typename T>
 class [[nodiscard]] func
 {
@@ -162,6 +177,11 @@ public:
     auto operator co_await() const
     {
         return impl::other_func_awaiter<promise_type>{ _coroutine };
+    }
+
+    auto unwrap()
+    {
+        return co::unwrap<T>(std::move(*this));
     }
 
 private:

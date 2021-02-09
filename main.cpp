@@ -148,18 +148,18 @@ void scheduler_usage()
 
 co::func<void> client_work(const std::string& ip, uint16_t port)
 {
-    auto socket = (co_await co::net::connect(ip, port)).unwrap();
+    auto socket = co_await co::net::connect(ip, port).unwrap();
     // co_await socket.read_n(&bytes[0], 30);
     auto th = co::thread([] (auto& socket) -> co::func<void>
     {
         for (int i = 0; i < 3; i++)
         {
             const std::string to_write = "abba" + std::to_string(i);
-            (co_await socket.write(to_write.data(), to_write.size())).unwrap();
+            co_await socket.write(to_write.data(), to_write.size()).unwrap();
             co_await co::this_thread::sleep_for(1000ms);
         }
         std::cout << "shutdown\n";
-        (co_await socket.shutdown()).unwrap();
+        co_await socket.shutdown().unwrap();
     }(socket), "writer");
 
     while (true)
@@ -297,7 +297,7 @@ void channel_usage()
             {
                 for (int i = 0; i < 100; i++)
                 {
-                    (co_await ch.push_for(i, 110ms)).unwrap();
+                    co_await ch.push_for(i, 110ms).unwrap();
                     std::cout << co::this_thread::get_name() << ": pushed " << i << "\n";
                 }
             }
@@ -400,7 +400,7 @@ void cond_var_usage()
         {
             try
             {
-                (co_await cv.wait_for(200ms, [&]() { return ready; })).unwrap();
+                co_await cv.wait_for(200ms, [&]() { return ready; }).unwrap();
                 std::cout << co::this_thread::get_name() << ": data is ready: " << data << "\n";
                 ready = false;
             }
@@ -414,7 +414,7 @@ void cond_var_usage()
         {
             try
             {
-                (co_await cv.wait_for(200ms, [&]() { return ready; })).unwrap();
+                co_await cv.wait_for(200ms, [&]() { return ready; }).unwrap();
                 std::cout << co::this_thread::get_name() << ": data is ready: " << data << "\n";
                 ready = false;
             }
