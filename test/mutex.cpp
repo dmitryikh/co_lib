@@ -3,7 +3,7 @@
 
 using namespace std::chrono_literals;
 
-TEST_CASE("co::mutex", ".[co::mutex]")
+TEST_CASE("co::mutex", "[co::mutex]")
 {
     auto start = std::chrono::steady_clock::now();
     co::loop(
@@ -14,21 +14,21 @@ TEST_CASE("co::mutex", ".[co::mutex]")
                 [](auto& mutex) -> co::func<void>
                 {
                     co_await mutex.lock();
-                    co_await co::this_thread::sleep_for(10ms);
+                    co_await co::this_thread::sleep_for(11ms);
                     mutex.unlock();
                 }(mutex));
             auto th2 = co::thread(
                 [](auto& mutex) -> co::func<void>
                 {
                     co_await mutex.lock();
-                    co_await co::this_thread::sleep_for(10ms);
+                    co_await co::this_thread::sleep_for(11ms);
                     mutex.unlock();
                 }(mutex));
             auto th3 = co::thread(
                 [](auto& mutex) -> co::func<void>
                 {
-                    while (co_await mutex.lock({ 5ms }) == co::timeout) {}
-                    co_await co::this_thread::sleep_for(10ms);
+                    while (co_await mutex.lock({ 2ms }) == co::timeout) {}
+                    co_await co::this_thread::sleep_for(11ms);
                     mutex.unlock();
                 }(mutex));
             co_await th1.join();

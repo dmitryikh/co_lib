@@ -26,11 +26,7 @@ public:
         if (try_lock())
             co_return co::ok();
 
-        auto res = co_await _waiting_queue.wait(until);
-        if (!_is_locked)
-            co_return co::ok();
-
-        co_return res;
+        co_return co_await _waiting_queue.wait(until);
     }
 
     ~mutex()
