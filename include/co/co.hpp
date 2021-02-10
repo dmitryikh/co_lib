@@ -5,7 +5,6 @@
 #include <co/func.hpp>
 #include <co/future.hpp>
 #include <co/mutex.hpp>
-#include <co/one_shot.hpp>
 #include <co/result.hpp>
 #include <co/scheduler.hpp>
 #include <co/sleep.hpp>
