@@ -4,6 +4,7 @@
 #include <co/func.hpp>
 #include <co/impl/shared_state.hpp>
 #include <co/result.hpp>
+#include <co/until.hpp>
 
 namespace co
 {
@@ -62,29 +63,9 @@ public:
         co_await _cv.wait([this]() { return base::is_done(); });
     }
 
-    co::func<result<void>> wait(const stop_token& token)
+    co::func<result<void>> wait(co::until until)
     {
-        co_return co_await _cv.wait([this]() { return base::is_done(); }, token);
-    }
-
-    template <class Rep, class Period>
-    co::func<result<void>> wait_for(std::chrono::duration<Rep, Period> sleep_duration,
-                                    const stop_token& token = impl::dummy_stop_token)
-    {
-        co_return co_await _cv.wait_for(
-            sleep_duration,
-            [this]() { return base::is_done(); },
-            token);
-    }
-
-    template <class Clock, class Duration>
-    co::func<result<void>> wait_until(std::chrono::time_point<Clock, Duration> sleep_time,
-                                      const stop_token& token = impl::dummy_stop_token)
-    {
-        co_return co_await _cv.wait_until(
-            sleep_time,
-            [this]() { return base::is_done(); },
-            token);
+        co_return co_await _cv.wait([this]() { return base::is_done(); }, until);
     }
 
     co::func<T> get()
@@ -93,48 +74,13 @@ public:
         co_return std::move(base::value());
     }
 
-    template <class Rep, class Period>
-    co::func<result<T>> get_for(std::chrono::duration<Rep, Period> sleep_duration,
-                                const stop_token& token = impl::dummy_stop_token) requires(!co::is_result_v<T>)
+    co::func<result<T>> get(co::until until)
     {
-        auto res = co_await wait_for(sleep_duration, token);
+        auto res = co_await wait(until);
         if (res.is_err())
             co_return res.err();
 
         co_return co::ok(std::move(base::value()));
-    }
-
-    template <class Rep, class Period>
-    co::func<T> get_for(std::chrono::duration<Rep, Period> sleep_duration,
-                        const stop_token& token = impl::dummy_stop_token) requires(co::is_result_v<T>)
-    {
-        auto res = co_await wait_for(sleep_duration, token);
-        if (res.is_err())
-            co_return res.err();
-
-        co_return std::move(base::value());
-    }
-
-    template <class Clock, class Duration>
-    co::func<result<T>> get_until(std::chrono::time_point<Clock, Duration> sleep_time,
-                                  const stop_token& token = impl::dummy_stop_token) requires(!co::is_result_v<T>)
-    {
-        auto res = co_await wait_until(sleep_time, token);
-        if (res.is_err())
-            co_return res.err();
-
-        co_return co::ok(std::move(base::value()));
-    }
-
-    template <class Clock, class Duration>
-    co::func<T> get_until(std::chrono::time_point<Clock, Duration> sleep_time,
-                          const stop_token& token = impl::dummy_stop_token) requires(co::is_result_v<T>)
-    {
-        auto res = co_await wait_until(sleep_time, token);
-        if (res.is_err())
-            co_return res.err();
-
-        co_return std::move(base::value());
     }
 
 private:
@@ -173,39 +119,11 @@ public:
         co_return co_await _shared_state->get();
     }
 
-    template <class Rep, class Period>
-    co::func<co::result<T>> get_for(std::chrono::duration<Rep, Period> sleep_duration,
-                                    const stop_token& token = impl::dummy_stop_token) requires(!co::is_result_v<T>)
+    co::func<co::result<T>> get(co::until until)
     {
         check_shared_state();
-        co_return co_await _shared_state->get_for(sleep_duration, token);
+        co_return co_await _shared_state->get(until);
     }
-
-    template <class Rep, class Period>
-    co::func<T> get_for(std::chrono::duration<Rep, Period> sleep_duration,
-                        const stop_token& token = impl::dummy_stop_token) requires(co::is_result_v<T>)
-    {
-        check_shared_state();
-        co_return co_await _shared_state->get_for(sleep_duration, token);
-    }
-
-    template <class Clock, class Duration>
-    co::func<co::result<T>> get_until(std::chrono::time_point<Clock, Duration> sleep_time,
-                                      const stop_token& token = impl::dummy_stop_token) requires(!co::is_result_v<T>)
-    {
-        check_shared_state();
-        co_return co_await _shared_state->get_until(sleep_time, token);
-    }
-
-    template <class Clock, class Duration>
-    co::func<T> get_until(std::chrono::time_point<Clock, Duration> sleep_time,
-                          const stop_token& token = impl::dummy_stop_token) requires(co::is_result_v<T>)
-    {
-        check_shared_state();
-        co_return co_await _shared_state->get_until(sleep_time, token);
-    }
-
-    // TODO: add all get_for, get_until
 
 private:
     void check_shared_state() const noexcept(false)

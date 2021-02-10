@@ -39,23 +39,11 @@ public:
             w.hook.unlink();
     };
 
-    func<result<void>> wait(const co::stop_token& token)
-    {
-        return wait_for(std::chrono::milliseconds::max(), token);
-    };
-
-    template <class Clock, class Duration>
-    func<result<void>> wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
-    {
-        return wait_for(sleep_time - Clock::now(), token);
-    }
-
-    template <class Rep, class Period>
-    func<result<void>> wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
+    func<result<void>> wait(co::until until)
     {
         waker w;
         _wakers_list.push_back(w);
-        auto status = co_await w._event.wait_for(sleep_duration, token);
+        auto status = co_await w._event.wait(until);
         if (w.hook.is_linked())
             w.hook.unlink();
         co_return status;

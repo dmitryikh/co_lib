@@ -104,21 +104,9 @@ public:
         co_await _event_ptr->wait();
     }
 
-    func<result<void>> join(const stop_token& token)
+    func<result<void>> join(co::until until)
     {
-        co_return co_await _event_ptr->wait(token);
-    }
-
-    template <class Clock, class Duration>
-    func<result<void>> join_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
-    {
-        co_await _event_ptr->wait_until(sleep_time, token);
-    }
-
-    template <class Rep, class Period>
-    func<result<void>> join_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = {})
-    {
-        co_await _event_ptr->wait_for(sleep_duration, token);
+        co_return co_await _event_ptr->wait(until);
     }
 
     bool is_joined() const

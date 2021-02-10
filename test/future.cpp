@@ -19,6 +19,6 @@ TEST_CASE("co::future", "[co::future]")
                 }(std::move(promise)))
                 .detach();
 
-            REQUIRE(co_await future.get_for(100ms).unwrap() == "hello world");
+            REQUIRE(co_await future.get({ 100ms }).unwrap() == "hello world");
         }());
 }

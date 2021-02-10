@@ -14,6 +14,11 @@ public:
         co_await _waiting_queue.wait();
     }
 
+    func<result<void>> wait(co::until until)
+    {
+        return _waiting_queue.wait(until);
+    }
+
     template <typename Predicate>
     func<void> wait(Predicate predicate)
     {
@@ -23,46 +28,16 @@ public:
         }
     }
 
-    template <class Rep, class Period>
-    func<result<void>> wait_for(std::chrono::duration<Rep, Period> sleep_duration,
-                                const stop_token& token = impl::dummy_stop_token)
-    {
-        co_return co_await _waiting_queue.wait_for(sleep_duration, token);
-    }
-
-    template <class Rep, class Period, typename Predicate>
-    func<result<void>> wait_for(std::chrono::duration<Rep, Period> sleep_duration,
-                                Predicate predicate,
-                                const stop_token& token = impl::dummy_stop_token)
-    {
-        return wait_until(std::chrono::steady_clock::now() + sleep_duration, std::move(predicate), token);
-    }
-
-    template <class Clock, class Duration>
-    func<result<void>> wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = {})
-    {
-        co_return co_await _waiting_queue.wait_until(sleep_time, token);
-    }
-
-    template <class Clock, class Duration, typename Predicate>
-    func<result<void>> wait_until(std::chrono::time_point<Clock, Duration> sleep_time,
-                                  Predicate predicate,
-                                  const co::stop_token& token = impl::dummy_stop_token)
+    template <typename Predicate>
+    func<result<void>> wait(Predicate predicate, co::until until)
     {
         while (!predicate())
         {
-            auto res = co_await wait_until(sleep_time, token);
-            if (res == co::timeout)
-            {
-                if (predicate())
-                    co_return co::ok();
-                else
-                    co_return co::err(co::timeout);
-            }
+            auto res = co_await _waiting_queue.wait(until);
+            if (res == co::timeout && predicate())
+                co_return co::ok();
             else if (res.is_err())
-            {
-                co_return res.err();
-            }
+                co_return res;
         }
         co_return co::ok();
     }

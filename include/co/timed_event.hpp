@@ -8,6 +8,7 @@
 #include <co/scheduler.hpp>
 #include <co/std.hpp>
 #include <co/stop_token.hpp>
+#include <co/until.hpp>
 #include <co/impl/timer-impl.hpp>
 
 namespace co
@@ -28,8 +29,8 @@ public:
         : timed_event_awaiter(event, max_milliseconds, impl::dummy_stop_token)
     {}
 
-    timed_event_awaiter(timed_event& event, int64_t milliseconds)
-        : timed_event_awaiter(event, milliseconds, impl::dummy_stop_token)
+    timed_event_awaiter(timed_event& event, const co::until& until)
+        : timed_event_awaiter(event, until.milliseconds(), until.token())
     {}
 
     timed_event_awaiter(timed_event& event, int64_t milliseconds, const co::stop_token& token)
@@ -96,29 +97,12 @@ public:
         return impl::event_awaiter<timed_event>(*this);
     };
 
-    [[nodiscard("co_await me")]] impl::timed_event_awaiter wait(const co::stop_token& token)
-    {
-        return wait_for(std::chrono::milliseconds::max(), token);
-    };
-
-    template <class Clock, class Duration>
-    [[nodiscard("co_await me")]] impl::timed_event_awaiter wait_until(
-        std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = impl::dummy_stop_token)
-    {
-        return wait_for(sleep_time - Clock::now(), token);
-    }
-
-    template <class Rep, class Period>
-    [[nodiscard("co_await me")]] impl::timed_event_awaiter wait_for(
-        std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = impl::dummy_stop_token)
+    [[nodiscard("co_await me")]] impl::timed_event_awaiter wait(const co::until& until)
     {
         if (_status == impl::event_status::waiting)
             throw std::logic_error("event already waiting");
 
-        using std::chrono::duration_cast;
-        const int64_t milliseconds = duration_cast<std::chrono::milliseconds>(sleep_duration).count();
-
-        return impl::timed_event_awaiter(*this, milliseconds, token);
+        return impl::timed_event_awaiter(*this, until);
     };
 
     bool is_notified() const

@@ -85,46 +85,14 @@ public:
     }
 
     template <typename T2>
-    func<result<void>> push(T2&& t, const co::stop_token& token = impl::dummy_stop_token)
+    func<result<void>> push(T2&& t, co::until until = {})
     {
         if (_closed)
             co_return co::err(co::closed);
 
         while (_queue.full() && !_closed)
         {
-            auto res = co_await _producer_waiting_queue.wait(token);
-            if (res.is_err())
-                co_return res.err();
-        }
-
-        if (_closed)
-            co_return co::err(co::closed);
-
-        assert(!_queue.full());
-        _queue.push_back(std::forward<T2>(t));
-        _consumer_waiting_queue.notify_one();
-        co_return co::ok();
-    }
-
-    template <typename T2, class Rep, class Period>
-    func<result<void>> push_for(T2&& t,
-                                std::chrono::duration<Rep, Period> sleep_duration,
-                                const co::stop_token& token = impl::dummy_stop_token)
-    {
-        return push_until(std::forward<T2>(t), std::chrono::steady_clock::now() + sleep_duration, token);
-    }
-
-    template <typename T2, class Clock, class Duration>
-    func<result<void>> push_until(T2&& t,
-                                  std::chrono::time_point<Clock, Duration> sleep_time,
-                                  const co::stop_token& token = impl::dummy_stop_token)
-    {
-        if (_closed)
-            co_return co::err(co::closed);
-
-        while (_queue.full() && !_closed)
-        {
-            auto res = co_await _producer_waiting_queue.wait_until(sleep_time, token);
+            auto res = co_await _producer_waiting_queue.wait(until);
             if (res.is_err())
                 co_return res.err();
         }
@@ -152,44 +120,14 @@ public:
         return res;
     }
 
-    func<result<T>> pop(const co::stop_token& token = impl::dummy_stop_token)
+    func<result<T>> pop(co::until until = {})
     {
         while (_queue.empty() && !_closed)
         {
-            auto res = co_await _consumer_waiting_queue.wait(token);
+            auto res = co_await _consumer_waiting_queue.wait(until);
             if (res.is_err())
             {
-                _consumer_waiting_queue.notify_one();
-                co_return res.err();
-            }
-        }
-
-        if (_closed && _queue.empty())
-            co_return co::err(co::closed);
-
-        assert(!_queue.empty());
-        result<T> res = co::ok(std::move(_queue.front()));
-        _queue.pop_front();
-        _producer_waiting_queue.notify_one();
-        co_return res;
-    }
-
-    template <class Rep, class Period>
-    func<result<T>> pop_for(std::chrono::duration<Rep, Period> sleep_duration,
-                            const co::stop_token& token = impl::dummy_stop_token)
-    {
-        return pop_until(std::chrono::steady_clock::now() + sleep_duration, token);
-    }
-
-    template <class Clock, class Duration>
-    func<result<T>> pop_until(std::chrono::time_point<Clock, Duration> sleep_time,
-                              const co::stop_token& token = impl::dummy_stop_token)
-    {
-        while (_queue.empty() && !_closed)
-        {
-            auto res = co_await _consumer_waiting_queue.wait_until(sleep_time, token);
-            if (res.is_err())
-            {
+                // need to notify other consumer to wake up and try to get ready items
                 _consumer_waiting_queue.notify_one();
                 co_return res.err();
             }
