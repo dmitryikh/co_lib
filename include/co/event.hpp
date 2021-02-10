@@ -1,8 +1,8 @@
 #pragma once
 
-#include <co/std.hpp>
-#include <co/scheduler.hpp>
 #include <co/impl/thread_storage.hpp>
+#include <co/scheduler.hpp>
+#include <co/std.hpp>
 
 namespace co
 {
@@ -46,6 +46,7 @@ class event
 {
     template <typename T>
     friend class impl::event_awaiter;
+
 public:
     bool notify() noexcept
     {
@@ -73,7 +74,6 @@ private:
     impl::event_status _status = impl::event_status::init;
     std::coroutine_handle<> _waiting_coro;
 };
-
 
 namespace impl
 {
@@ -109,19 +109,19 @@ void event_awaiter<event>::await_resume() noexcept
 
     set_this_thread_storage_ptr(_thread_storage);
 
-    switch(_event._status)
+    switch (_event._status)
     {
-        case event_status::init:
-        case event_status::waiting:
-        case event_status::cancel:
-        case event_status::timeout:
-            assert(false);
-            throw std::logic_error("unexpected status in event_awaiter::await_resume()");
-        case event_status::ok:
-            return;
+    case event_status::init:
+    case event_status::waiting:
+    case event_status::cancel:
+    case event_status::timeout:
+        assert(false);
+        throw std::logic_error("unexpected status in event_awaiter::await_resume()");
+    case event_status::ok:
+        return;
     }
 }
 
 }  // namespace impl
 
-} // namespace co
+}  // namespace co

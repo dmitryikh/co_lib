@@ -1,10 +1,10 @@
 #pragma once
 
 #include <list>
-#include <co/std.hpp>
-#include <co/scheduler.hpp>
-#include <co/stop_token.hpp>
 #include <co/impl/waiting_queue.hpp>
+#include <co/scheduler.hpp>
+#include <co/std.hpp>
+#include <co/stop_token.hpp>
 
 namespace co
 {
@@ -66,9 +66,10 @@ public:
         if (!_waiting_queue.notify_one())
             _is_locked = false;
     }
+
 private:
     bool _is_locked = false;
     impl::waiting_queue _waiting_queue;
 };
 
-} // namespace co
+}  // namespace co

@@ -4,12 +4,13 @@
 #include <coroutine>
 #else
 #include <experimental/coroutine>
-namespace std {
+namespace std
+{
 
-    using std::experimental::coroutine_handle;
-    using std::experimental::noop_coroutine;
-    using std::experimental::suspend_always;
-    using std::experimental::suspend_never;
+using std::experimental::coroutine_handle;
+using std::experimental::noop_coroutine;
+using std::experimental::suspend_always;
+using std::experimental::suspend_never;
 
-} // namespace std
+}  // namespace std
 #endif

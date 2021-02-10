@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cassert>
-#include <co/std.hpp>
-#include <co/result.hpp>
 #include <co/impl/shared_state.hpp>
+#include <co/result.hpp>
+#include <co/std.hpp>
 
 namespace co
 {
@@ -24,7 +24,10 @@ public:
         : _continuation(continuation)
     {}
 
-    bool await_ready() const noexcept { return false; }
+    bool await_ready() const noexcept
+    {
+        return false;
+    }
 
     std::coroutine_handle<> await_suspend(std::coroutine_handle<>) noexcept
     {
@@ -46,6 +49,7 @@ template <typename Promise>
 class other_func_awaiter
 {
     using type = typename Promise::type;
+
 public:
     other_func_awaiter(std::coroutine_handle<Promise> coroutine) noexcept
         : _coroutine(coroutine)
@@ -56,19 +60,18 @@ public:
         return !_coroutine || _coroutine.done();
     }
 
-    std::coroutine_handle<> await_suspend(
-        std::coroutine_handle<> continuation) noexcept
+    std::coroutine_handle<> await_suspend(std::coroutine_handle<> continuation) noexcept
     {
         _coroutine.promise().set_continuation(continuation);
         return _coroutine;
     }
 
-    type await_resume() requires (!std::is_same_v<type, void>)
+    type await_resume() requires(!std::is_same_v<type, void>)
     {
         return std::move(_coroutine.promise().state().value());
     }
 
-    void await_resume() requires (std::is_same_v<type, void>)
+    void await_resume() requires(std::is_same_v<type, void>)
     {
         _coroutine.promise().state().value();
     }
@@ -83,7 +86,10 @@ class func_promise_base
 public:
     using type = T;
 
-    std::suspend_always initial_suspend() noexcept { return {}; }
+    std::suspend_always initial_suspend() noexcept
+    {
+        return {};
+    }
 
     auto final_suspend() noexcept
     {
@@ -126,24 +132,25 @@ public:
     }
 };
 
-
 }  // namespace impl
 
 template <typename T>
-co::func<typename T::ok_type> unwrap(co::func<T> orig) requires (co::is_result_v<T> && !std::is_void_v<typename T::ok_type>)
+co::func<typename T::ok_type> unwrap(co::func<T> orig) requires(co::is_result_v<T> &&
+                                                                !std::is_void_v<typename T::ok_type>)
 {
     auto res = co_await orig;
     co_return std::move(res.unwrap());
 }
 
 template <typename T>
-co::func<typename T::ok_type> unwrap(co::func<T> orig) requires (co::is_result_v<T> && std::is_void_v<typename T::ok_type>)
+co::func<typename T::ok_type> unwrap(co::func<T> orig) requires(
+    co::is_result_v<T>&& std::is_void_v<typename T::ok_type>)
 {
     auto res = co_await orig;
     res.unwrap();
 }
 
-template<typename T>
+template <typename T>
 class [[nodiscard]] func
 {
 public:

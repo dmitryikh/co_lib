@@ -1,10 +1,10 @@
 #pragma once
 
 #include <co/channel.hpp>
-#include <co/timed_event.hpp>
-#include <co/exception.hpp>
 #include <co/error_code.hpp>
+#include <co/exception.hpp>
 #include <co/func.hpp>
+#include <co/timed_event.hpp>
 
 namespace co
 {
@@ -47,7 +47,8 @@ public:
     }
 
     template <class Rep, class Period>
-    co::func<result<T>> pop_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = impl::dummy_stop_token)
+    co::func<result<T>> pop_for(std::chrono::duration<Rep, Period> sleep_duration,
+                                const co::stop_token& token = impl::dummy_stop_token)
     {
         if (_closed)
             co_return co::err(co::closed);
@@ -67,7 +68,8 @@ public:
     }
 
     template <class Clock, class Duration>
-    co::func<result<T>> pop_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = impl::dummy_stop_token)
+    co::func<result<T>> pop_until(std::chrono::time_point<Clock, Duration> sleep_time,
+                                  const co::stop_token& token = impl::dummy_stop_token)
     {
         return pop_for(sleep_time - Clock::now(), token);
     }

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <optional>
-#include <uv.h>
 #include <co/func.hpp>
+#include <uv.h>
 
 namespace co::impl
 {
@@ -16,8 +16,8 @@ public:
 
     timer(const timer&) = delete;
     timer(timer&&) = delete;
-    timer& operator= (const timer&) = delete;
-    timer& operator= (timer&&) = delete;
+    timer& operator=(const timer&) = delete;
+    timer& operator=(timer&&) = delete;
 
     void init(uv_loop_t* uv_loop)
     {

@@ -1,13 +1,13 @@
 #pragma once
 
 #include <chrono>
-#include <co/std.hpp>
-#include <co/scheduler.hpp>
-#include <co/impl/thread_storage.hpp>
-#include <co/stop_token.hpp>
-#include <co/result.hpp>
 #include <co/error_code.hpp>
 #include <co/event.hpp>
+#include <co/impl/thread_storage.hpp>
+#include <co/result.hpp>
+#include <co/scheduler.hpp>
+#include <co/std.hpp>
+#include <co/stop_token.hpp>
 #include <co/impl/timer-impl.hpp>
 
 namespace co
@@ -20,7 +20,9 @@ namespace impl
 
 class timed_event_awaiter
 {
-    constexpr static int64_t max_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::milliseconds::max()).count();
+    constexpr static int64_t max_milliseconds =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::milliseconds::max()).count();
+
 public:
     timed_event_awaiter(timed_event& event)
         : timed_event_awaiter(event, max_milliseconds, impl::dummy_stop_token)
@@ -66,7 +68,7 @@ private:
 
 /// @brief timed_event is simple synchronisation primitive for notification
 /// between two co::thread.
-/// 
+///
 /// @describe event::notify() is used to show that event has
 /// happened. event::wait() family of methods are used to wait the event
 /// happened. After notification all event::wait() will return immidiately
@@ -75,8 +77,8 @@ class timed_event
     template <typename T>
     friend class impl::event_awaiter;
     friend class impl::timed_event_awaiter;
-public:
 
+public:
     bool notify() noexcept
     {
         if (_status >= impl::event_status::ok)
@@ -100,17 +102,18 @@ public:
     };
 
     template <class Clock, class Duration>
-    [[nodiscard("co_await me")]] impl::timed_event_awaiter wait_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = impl::dummy_stop_token)
+    [[nodiscard("co_await me")]] impl::timed_event_awaiter wait_until(
+        std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = impl::dummy_stop_token)
     {
         return wait_for(sleep_time - Clock::now(), token);
     }
 
     template <class Rep, class Period>
-    [[nodiscard("co_await me")]] impl::timed_event_awaiter wait_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = impl::dummy_stop_token)
+    [[nodiscard("co_await me")]] impl::timed_event_awaiter wait_for(
+        std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = impl::dummy_stop_token)
     {
         if (_status == impl::event_status::waiting)
             throw std::logic_error("event already waiting");
-
 
         using std::chrono::duration_cast;
         const int64_t milliseconds = duration_cast<std::chrono::milliseconds>(sleep_duration).count();
@@ -133,7 +136,7 @@ namespace impl
 
 inline co::stop_callback_func timed_event_awaiter::stop_callback_func()
 {
-    return [this] ()
+    return [this]()
     {
         if (_event._status > event_status::waiting)
         {
@@ -199,21 +202,21 @@ inline result<void> timed_event_awaiter::await_resume() noexcept
     set_this_thread_storage_ptr(_thread_storage);
     _thread_storage->_timer.stop();  // do not wait the timer anymore
 
-    switch(_event._status)
+    switch (_event._status)
     {
-        case event_status::init:
-        case event_status::waiting:
-            assert(false);
-            throw std::logic_error("unexpected status in event_awaiter::await_resume()");
-        case event_status::ok:
-            return co::ok();
-        case event_status::cancel:
-            return co::err(co::cancel);
-        case event_status::timeout:
-            return co::err(co::timeout);
+    case event_status::init:
+    case event_status::waiting:
+        assert(false);
+        throw std::logic_error("unexpected status in event_awaiter::await_resume()");
+    case event_status::ok:
+        return co::ok();
+    case event_status::cancel:
+        return co::err(co::cancel);
+    case event_status::timeout:
+        return co::err(co::timeout);
     }
 }
 
 }  // namespace impl
 
-} // namespace co
+}  // namespace co

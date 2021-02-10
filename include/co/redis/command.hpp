@@ -9,16 +9,16 @@ namespace co::redis
 namespace impl
 {
 
-    inline void serialize_int64(std::vector<char>& buffer, int64_t v)
-    {
-        std::array<char, std::numeric_limits<int64_t>::digits + 1> local_buffer;
+inline void serialize_int64(std::vector<char>& buffer, int64_t v)
+{
+    std::array<char, std::numeric_limits<int64_t>::digits + 1> local_buffer;
 
-        const auto res = std::to_chars(local_buffer.begin(), local_buffer.end(), v);
-        if (res.ec != std::errc{})
-            throw std::runtime_error("int64 serialization failed");
+    const auto res = std::to_chars(local_buffer.begin(), local_buffer.end(), v);
+    if (res.ec != std::errc{})
+        throw std::runtime_error("int64 serialization failed");
 
-        std::copy(local_buffer.begin(), res.ptr, std::back_inserter(buffer));
-    }
+    std::copy(local_buffer.begin(), res.ptr, std::back_inserter(buffer));
+}
 
 }  // namespace impl
 
@@ -34,7 +34,7 @@ public:
 
         for (const auto& token : tokens)
         {
-            size += 1;   // $
+            size += 1;  // $
             size += std::numeric_limits<int64_t>::digits;
             size += 2;  // \r\n
             size += token.size();
@@ -64,6 +64,5 @@ public:
 
     std::vector<std::string> tokens;
 };
-
 
 }  // namespace co::redis

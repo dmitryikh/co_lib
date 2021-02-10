@@ -1,7 +1,7 @@
 #pragma once
 
-#include <boost/outcome.hpp>
 #include <system_error>
+#include <boost/outcome.hpp>
 
 namespace co::redis::impl
 {
@@ -40,14 +40,17 @@ const error_code_category global_error_code_category{};
 
 inline std::error_code make_error_code(error_code e)
 {
-    return std::error_code{static_cast<int>(e), global_error_code_category};
+    return std::error_code{ static_cast<int>(e), global_error_code_category };
 }
 
 }  // namespace co::redis::impl
 
-namespace std {
-    template <> struct is_error_code_enum<co::redis::impl::error_code> : true_type {};
-}
+namespace std
+{
+template <>
+struct is_error_code_enum<co::redis::impl::error_code> : true_type
+{};
+}  // namespace std
 
 namespace co::redis
 {

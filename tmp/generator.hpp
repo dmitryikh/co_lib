@@ -7,7 +7,7 @@ namespace co::tmp
 {
 
 template <typename T>
-class generator_shared_state 
+class generator_shared_state
 {
 public:
     void set_exception(std::exception_ptr exception_ptr)
@@ -59,8 +59,14 @@ public:
         return { coroutine_handle::from_promise(*this), _state };
     }
 
-    constexpr std::suspend_always initial_suspend() const noexcept { return {}; }
-    constexpr std::suspend_always final_suspend() const noexcept { return {}; }
+    constexpr std::suspend_always initial_suspend() const noexcept
+    {
+        return {};
+    }
+    constexpr std::suspend_always final_suspend() const noexcept
+    {
+        return {};
+    }
 
     void unhandled_exception()
     {
@@ -79,7 +85,7 @@ public:
     }
 
     // Don't allow any use of 'co_await' inside the coroutine.
-    template<typename U>
+    template <typename U>
     std::suspend_never await_transform(U&& value) = delete;
 
 private:
@@ -92,10 +98,7 @@ class generator
 public:
     using promise_type = generator_promise<T>;
 
-    generator(
-        std::coroutine_handle<> coroutine,
-        generator_shared_state<T>& state
-    )
+    generator(std::coroutine_handle<> coroutine, generator_shared_state<T>& state)
         : _coroutine(coroutine)
         , _state(state)
     {}
@@ -127,4 +130,4 @@ private:
     generator_shared_state<T>& _state;
 };
 
-}
+}  // namespace co::tmp

@@ -82,7 +82,7 @@ public:
     stop_token() = default;
 
     stop_token(impl::stop_state_sptr stop_state)
-    : _stop_state(std::move(stop_state))
+        : _stop_state(std::move(stop_state))
     {}
 
     bool stop_requested() const
@@ -107,7 +107,7 @@ class stop_source
 {
 public:
     stop_source()
-    : _stop_state(std::make_shared<impl::stop_state>())
+        : _stop_state(std::make_shared<impl::stop_state>())
     {}
 
     stop_token get_token() const
@@ -119,7 +119,7 @@ public:
     {
         if (!_stop_state)
             return;
-        
+
         _stop_state->request_stop();
     }
 
@@ -167,14 +167,13 @@ public:
     stop_callback& operator=(stop_callback&&) = delete;
 
 private:
-    impl::stop_state_sptr _stop_state; 
+    impl::stop_state_sptr _stop_state;
     impl::stop_callback_node _callback_node;
-
 };
 
 namespace impl
 {
-    const stop_token dummy_stop_token{};
+const stop_token dummy_stop_token{};
 }
 
 }  // namespace co

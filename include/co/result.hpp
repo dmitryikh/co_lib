@@ -38,12 +38,12 @@ public:
     {}
 
     /// construct successful result
-    result(impl::outcome::success_type<void>&& success) requires (std::is_same_v<T, void>)
+    result(impl::outcome::success_type<void>&& success) requires(std::is_same_v<T, void>)
         : _res(std::move(success))
     {}
 
     template <typename Arg>
-    result(impl::outcome::success_type<Arg>&& success) requires (std::is_constructible_v<T, Arg>)
+    result(impl::outcome::success_type<Arg>&& success) requires(std::is_constructible_v<T, Arg>)
         : _res(std::move(success))
     {}
 
@@ -72,7 +72,7 @@ public:
         return _res.has_value();
     }
 
-    // auto value() noexcept requires (!std::is_same_v<T, void>) 
+    // auto value() noexcept requires (!std::is_same_v<T, void>)
     // {
     //     return _res.as_value();
     // }
@@ -82,27 +82,27 @@ public:
     //     return _res.as_value();
     // }
 
-    void unwrap() const& noexcept(false) requires std::is_same_v<T, void> 
+    void unwrap() const& noexcept(false) requires std::is_same_v<T, void>
     {
         if (is_err())
             throw co::exception(_res.assume_error());
     }
 
-    std::add_lvalue_reference_t<T> unwrap() & noexcept(false) requires (!std::is_same_v<T, void>)
-    {
-        if (is_err())
-            throw co::exception(_res.assume_error());
-        return _res.assume_value();
-    }
-
-    std::add_lvalue_reference_t<const T> unwrap() const& noexcept(false) requires (!std::is_same_v<T, void>)
+    std::add_lvalue_reference_t<T> unwrap() & noexcept(false) requires(!std::is_same_v<T, void>)
     {
         if (is_err())
             throw co::exception(_res.assume_error());
         return _res.assume_value();
     }
 
-    std::add_rvalue_reference_t<T> unwrap() && noexcept(false) requires (!std::is_same_v<T, void>)
+    std::add_lvalue_reference_t<const T> unwrap() const& noexcept(false) requires(!std::is_same_v<T, void>)
+    {
+        if (is_err())
+            throw co::exception(_res.assume_error());
+        return _res.assume_value();
+    }
+
+    std::add_rvalue_reference_t<T> unwrap() && noexcept(false) requires(!std::is_same_v<T, void>)
     {
         if (is_err())
             throw co::exception(_res.assume_error());
@@ -114,7 +114,7 @@ private:
 };
 
 template <typename T>
-bool operator== (const result<T>& r, const std::error_code& errc)
+bool operator==(const result<T>& r, const std::error_code& errc)
 {
     if (!r.is_err())
         return false;
@@ -123,29 +123,30 @@ bool operator== (const result<T>& r, const std::error_code& errc)
 }
 
 template <typename T>
-bool operator== (const std::error_code& errc, const result<T>& r)
+bool operator==(const std::error_code& errc, const result<T>& r)
 {
     return r == errc;
 }
 
 template <typename T>
-bool operator!= (const result<T>& r, const std::error_code& errc)
+bool operator!=(const result<T>& r, const std::error_code& errc)
 {
     return !(r == errc);
 }
 
 template <typename T>
-bool operator!= (const std::error_code& errc, const result<T>& r)
+bool operator!=(const std::error_code& errc, const result<T>& r)
 {
     return !(r == errc);
 }
 
 template <typename T>
-std::ostream& operator<< (std::ostream& out, const result<T>& r)
+std::ostream& operator<<(std::ostream& out, const result<T>& r)
 {
     if (r.is_err())
     {
-        out << "ERR " << r.err().category().name() << "::" << r.err().message() << "(" << r.err().value() << ") " << r.what();
+        out << "ERR " << r.err().category().name() << "::" << r.err().message() << "(" << r.err().value() << ") "
+            << r.what();
     }
     else
     {
@@ -187,10 +188,12 @@ namespace impl
 {
 
 template <typename T>
-struct is_result : std::false_type {};
+struct is_result : std::false_type
+{};
 
 template <typename T>
-struct is_result<result<T>> : std::true_type {};
+struct is_result<result<T>> : std::true_type
+{};
 
 }  // namespace impl
 

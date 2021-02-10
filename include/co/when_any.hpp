@@ -1,8 +1,8 @@
 #pragma once
 
 #include <co/func.hpp>
-#include <co/thread.hpp>
 #include <co/stop_token.hpp>
+#include <co/thread.hpp>
 
 namespace co
 {
@@ -14,14 +14,14 @@ co::func<std::tuple<T1, T2>> when_any(co::func<T1>&& f1, co::func<T2>&& f2, co::
     // need to use optional here because T1,2 could be not default constructable
     std::optional<T1> res1;
     std::optional<T2> res2;
-    auto l1 = [&res1, &finish] (co::func<T1>&& f1) -> co::func<void>
+    auto l1 = [&res1, &finish](co::func<T1>&& f1) -> co::func<void>
     {
         res1 = co_await f1;
         finish.notify();
     };
     auto th1 = co::thread(l1(std::move(f1)));
 
-    auto l2 = [&res2, &finish] (co::func<T2>&& f2) -> co::func<void>
+    auto l2 = [&res2, &finish](co::func<T2>&& f2) -> co::func<void>
     {
         res2 = co_await f2;
         finish.notify();
@@ -45,14 +45,14 @@ co::func<std::tuple<T1, T2>> when_all(co::func<T1>&& f1, co::func<T2>&& f2, cons
     co::timed_event finish1;
     co::timed_event finish2;
     std::tuple<T1, T2> res;
-    auto l1 = [&res, &finish1] (co::func<T1>&& f1) -> co::func<void>
+    auto l1 = [&res, &finish1](co::func<T1>&& f1) -> co::func<void>
     {
         std::get<0>(res) = co_await f1;
         finish1.notify();
     };
     auto th1 = co::thread(l1(std::move(f1)));
 
-    auto l2 = [&res, &finish2] (co::func<T2>&& f2) -> co::func<void>
+    auto l2 = [&res, &finish2](co::func<T2>&& f2) -> co::func<void>
     {
         std::get<1>(res) = co_await f2;
         finish2.notify();

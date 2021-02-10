@@ -1,13 +1,13 @@
 #pragma once
 
+#include <boost/circular_buffer.hpp>
 #include <co/channel.hpp>
 #include <co/future.hpp>
+#include <co/redis/command.hpp>
+#include <co/redis/connection.hpp>
 #include <co/sleep.hpp>
 #include <co/stop_token.hpp>
 #include <co/thread.hpp>
-#include <co/redis/connection.hpp>
-#include <co/redis/command.hpp>
-#include <boost/circular_buffer.hpp>
 
 namespace co::redis
 {
@@ -44,6 +44,7 @@ using request = std::variant<request_command, request_flush>;
 class connection_processor
 {
     static constexpr size_t in_fly_capacity = 1024;
+
 public:
     connection_processor(connection&& conn, co::channel<request>& in_ch)
         : _conn(std::move(conn))
@@ -54,12 +55,14 @@ public:
 
     co::func<co::result<void>> join(const co::stop_token& stop)
     {
-        auto callback = co::stop_callback(stop, [this] () {
-            _write_loop.request_stop();
-            _read_loop.request_stop();
-            if (!_result.is_err())
-                _result = co::err(co::cancel);
-        });
+        auto callback = co::stop_callback(stop,
+                                          [this]()
+                                          {
+                                              _write_loop.request_stop();
+                                              _read_loop.request_stop();
+                                              if (!_result.is_err())
+                                                  _result = co::err(co::cancel);
+                                          });
 
         co_await _write_loop.join();
         co_await _read_loop.join();
@@ -101,7 +104,7 @@ private:
                     if (_in_fly.size() >= in_fly_capacity)
                     {
                         co_await _conn.flush().unwrap();
-                        co_await _in_fly_cv.wait([&] () { return _in_fly.size() < in_fly_capacity; });
+                        co_await _in_fly_cv.wait([&]() { return _in_fly.size() < in_fly_capacity; });
                     }
 
                     _in_fly.push_back(std::move(req_cmd));
@@ -192,12 +195,12 @@ public:
 
     co::func<co::future<co::result<reply>>> get(const std::string& key)
     {
-        return send_command({{ "GET", key }});
+        return send_command({ { "GET", key } });
     }
 
     co::func<co::future<co::result<reply>>> set(const std::string& key, const std::string& value)
     {
-        return send_command({{ "SET", key, value }});
+        return send_command({ { "SET", key, value } });
     }
 
     bool is_connected() const
@@ -274,4 +277,4 @@ private:
     co::thread _reconnect_loop_thread;
 };
 
-}  // namespase co::redis
+}  // namespace co::redis

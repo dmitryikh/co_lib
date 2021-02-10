@@ -3,9 +3,9 @@
 #include <charconv>
 #include <co/func.hpp>
 #include <co/net/network.hpp>
-#include <co/redis/reply.hpp>
 #include <co/redis/command.hpp>
 #include <co/redis/error_code.hpp>
+#include <co/redis/reply.hpp>
 
 namespace co::redis
 {
@@ -14,6 +14,7 @@ class connection
 {
     constexpr static size_t READ_BUFFER_MAX = 10 * 1024 * 1024;
     constexpr static size_t WRITE_BUFFER = 64 * 1024 * 10;
+
 public:
     static func<result<connection>> connect(const std::string& ip, uint16_t port)
     {
@@ -68,18 +69,18 @@ public:
             const char type_id = co_await read_char();
             switch (type_id)
             {
-                case '+':
-                    co_return co::ok(reply_string{ co_await read_string() });
-                case '-':
-                    co_return co::ok(reply_error{ co_await read_string() });
-                case ':':
-                    co_return co::ok(co_await read_int());
-                case '$':
-                    co_return co::ok(co_await read_bulk_string());
-                case '*':
-                    co_return co::ok(co_await read_array());
+            case '+':
+                co_return co::ok(reply_string{ co_await read_string() });
+            case '-':
+                co_return co::ok(reply_error{ co_await read_string() });
+            case ':':
+                co_return co::ok(co_await read_int());
+            case '$':
+                co_return co::ok(co_await read_bulk_string());
+            case '*':
+                co_return co::ok(co_await read_array());
             }
-                co_return co::err(unknown_data_type);
+            co_return co::err(unknown_data_type);
         }
         catch (const co::exception& coexc)
         {
@@ -121,7 +122,6 @@ private:
         co_return reply;
     }
 
-
     func<int64_t> read_int()
     {
         const size_t len = co_await read_until('\r');
@@ -151,7 +151,7 @@ private:
 
         _read_buffer.erase(_read_buffer.begin(), _read_buffer.begin() + len + 2);
 
-        co_return res * sign;
+        co_return res* sign;
     }
 
     func<reply> read_bulk_string()
@@ -203,7 +203,7 @@ private:
             {
                 co_await read_to_buffer();
             }
-            if (*it ==  until)
+            if (*it == until)
                 co_return std::distance(_read_buffer.begin(), it);
             ++it;
         }

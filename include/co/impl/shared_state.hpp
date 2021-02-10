@@ -9,6 +9,7 @@ template <typename T>
 class shared_state
 {
     using Variant = std::variant<std::monostate, T, std::exception_ptr>;
+
 public:
     shared_state() = default;
 
@@ -18,7 +19,7 @@ public:
     }
 
     template <typename... Args>
-    void set_value(Args&&... args) requires (std::is_constructible_v<T, Args...>)
+    void set_value(Args&&... args) requires(std::is_constructible_v<T, Args...>)
     {
         _variant.template emplace<T>(std::forward<Args>(args)...);
     }
@@ -88,4 +89,4 @@ private:
     std::exception_ptr _exception_ptr;
 };
 
-}
+}  // namespace co::impl

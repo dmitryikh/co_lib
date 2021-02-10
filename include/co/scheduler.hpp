@@ -2,8 +2,8 @@
 
 #include <cassert>
 #include <queue>
-#include <uv.h>
 #include <co/std.hpp>
+#include <uv.h>
 
 namespace co::impl
 {
@@ -13,7 +13,6 @@ class scheduler
     using coroutine_handle = std::coroutine_handle<>;
 
 public:
-
     void run()
     {
         uv_loop_init(&_uv_loop);
@@ -21,7 +20,7 @@ public:
         uv_prepare_init(&_uv_loop, &uv_prepare);
         uv_prepare.data = static_cast<void*>(this);
 
-        auto cb = [] (uv_prepare_t* h)
+        auto cb = [](uv_prepare_t* h)
         {
             auto& self = *static_cast<scheduler*>(h->data);
             self.resume_ready();
@@ -50,7 +49,6 @@ public:
     }
 
 private:
-
     void resume_ready()
     {
         while (!_ready.empty())
@@ -72,4 +70,4 @@ inline scheduler& get_scheduler()
     return _scheduler;
 }
 
-}
+}  // namespace co::impl

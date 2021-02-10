@@ -1,7 +1,7 @@
-#pragma once 
+#pragma once
 
-#include <co/std.hpp>
 #include <co/impl/shared_state.hpp>
+#include <co/std.hpp>
 
 namespace co::tmp
 {
@@ -23,8 +23,14 @@ public:
         return { coroutine_handle::from_promise(*this), _state };
     }
 
-    constexpr std::suspend_never initial_suspend() const noexcept { return {}; }
-    constexpr std::suspend_always final_suspend() const noexcept { return {}; }
+    constexpr std::suspend_never initial_suspend() const noexcept
+    {
+        return {};
+    }
+    constexpr std::suspend_always final_suspend() const noexcept
+    {
+        return {};
+    }
 
     void unhandled_exception()
     {
@@ -37,7 +43,7 @@ public:
     }
 
     // Don't allow any use of 'co_await' inside the coroutine.
-    template<typename U>
+    template <typename U>
     std::suspend_never await_transform(U&& value) = delete;
 
 private:
@@ -50,10 +56,7 @@ class eager
 public:
     using promise_type = eager_promise<T>;
 
-    eager(
-        std::coroutine_handle<> coroutine,
-        shared_state<T>& state
-    )
+    eager(std::coroutine_handle<> coroutine, shared_state<T>& state)
         : _coroutine(coroutine)
         , _state(state)
     {}
@@ -92,8 +95,14 @@ public:
         return { coroutine_handle::from_promise(*this), _state };
     }
 
-    constexpr std::suspend_never initial_suspend() const noexcept { return {}; }
-    constexpr std::suspend_always final_suspend() const noexcept { return {}; }
+    constexpr std::suspend_never initial_suspend() const noexcept
+    {
+        return {};
+    }
+    constexpr std::suspend_always final_suspend() const noexcept
+    {
+        return {};
+    }
 
     void unhandled_exception()
     {
@@ -105,11 +114,11 @@ public:
         _state.set_value();
     }
 
-    template<typename U>
+    template <typename U>
     std::suspend_never await_transform(U&& value) = delete;
 
 private:
     shared_state<void> _state;
 };
 
-}
+}  // namespace co::tmp

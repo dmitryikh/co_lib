@@ -7,7 +7,6 @@
 namespace co::redis
 {
 
-
 class reply_string : public std::string
 {
 public:
@@ -34,8 +33,8 @@ public:
     // using std::string::string;
     reply_bulk_string(reply_bulk_string&&) = default;
     reply_bulk_string(const reply_bulk_string&) = delete;
-    reply_bulk_string& operator= (const reply_bulk_string&) = delete;
-    reply_bulk_string& operator= (reply_bulk_string&&) = default;
+    reply_bulk_string& operator=(const reply_bulk_string&) = delete;
+    reply_bulk_string& operator=(reply_bulk_string&&) = default;
 
     reply_bulk_string(std::string&& str)
         : std::string(std::move(str))
@@ -50,9 +49,10 @@ using reply_array = std::vector<reply>;
 
 class reply
 {
-    using Variant = std::variant<std::monostate, reply_string, reply_error, int64_t, reply_bulk_string, reply_null, reply_array>;
-public:
+    using Variant =
+        std::variant<std::monostate, reply_string, reply_error, int64_t, reply_bulk_string, reply_null, reply_array>;
 
+public:
     reply() = default;
 
     reply(const reply&) = delete;
@@ -191,7 +191,7 @@ public:
         return std::get<reply_array>(_variant);
     }
 
-    friend std::ostream& operator<< (std::ostream& o, const reply& r)
+    friend std::ostream& operator<<(std::ostream& o, const reply& r)
     {
         if (r.has_null())
             o << "null";

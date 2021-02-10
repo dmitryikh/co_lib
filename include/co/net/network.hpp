@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cassert>
-#include <uv.h>
-#include <co/std.hpp>
-#include <co/scheduler.hpp>
 #include <co/event.hpp>
-#include <co/result.hpp>
 #include <co/net/error_code.hpp>
+#include <co/result.hpp>
+#include <co/scheduler.hpp>
+#include <co/std.hpp>
+#include <uv.h>
 
 namespace co::net
 {
@@ -14,6 +14,7 @@ namespace co::net
 class tcp
 {
     friend func<result<tcp>> connect(const std::string& ip, uint16_t port);
+
 private:
     tcp(std::unique_ptr<uv_tcp_t> tcp_ptr)
         : _tcp_ptr(std::move(tcp_ptr))
@@ -39,14 +40,7 @@ public:
 
         event ev;
 
-        auto state = read_state
-        {
-            data,
-            len,
-            0,
-            0,
-            ev
-        };
+        auto state = read_state{ data, len, 0, 0, ev };
 
         auto alloc = [](uv_handle_t* handle, size_t /*suggested_size*/, uv_buf_t* buf)
         {
@@ -114,11 +108,7 @@ public:
         event ev;
         std::array<uv_buf_t, 1> bufs = { uv_buf_init(const_cast<char*>(data), len) };
 
-        auto state = write_state
-        {
-            0,
-            ev
-        };
+        auto state = write_state{ 0, ev };
 
         auto on_write = [](uv_write_t* handle, int status)
         {
@@ -133,7 +123,8 @@ public:
         uv_write_t write_handle;
         write_handle.data = static_cast<void*>(&state);
         assert(_tcp_ptr);
-        int ret = uv_write((uv_write_t*)&write_handle, (uv_stream_t*)_tcp_ptr.get(), bufs.data(), bufs.size(), on_write);
+        int ret =
+            uv_write((uv_write_t*)&write_handle, (uv_stream_t*)_tcp_ptr.get(), bufs.data(), bufs.size(), on_write);
         using namespace std::string_literals;
         if (ret != 0)
             co_return co::err(other_net);
@@ -156,11 +147,7 @@ public:
 
         event ev;
 
-        auto state = shutdown_state
-        {
-            0,
-            ev
-        };
+        auto state = shutdown_state{ 0, ev };
 
         auto on_shutdown = [](uv_shutdown_t* handle, int status)
         {
@@ -191,7 +178,7 @@ public:
     ~tcp()
     {
         if (_tcp_ptr)
-            uv_close((uv_handle_t*) _tcp_ptr.release(), on_close);
+            uv_close((uv_handle_t*)_tcp_ptr.release(), on_close);
     }
 
 private:
@@ -215,11 +202,7 @@ func<result<tcp>> connect(const std::string& ip, uint16_t port)
 
     event ev;
 
-    auto state = connect_state
-    {
-        0,
-        ev
-    };
+    auto state = connect_state{ 0, ev };
 
     auto on_connect = [](uv_connect_t* connect, int status)
     {
@@ -255,4 +238,4 @@ func<result<tcp>> connect(const std::string& ip, uint16_t port)
     co_return co::ok(tcp{ std::move(tcp_ptr) });
 }
 
-}
+}  // namespace co::net

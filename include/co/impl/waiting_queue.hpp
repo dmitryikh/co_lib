@@ -11,6 +11,7 @@ class waiting_queue;
 class waker
 {
     friend class waiting_queue;
+
 public:
     waker() = default;
 
@@ -27,8 +28,8 @@ private:
 class waiting_queue
 {
     using wakers_list = intrusive_list<waker, &waker::hook>;
-public:
 
+public:
     func<void> wait()
     {
         waker w;
@@ -96,4 +97,4 @@ private:
     wakers_list _wakers_list;
 };
 
-}  // co::impl
+}  // namespace co::impl

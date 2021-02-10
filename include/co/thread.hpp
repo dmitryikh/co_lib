@@ -1,11 +1,11 @@
 #pragma once
 
 #include <iostream>
-#include <co/std.hpp>
+#include <co/func.hpp>
 #include <co/impl/shared_state.hpp>
 #include <co/impl/thread_storage.hpp>
+#include <co/std.hpp>
 #include <co/timed_event.hpp>
-#include <co/func.hpp>
 
 namespace co
 {
@@ -20,9 +20,15 @@ class thread_func_promise : public func_promise_base<void>
 public:
     thread_func get_return_object() noexcept;
 
-    auto final_suspend() noexcept { return std::suspend_never{}; }
+    auto final_suspend() noexcept
+    {
+        return std::suspend_never{};
+    }
 
-    void return_void() { this->_state.set_value(); }
+    void return_void()
+    {
+        this->_state.set_value();
+    }
 };
 
 class [[nodiscard]] thread_func
@@ -45,7 +51,9 @@ inline thread_func thread_func_promise::get_return_object() noexcept
     return thread_func{ coroutine_handle::from_promise(*this) };
 }
 
-inline thread_func create_thread_main_func(func<void> func, std::shared_ptr<timed_event> finish, std::shared_ptr<thread_storage> thread_storage)
+inline thread_func create_thread_main_func(func<void> func,
+                                           std::shared_ptr<timed_event> finish,
+                                           std::shared_ptr<thread_storage> thread_storage)
 {
     try
     {
@@ -63,13 +71,11 @@ inline thread_func create_thread_main_func(func<void> func, std::shared_ptr<time
     set_this_thread_storage_ptr(nullptr);
 }
 
-} // namespace impl
-
+}  // namespace impl
 
 class thread
 {
 public:
-
     explicit thread(func<void>&& func, const std::string& thread_name = "")
         : _thread_storage_ptr(impl::create_thread_storage(thread_name, ++id))
         , _event_ptr(std::make_shared<timed_event>())
@@ -167,7 +173,6 @@ inline bool stop_requested()
     return co::impl::this_thread_storage_ref().stop.stop_requested();
 }
 
-};
+};  // namespace this_thread
 
-
-}
+}  // namespace co

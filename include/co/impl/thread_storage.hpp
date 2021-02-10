@@ -1,8 +1,8 @@
 #pragma once
 
 #include <string>
-#include <co/stop_token.hpp>
 #include <co/impl/timer.hpp>
+#include <co/stop_token.hpp>
 
 namespace co::impl
 {
@@ -52,4 +52,4 @@ inline thread_storage& this_thread_storage_ref()
     return *ptr;
 }
 
-}
+}  // namespace co::impl

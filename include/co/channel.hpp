@@ -41,14 +41,17 @@ const channel_error_code_category global_channel_error_code_category{};
 
 inline std::error_code make_error_code(channel_error_code e)
 {
-    return std::error_code{static_cast<int>(e), global_channel_error_code_category};
+    return std::error_code{ static_cast<int>(e), global_channel_error_code_category };
 }
 
 }  // namespace co::impl
 
-namespace std {
-    template <> struct is_error_code_enum<co::impl::channel_error_code> : true_type {};
-}
+namespace std
+{
+template <>
+struct is_error_code_enum<co::impl::channel_error_code> : true_type
+{};
+}  // namespace std
 
 namespace co
 {
@@ -57,13 +60,12 @@ const auto full = make_error_code(impl::channel_error_code::full);
 const auto empty = make_error_code(impl::channel_error_code::empty);
 const auto closed = make_error_code(impl::channel_error_code::closed);
 
-
 template <typename T>
 class channel
 {
     using queue_type = boost::circular_buffer<T>;
-public:
 
+public:
     channel(size_t capacity)
         : _queue(capacity)
     {}
@@ -105,13 +107,17 @@ public:
     }
 
     template <typename T2, class Rep, class Period>
-    func<result<void>> push_for(T2&& t, std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = impl::dummy_stop_token)
+    func<result<void>> push_for(T2&& t,
+                                std::chrono::duration<Rep, Period> sleep_duration,
+                                const co::stop_token& token = impl::dummy_stop_token)
     {
         return push_until(std::forward<T2>(t), std::chrono::steady_clock::now() + sleep_duration, token);
     }
 
     template <typename T2, class Clock, class Duration>
-    func<result<void>> push_until(T2&& t, std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = impl::dummy_stop_token)
+    func<result<void>> push_until(T2&& t,
+                                  std::chrono::time_point<Clock, Duration> sleep_time,
+                                  const co::stop_token& token = impl::dummy_stop_token)
     {
         if (_closed)
             co_return co::err(co::closed);
@@ -169,13 +175,15 @@ public:
     }
 
     template <class Rep, class Period>
-    func<result<T>> pop_for(std::chrono::duration<Rep, Period> sleep_duration, const co::stop_token& token = impl::dummy_stop_token)
+    func<result<T>> pop_for(std::chrono::duration<Rep, Period> sleep_duration,
+                            const co::stop_token& token = impl::dummy_stop_token)
     {
         return pop_until(std::chrono::steady_clock::now() + sleep_duration, token);
     }
 
     template <class Clock, class Duration>
-    func<result<T>> pop_until(std::chrono::time_point<Clock, Duration> sleep_time, const co::stop_token& token = impl::dummy_stop_token)
+    func<result<T>> pop_until(std::chrono::time_point<Clock, Duration> sleep_time,
+                              const co::stop_token& token = impl::dummy_stop_token)
     {
         while (_queue.empty() && !_closed)
         {
@@ -216,4 +224,4 @@ private:
     impl::waiting_queue _consumer_waiting_queue;
 };
 
-} // namespace co
+}  // namespace co

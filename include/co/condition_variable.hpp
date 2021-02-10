@@ -24,17 +24,16 @@ public:
     }
 
     template <class Rep, class Period>
-    func<result<void>> wait_for(std::chrono::duration<Rep, Period> sleep_duration, const stop_token& token = impl::dummy_stop_token)
+    func<result<void>> wait_for(std::chrono::duration<Rep, Period> sleep_duration,
+                                const stop_token& token = impl::dummy_stop_token)
     {
         co_return co_await _waiting_queue.wait_for(sleep_duration, token);
     }
 
     template <class Rep, class Period, typename Predicate>
-    func<result<void>> wait_for(
-        std::chrono::duration<Rep, Period> sleep_duration,
-        Predicate predicate,
-        const stop_token& token = impl::dummy_stop_token
-    )
+    func<result<void>> wait_for(std::chrono::duration<Rep, Period> sleep_duration,
+                                Predicate predicate,
+                                const stop_token& token = impl::dummy_stop_token)
     {
         return wait_until(std::chrono::steady_clock::now() + sleep_duration, std::move(predicate), token);
     }
@@ -46,11 +45,9 @@ public:
     }
 
     template <class Clock, class Duration, typename Predicate>
-    func<result<void>> wait_until(
-        std::chrono::time_point<Clock, Duration> sleep_time,
-        Predicate predicate,
-        const co::stop_token& token = impl::dummy_stop_token
-    )
+    func<result<void>> wait_until(std::chrono::time_point<Clock, Duration> sleep_time,
+                                  Predicate predicate,
+                                  const co::stop_token& token = impl::dummy_stop_token)
     {
         while (!predicate())
         {
@@ -69,7 +66,6 @@ public:
         }
         co_return co::ok();
     }
-
 
     void notify_one()
     {

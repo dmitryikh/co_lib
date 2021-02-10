@@ -1,9 +1,9 @@
 #pragma once
 
-#include <co/timed_event.hpp>
-#include <co/result.hpp>
 #include <co/func.hpp>
+#include <co/result.hpp>
 #include <co/stop_token.hpp>
+#include <co/timed_event.hpp>
 
 namespace co::this_thread
 {
@@ -34,4 +34,4 @@ func<result<void>> sleep_until(std::chrono::time_point<Clock, Duration> sleep_ti
     co_return co_await timed_event{}.wait_until(sleep_time, token);
 }
 
-} // namespace co::this_thread
+}  // namespace co::this_thread
