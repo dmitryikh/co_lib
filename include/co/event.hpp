@@ -32,7 +32,7 @@ public:
 
     bool await_ready() const noexcept;
     void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept;
-    void await_resume() noexcept;
+    void await_resume();
 
 private:
     thread_storage* _thread_storage = nullptr;  // the thread to which the awaiter belongs
@@ -103,7 +103,7 @@ void event_awaiter<event>::await_suspend(std::coroutine_handle<> awaiting_corout
 }
 
 template <typename event>
-void event_awaiter<event>::await_resume() noexcept
+void event_awaiter<event>::await_resume()
 {
     assert(_event._status == event_status::ok);
 

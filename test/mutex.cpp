@@ -11,31 +11,31 @@ TEST_CASE("co::mutex", "[co::mutex]")
         {
             co::mutex mutex;
             auto th1 = co::thread(
-                [](auto& mutex) -> co::func<void>
+                [&]() -> co::func<void>
                 {
                     co_await mutex.lock();
                     co_await co::this_thread::sleep_for(11ms);
                     mutex.unlock();
-                }(mutex));
+                });
             auto th2 = co::thread(
-                [](auto& mutex) -> co::func<void>
+                [&]() -> co::func<void>
                 {
                     co_await mutex.lock();
                     co_await co::this_thread::sleep_for(11ms);
                     mutex.unlock();
-                }(mutex));
+                });
             auto th3 = co::thread(
-                [](auto& mutex) -> co::func<void>
+                [&]() -> co::func<void>
                 {
-                    while (co_await mutex.lock({ 2ms }) == co::timeout) {}
+                    while (co_await mutex.lock(2ms) == co::timeout) {}
                     co_await co::this_thread::sleep_for(11ms);
                     mutex.unlock();
-                }(mutex));
+                });
             co_await th1.join();
             co_await th2.join();
             co_await th3.join();
             co_return;
-        }());
+        });
 
     auto end = std::chrono::steady_clock::now();
     REQUIRE(end - start >= 30ms);

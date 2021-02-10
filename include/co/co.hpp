@@ -18,6 +18,13 @@ inline void loop()
     co::impl::get_scheduler().run();
 }
 
+template <FuncLambdaConcept F>
+inline void loop(F&& f)
+{
+    co::thread(std::forward<F>(f), "main").detach();
+    co::impl::get_scheduler().run();
+}
+
 inline void loop(func<void>&& func)
 {
     co::thread(std::move(func), "main").detach();

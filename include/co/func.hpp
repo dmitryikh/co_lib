@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <type_traits>
 #include <co/impl/shared_state.hpp>
 #include <co/result.hpp>
 #include <co/std.hpp>
@@ -214,6 +215,37 @@ public:
     }
 };
 
+template <typename T>
+struct is_func : std::false_type
+{};
+
+template <typename T>
+struct is_func<func<T>> : std::true_type
+{};
+
 }  // namespace impl
+
+template <typename T>
+inline constexpr bool is_func_v = impl::is_func<T>::value;
+
+template <typename T>
+concept FuncConcept = is_func_v<T>;
+
+template <typename F>
+concept FuncLambdaConcept = requires(F a)
+{
+    {
+        a()
+    }
+    ->FuncConcept;
+};
+
+template <FuncLambdaConcept F, typename... Args>
+auto invoke(F&& f, Args&&... args)
+{
+    return [](F f, Args&&... args) -> std::invoke_result_t<F, Args...> {
+        co_return co_await f(std::forward<Args>(args)...);
+    }(std::move(f), std::forward<Args>(args)...);
+}
 
 }  // namespace co

@@ -52,7 +52,7 @@ public:
 
     bool await_ready() const noexcept;
     void await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept;
-    result<void> await_resume() noexcept;
+    result<void> await_resume();
 
 private:
     co::stop_callback_func stop_callback_func();
@@ -179,7 +179,7 @@ inline void timed_event_awaiter::await_suspend(std::coroutine_handle<> awaiting_
     set_this_thread_storage_ptr(nullptr);
 }
 
-inline result<void> timed_event_awaiter::await_resume() noexcept
+inline result<void> timed_event_awaiter::await_resume()
 {
     assert(_event._status > event_status::waiting);
 

@@ -11,18 +11,18 @@ TEST_CASE("co::channel", "[co::channel]")
         {
             co::channel<int> ch(3);
             auto th1 = co::thread(
-                [](auto& ch) -> co::func<void>
+                [&ch]() -> co::func<void>
                 {
                     for (int i = 0; i < 10; i++)
                     {
                         co_await ch.push(i).unwrap();
                     }
                     ch.close();
-                }(ch),
+                },
                 "producer");
 
             auto th2 = co::thread(
-                [](auto& ch) -> co::func<void>
+                [&ch]() -> co::func<void>
                 {
                     while (true)
                     {
@@ -31,11 +31,11 @@ TEST_CASE("co::channel", "[co::channel]")
                             break;
                         co_await co::this_thread::sleep_for(10ms);
                     }
-                }(ch),
+                },
                 "consumer1");
 
             auto th3 = co::thread(
-                [](auto& ch) -> co::func<void>
+                [&ch]() -> co::func<void>
                 {
                     while (true)
                     {
@@ -44,7 +44,7 @@ TEST_CASE("co::channel", "[co::channel]")
                             break;
                         co_await co::this_thread::sleep_for(5ms);
                     }
-                }(ch),
+                },
                 "consumer2");
 
             co_await th1.join();

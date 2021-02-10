@@ -76,6 +76,11 @@ inline thread_func create_thread_main_func(func<void> func,
 class thread
 {
 public:
+    template <FuncLambdaConcept F>
+    explicit thread(F&& f, const std::string& thread_name = "")
+        : thread(co::invoke(std::forward<F>(f)), thread_name)
+    {}
+
     explicit thread(func<void>&& func, const std::string& thread_name = "")
         : _thread_storage_ptr(impl::create_thread_storage(thread_name, ++id))
         , _event_ptr(std::make_shared<timed_event>())
