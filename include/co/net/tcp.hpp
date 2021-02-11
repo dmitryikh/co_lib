@@ -13,14 +13,14 @@ namespace co::net
 
 class tcp
 {
-    friend func<result<tcp>> connect(const std::string& ip, uint16_t port);
-
 private:
     tcp(std::unique_ptr<uv_tcp_t> tcp_ptr)
         : _tcp_ptr(std::move(tcp_ptr))
     {}
 
 public:
+    static func<result<tcp>> connect(const std::string& ip, uint16_t port);
+
     tcp(const tcp&) = delete;
     tcp& operator=(const tcp&) = delete;
 
@@ -192,7 +192,7 @@ private:
     std::unique_ptr<uv_tcp_t> _tcp_ptr;
 };
 
-func<result<tcp>> connect(const std::string& ip, uint16_t port)
+func<result<tcp>> tcp::connect(const std::string& ip, uint16_t port)
 {
     struct connect_state
     {
