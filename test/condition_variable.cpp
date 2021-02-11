@@ -27,7 +27,6 @@ TEST_CASE("co::condition_variable", "[co::condition_variable]")
                 [&]() -> co::func<void>
                 {
                     co_await cv.wait([&]() { return ready; }, { 50ms }).unwrap();
-                    std::cout << co::this_thread::get_name() << ": data is ready: " << data << "\n";
                     REQUIRE(data == "hello world");
                 },
                 "consumer1");

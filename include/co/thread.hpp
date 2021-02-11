@@ -146,17 +146,17 @@ private:
 namespace this_thread
 {
 
-inline const std::string& get_name()
+inline const std::string& name()
 {
     return co::impl::this_thread_storage_ref().name;
 }
 
-inline const uint64_t get_id()
+inline const uint64_t id()
 {
     return co::impl::this_thread_storage_ref().id;
 }
 
-inline stop_token get_stop_token()
+inline stop_token stop_token()
 {
     return co::impl::this_thread_storage_ref().stop.get_token();
 }
