@@ -23,25 +23,6 @@ Current limitations:
 3. libuv 1.40
 4. conan package manager
 
-# Build Instruction
-`co_lib` is header only library. It uses conan package manager to manage its
-dependecies and also to be included into other projects.
-
-To build the package locally:
-
-```bash
-conan create . -tf conan/test_package
-```
-
-To build example executables using `co_lib/0.1` package:
-```bash
-cd examples
-mkdir build && cd build
-conan install .. --build=missing -s build_type=Debug
-cmake -DCMAKE_BUILD_TYPE=Debug  ..
-cmake --build . -j 4
-```
-
 # Examples
 
 Have a look to [examples/introduction.cpp](examples/introduction.cpp) as an initial guide to the library;
@@ -102,6 +83,37 @@ int main()
             co_await sender.join();
         });
 }
+```
+
+# Build Instruction
+`co_lib` is header only library. It uses conan package manager to manage its
+dependecies and also to be included into other projects.
+
+To build the package locally:
+
+```bash
+conan create . -tf conan/test_package
+```
+
+To build example executables using `co_lib/0.1` package:
+```bash
+cd examples
+mkdir build && cd build
+conan install .. --build=missing -s build_type=Debug
+cmake -DCMAKE_BUILD_TYPE=Debug  ..
+cmake --build . -j 4
+```
+
+# Tests
+Tests are run automatically while `co_lib` conan package is creating. To
+build & run tests manually:
+
+```bash
+mkdir build && cd build
+conan install .. --build=missing -s build_type=Debug
+cmake -DCMAKE_BUILD_TYPE=Debug  ..
+cmake --build . -j 4
+ctest --build-config Debug
 ```
 
 ## Credentials
