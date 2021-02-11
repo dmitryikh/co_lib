@@ -28,16 +28,31 @@ public:
         , _token(std::move(token))
     {}
 
-    template <class Rep, class Period>
     until(clock::time_point deadline)
         : _until(deadline)
     {}
 
-    template <class Rep, class Period>
     until(clock::time_point deadline, co::stop_token token)
         : _until(deadline)
         , _token(std::move(token))
     {}
+
+    static until deadline(clock::time_point deadline, const co::stop_token& token = impl::dummy_stop_token)
+    {
+        return until{ deadline, token };
+    }
+
+    template <class Rep, class Period>
+    static until timeout(std::chrono::duration<Rep, Period> timeout,
+                         const co::stop_token& token = impl::dummy_stop_token)
+    {
+        return until{ timeout, token };
+    }
+
+    static until cancel(const co::stop_token& token)
+    {
+        return until{ token };
+    }
 
     const co::stop_token& token() const
     {

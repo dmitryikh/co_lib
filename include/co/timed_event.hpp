@@ -191,7 +191,7 @@ inline result<void> timed_event_awaiter::await_resume()
     case event_status::init:
     case event_status::waiting:
         assert(false);
-        throw std::logic_error("unexpected status in event_awaiter::await_resume()");
+        throw std::logic_error("unexpected status in timed_event_awaiter::await_resume()");
     case event_status::ok:
         return co::ok();
     case event_status::cancel:
