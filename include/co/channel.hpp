@@ -44,6 +44,22 @@ inline std::error_code make_error_code(channel_error_code e)
     return std::error_code{ static_cast<int>(e), global_channel_error_code_category };
 }
 
+template <typename T>
+struct channel_shared_state
+{
+public:
+    using queue_type = boost::circular_buffer<T>;
+
+    channel_shared_state(size_t capacity)
+        : _queue(capacity)
+    {}
+
+    bool _closed = false;
+    queue_type _queue;
+    impl::waiting_queue _producer_waiting_queue;
+    impl::waiting_queue _consumer_waiting_queue;
+};
+
 }  // namespace co::impl
 
 namespace std
@@ -63,103 +79,112 @@ const auto closed = make_error_code(impl::channel_error_code::closed);
 template <typename T>
 class channel
 {
-    using queue_type = boost::circular_buffer<T>;
 
 public:
     channel(size_t capacity)
-        : _queue(capacity)
+        : _state(std::make_shared<impl::channel_shared_state<T>>(capacity))
     {}
 
     template <typename T2>
     result<void> try_push(T2&& t)
     {
-        if (_closed)
+        check_shared_state();
+        if (_state->_closed)
             return co::err(co::closed);
 
-        if (_queue.full())
+        if (_state->_queue.full())
             return co::err(co::full);
 
-        _queue.push_back(std::forward<T2>(t));
-        _consumer_waiting_queue.notify_one();
+        _state->_queue.push_back(std::forward<T2>(t));
+        _state->_consumer_waiting_queue.notify_one();
         return co::ok();
     }
 
     template <typename T2>
     func<result<void>> push(T2&& t, co::until until = {})
     {
-        if (_closed)
+        check_shared_state();
+        if (_state->_closed)
             co_return co::err(co::closed);
 
-        while (_queue.full() && !_closed)
+        while (_state->_queue.full() && !_state->_closed)
         {
-            auto res = co_await _producer_waiting_queue.wait(until);
+            auto res = co_await _state->_producer_waiting_queue.wait(until);
             if (res.is_err())
                 co_return res.err();
         }
 
-        if (_closed)
+        if (_state->_closed)
             co_return co::err(co::closed);
 
-        assert(!_queue.full());
-        _queue.push_back(std::forward<T2>(t));
-        _consumer_waiting_queue.notify_one();
+        assert(!_state->_queue.full());
+        _state->_queue.push_back(std::forward<T2>(t));
+        _state->_consumer_waiting_queue.notify_one();
         co_return co::ok();
     }
 
     result<T> try_pop()
     {
-        if (_closed && _queue.empty())
+        check_shared_state();
+        if (_state->_closed && _state->_queue.empty())
             return co::err(co::closed);
 
-        if (_queue.empty())
+        if (_state->_queue.empty())
             return co::err(co::empty);
 
-        result<T> res = co::ok(std::move(_queue.front()));
-        _queue.pop_front();
-        _producer_waiting_queue.notify_one();
+        result<T> res = co::ok(std::move(_state->_queue.front()));
+        _state->_queue.pop_front();
+        _state->_producer_waiting_queue.notify_one();
         return res;
     }
 
     func<result<T>> pop(co::until until = {})
     {
-        while (_queue.empty() && !_closed)
+        check_shared_state();
+        while (_state->_queue.empty() && !_state->_closed)
         {
-            auto res = co_await _consumer_waiting_queue.wait(until);
+            auto res = co_await _state->_consumer_waiting_queue.wait(until);
             if (res.is_err())
             {
                 // need to notify other consumer to wake up and try to get ready items
-                _consumer_waiting_queue.notify_one();
+                _state->_consumer_waiting_queue.notify_one();
                 co_return res.err();
             }
         }
 
-        if (_closed && _queue.empty())
+        if (_state->_closed && _state->_queue.empty())
             co_return co::err(co::closed);
 
-        assert(!_queue.empty());
-        result<T> res = co::ok(std::move(_queue.front()));
-        _queue.pop_front();
-        _producer_waiting_queue.notify_one();
+        assert(!_state->_queue.empty());
+        result<T> res = co::ok(std::move(_state->_queue.front()));
+        _state->_queue.pop_front();
+        _state->_producer_waiting_queue.notify_one();
         co_return res;
     }
 
     void close()
     {
-        _closed = true;
-        _producer_waiting_queue.notify_all();
-        _consumer_waiting_queue.notify_all();
+        check_shared_state();
+        _state->_closed = true;
+        _state->_producer_waiting_queue.notify_all();
+        _state->_consumer_waiting_queue.notify_all();
     }
 
     bool is_closed() const
     {
-        return _closed;
+        check_shared_state();
+        return _state->_closed;
     }
 
 private:
-    bool _closed = false;
-    queue_type _queue;
-    impl::waiting_queue _producer_waiting_queue;
-    impl::waiting_queue _consumer_waiting_queue;
+    void check_shared_state() const
+    {
+        if (_state == nullptr)
+            throw std::runtime_error("channel shared state is nullptr");
+    }
+
+private:
+    std::shared_ptr<impl::channel_shared_state<T>> _state;
 };
 
 }  // namespace co

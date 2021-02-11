@@ -11,7 +11,7 @@ TEST_CASE("co::channel", "[co::channel]")
         {
             co::channel<int> ch(3);
             auto th1 = co::thread(
-                [&ch]() -> co::func<void>
+                [ch]() mutable -> co::func<void>
                 {
                     for (int i = 0; i < 10; i++)
                     {
@@ -22,7 +22,7 @@ TEST_CASE("co::channel", "[co::channel]")
                 "producer");
 
             auto th2 = co::thread(
-                [&ch]() -> co::func<void>
+                [ch]() mutable -> co::func<void>
                 {
                     while (true)
                     {
@@ -35,7 +35,7 @@ TEST_CASE("co::channel", "[co::channel]")
                 "consumer1");
 
             auto th3 = co::thread(
-                [&ch]() -> co::func<void>
+                [ch]() mutable -> co::func<void>
                 {
                     while (true)
                     {
