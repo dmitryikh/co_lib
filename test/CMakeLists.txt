@@ -1,3 +1,4 @@
+include(../cmake/tools.cmake)
 file(GLOB sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(co_lib_test ${sources})
 
