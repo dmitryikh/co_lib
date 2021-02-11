@@ -1,15 +1,14 @@
 # co_lib
 
-co_lib s an experimental asynchronous C++20 framework that feels like std library.
+co_lib is an experimental asynchronous C++20 framework that feels like std library.
 
 co_lib design priorities:
 1. Reuse common patterns and abstractions
 2. Make it hard to misuse
-3. Clear compile time & runtime diagnostics
-4. Performance also matters
+3. Performance also matters
 
 co_lib benefits:
-1. Cancellation as a first class citizen: co::stop_token, co::stop_source, co::stop_callback.
+1. Cancellation as a first class citizen: co::stop_token, co::stop_source, almost all awaited ops can be cancelled.
 2. co::result<T> type (like in Rust) to check the result of an operation
 3. based on libuv C library: even loop, network, timers, etc..
 
@@ -26,6 +25,8 @@ Current limitations:
 
 
 # Examples
+
+Have a look to [examples/introduction.cpp](examples/introduction.cpp) as an initial guide to the library;
 
 ```cpp
 #include <chrono>
@@ -84,7 +85,6 @@ int main()
         });
 }
 ```
-
 
 ## Credentials
 CMake & Github Actions are based on https://github.com/TheLartians/ModernCppStarter
