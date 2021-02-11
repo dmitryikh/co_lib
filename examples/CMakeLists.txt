@@ -14,3 +14,9 @@ conan_basic_setup()
 
 add_executable(sender_receiver sender_receiver.cpp)
 target_link_libraries(sender_receiver ${CONAN_LIBS})
+
+add_executable(introduction introduction.cpp)
+target_link_libraries(introduction ${CONAN_LIBS})
+
+add_executable(tcp_echo_client tcp_echo_client.cpp)
+target_link_libraries(tcp_echo_client ${CONAN_LIBS})
