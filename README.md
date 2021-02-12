@@ -116,5 +116,5 @@ cmake --build . -j 4
 ctest --build-config Debug
 ```
 
-## Credentials
+## Thanks To
 CMake & Github Actions are based on https://github.com/TheLartians/ModernCppStarter
