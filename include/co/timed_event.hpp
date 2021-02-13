@@ -199,6 +199,7 @@ inline result<void> timed_event_awaiter::await_resume()
     case event_status::timeout:
         return co::err(co::timeout);
     }
+    assert(false);  // unreachable
 }
 
 }  // namespace impl

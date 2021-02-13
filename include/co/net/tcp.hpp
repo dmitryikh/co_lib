@@ -11,10 +11,35 @@
 namespace co::net
 {
 
+namespace impl
+{
+
+inline void on_close(uv_handle_t* handle)
+{
+    assert(handle != nullptr);
+    delete handle;
+}
+
+void close_tcp_handle(uv_tcp_t* handle)
+{
+    uv_close((uv_handle_t*)handle, on_close);
+}
+
+using uv_tcp_ptr = std::unique_ptr<uv_tcp_t, decltype(&close_tcp_handle)>;
+
+uv_tcp_ptr make_and_init_uv_tcp_handle()
+{
+    uv_tcp_t* handle = new uv_tcp_t;
+    uv_tcp_init(co::impl::get_scheduler().uv_loop(), handle);
+    return uv_tcp_ptr{ handle, close_tcp_handle };
+}
+
+}  // namespace impl
+
 class tcp
 {
 private:
-    tcp(std::unique_ptr<uv_tcp_t> tcp_ptr)
+    tcp(impl::uv_tcp_ptr tcp_ptr)
         : _tcp_ptr(std::move(tcp_ptr))
     {}
 
@@ -175,21 +200,8 @@ public:
         co_return co::ok();
     }
 
-    ~tcp()
-    {
-        if (_tcp_ptr)
-            uv_close((uv_handle_t*)_tcp_ptr.release(), on_close);
-    }
-
 private:
-    static void on_close(uv_handle_t* handle)
-    {
-        assert(handle != nullptr);
-        delete handle;
-    }
-
-private:
-    std::unique_ptr<uv_tcp_t> _tcp_ptr;
+    impl::uv_tcp_ptr _tcp_ptr;
 };
 
 func<result<tcp>> tcp::connect(const std::string& ip, uint16_t port)
@@ -220,9 +232,7 @@ func<result<tcp>> tcp::connect(const std::string& ip, uint16_t port)
     if (ret != 0)
         co_return co::err(wrong_address);
 
-    auto tcp_ptr = std::make_unique<uv_tcp_t>();
-    uv_tcp_init(co::impl::get_scheduler().uv_loop(), tcp_ptr.get());
-
+    auto tcp_ptr = impl::make_and_init_uv_tcp_handle();
     uv_connect_t connect;
     connect.data = static_cast<void*>(&state);
 

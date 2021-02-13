@@ -120,6 +120,7 @@ void event_awaiter<event>::await_resume()
     case event_status::ok:
         return;
     }
+    assert(false);  // unreachable
 }
 
 }  // namespace impl
