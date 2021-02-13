@@ -15,3 +15,5 @@ CPMAddPackage(
   OPTIONS # enable cmake formatting
           "FORMAT_CHECK_CMAKE ON"
 )
+
+target_precompile_headers(co_lib_test PRIVATE pch.hpp)

@@ -152,7 +152,7 @@ co::func<typename T::ok_type> unwrap(co::func<T> orig) requires(
 }
 
 template <typename T>
-class [[nodiscard]] func
+class [[nodiscard("co_await me")]] func
 {
 public:
     using promise_type = impl::func_promise<T>;

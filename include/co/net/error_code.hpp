@@ -1,7 +1,6 @@
 #pragma once
 
 #include <system_error>
-#include <boost/outcome.hpp>
 
 namespace co::net::impl
 {
