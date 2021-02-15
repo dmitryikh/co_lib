@@ -30,6 +30,16 @@ class waiting_queue
     using wakers_list = intrusive_list<waker, &waker::hook>;
 
 public:
+    waiting_queue() = default;
+
+    // to be able to move, for example co::condition_variable, we need to define
+    // move functions
+    waiting_queue(const waiting_queue&) = delete;
+    waiting_queue(waiting_queue&&) = default;
+
+    waiting_queue& operator=(const waiting_queue&) = delete;
+    waiting_queue& operator=(waiting_queue&&) = default;
+
     func<void> wait()
     {
         waker w;

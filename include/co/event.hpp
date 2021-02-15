@@ -35,7 +35,7 @@ public:
     void await_resume();
 
 private:
-    thread_storage* _thread_storage = nullptr;  // the thread to which the awaiter belongs
+    thread_storage* _thread_storage = nullptr;  // the co::thread to which the awaiter belongs
     event& _event;
 };
 

@@ -20,3 +20,6 @@ target_link_libraries(introduction ${CONAN_LIBS})
 
 add_executable(tcp_echo_client tcp_echo_client.cpp)
 target_link_libraries(tcp_echo_client ${CONAN_LIBS})
+
+add_executable(tcp_echo_server tcp_echo_server.cpp)
+target_link_libraries(tcp_echo_server ${CONAN_LIBS})

@@ -36,8 +36,14 @@ uv_tcp_ptr make_and_init_uv_tcp_handle()
 
 }  // namespace impl
 
+class accept;
+class accept_shared_state;
+
 class tcp
 {
+    friend accept;
+    friend accept_shared_state;
+
 private:
     tcp(impl::uv_tcp_ptr tcp_ptr)
         : _tcp_ptr(std::move(tcp_ptr))
@@ -45,6 +51,7 @@ private:
 
 public:
     static func<result<tcp>> connect(const std::string& ip, uint16_t port);
+    static func<result<accept>> accept(const std::string& ip, uint16_t port);
 
     tcp(const tcp&) = delete;
     tcp& operator=(const tcp&) = delete;
@@ -246,6 +253,136 @@ func<result<tcp>> tcp::connect(const std::string& ip, uint16_t port)
         co_return co::err(other_net);
 
     co_return co::ok(tcp{ std::move(tcp_ptr) });
+}
+
+namespace impl
+{
+
+struct connection_msg
+{};
+struct error_msg
+{
+    int status;
+};
+using message = std::variant<connection_msg, error_msg>;
+
+struct accept_shared_state
+{
+    accept_shared_state(uv_tcp_ptr&& tcp_ptr)
+        : _server_tcp_ptr(std::move(tcp_ptr))
+    {}
+
+    bool _stopping = false;
+    impl::uv_tcp_ptr _server_tcp_ptr;
+    std::queue<message> _queue;
+    co::condition_variable _cv;
+};
+
+using accept_shared_state_ptr = std::unique_ptr<accept_shared_state>;
+
+}  // namespace impl
+
+class accept
+{
+    friend class tcp;
+    static constexpr int INCOMING_MAX = 128;
+
+private:
+    accept(impl::uv_tcp_ptr tcp_ptr, const sockaddr_in& addr)
+        : _state(std::make_unique<impl::accept_shared_state>(std::move(tcp_ptr)))
+    {
+        assert(_state->_server_tcp_ptr != nullptr);
+
+        auto ret = uv_tcp_bind(_state->_server_tcp_ptr.get(), (const struct sockaddr*)&addr, 0);
+        if (ret != 0)
+            throw co::exception(other_net);
+
+        _state->_server_tcp_ptr->data = static_cast<void*>(_state.get());
+        ret = uv_listen((uv_stream_t*)_state->_server_tcp_ptr.get(), INCOMING_MAX, on_new_connection);
+        if (ret != 0)
+            throw co::exception(other_net, uv_strerror(ret));
+    }
+
+public:
+    accept(const accept&) = delete;
+    accept& operator=(const accept&) = delete;
+
+    accept(accept&& other) = default;
+    accept& operator=(accept&& other) = default;
+
+    func<result<tcp>> next(co::until until = {})
+    {
+        while (_state->_queue.empty() && !_state->_stopping)
+        {
+            auto res = co_await _state->_cv.wait(until);
+            if (res.is_err())
+                co_return res.err();
+        }
+
+        if (_state->_stopping)
+            co_return co::err(co::closed);
+
+        assert(!_state->_queue.empty());
+        auto& msg = _state->_queue.front();
+        _state->_queue.pop();
+
+        if (std::holds_alternative<impl::connection_msg>(msg))
+        {
+            auto client_tcp_ptr = impl::make_and_init_uv_tcp_handle();
+
+            auto res = uv_accept((uv_stream_t*)_state->_server_tcp_ptr.get(), (uv_stream_t*)client_tcp_ptr.get());
+            if (res != 0)
+                co_return co::err(other_net, uv_strerror(res));
+
+            co_return co::ok(tcp{ std::move(client_tcp_ptr) });
+        }
+        else if (std::holds_alternative<impl::error_msg>(msg))
+        {
+            const impl::error_msg err_msg = std::get<impl::error_msg>(msg);
+            co_return co::err(other_net, uv_strerror(err_msg.status));
+        }
+        else
+        {
+            assert(false);  // unreachable
+        }
+    }
+
+private:
+    static void on_new_connection(uv_stream_t* server, int status)
+    {
+        assert(server != nullptr);
+        assert(server->data != nullptr);
+
+        auto& state = *static_cast<impl::accept_shared_state*>(server->data);
+
+        if (status < 0)
+            state._queue.push(impl::error_msg{ status });
+        else
+            state._queue.push(impl::connection_msg{});
+        state._cv.notify_one();
+    }
+
+private:
+    impl::accept_shared_state_ptr _state;
+};
+
+func<result<accept>> tcp::accept(const std::string& ip, uint16_t port)
+{
+
+    struct sockaddr_in addr;
+    int ret = uv_ip4_addr(ip.c_str(), port, &addr);
+    if (ret != 0)
+        co_return co::err(wrong_address);
+
+    try
+    {
+        auto acc = co::net::accept(impl::make_and_init_uv_tcp_handle(), addr);
+        co_return co::ok(std::move(acc));
+    }
+    catch (const co::exception& coexc)
+    {
+        co_return co::err(coexc);
+    }
 }
 
 }  // namespace co::net
