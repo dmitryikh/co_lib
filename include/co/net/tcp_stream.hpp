@@ -4,6 +4,7 @@
 #include <span>
 
 #include <co/event.hpp>
+#include <co/net/address.hpp>
 #include <co/net/error_code.hpp>
 #include <co/result.hpp>
 #include <co/scheduler.hpp>
@@ -204,6 +205,28 @@ public:
             co_return co::err(other_net);
 
         co_return co::ok();
+    }
+
+    address local_address() const
+    {
+        sockaddr_storage addr_storage;
+        int len = sizeof(sockaddr_storage);
+        auto res = uv_tcp_getsockname(_tcp_ptr.get(), (struct sockaddr*)&addr_storage, &len);
+        if (res != 0)
+            throw co::exception(other_net, "uv_tcp_getsockname failed");
+
+        return address::from(addr_storage);
+    }
+
+    address peer_address() const
+    {
+        sockaddr_storage addr_storage;
+        int len = sizeof(sockaddr_storage);
+        auto res = uv_tcp_getpeername(_tcp_ptr.get(), (struct sockaddr*)&addr_storage, &len);
+        if (res != 0)
+            throw co::exception(other_net, "uv_tcp_getpeername failed");
+
+        return address::from(addr_storage);
     }
 
 private:

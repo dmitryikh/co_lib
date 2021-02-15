@@ -31,6 +31,11 @@ co::func<void> server(std::string ip, uint16_t port)
             auto res = co_await listener.accept(co::until::cancel(token));
             if (res == co::cancel)
                 break;
+            REQUIRE(res.unwrap().peer_address().ip() == "127.0.0.1");
+            REQUIRE(res.unwrap().peer_address().family() == co::net::ip4);
+            REQUIRE(res.unwrap().local_address().ip() == "127.0.0.1");
+            REQUIRE(res.unwrap().local_address().port() == port);
+            REQUIRE(res.unwrap().local_address().family() == co::net::ip4);
             co::thread(serve_client(std::move(res.unwrap()))).detach();
         }
     }
@@ -46,6 +51,12 @@ co::func<void> client(std::string ip, uint16_t port)
     try
     {
         auto tcp_stream = co_await co::net::tcp_stream::connect(ip, port).unwrap();
+
+        REQUIRE(tcp_stream.peer_address().ip() == "127.0.0.1");
+        REQUIRE(tcp_stream.peer_address().port() == port);
+        REQUIRE(tcp_stream.peer_address().family() == co::net::ip4);
+        REQUIRE(tcp_stream.local_address().ip() == "127.0.0.1");
+        REQUIRE(tcp_stream.local_address().family() == co::net::ip4);
 
         std::string send_data = "hello world";
         co_await tcp_stream.write(send_data).unwrap();

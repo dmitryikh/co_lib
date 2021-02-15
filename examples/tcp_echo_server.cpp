@@ -22,6 +22,7 @@ co::func<void> server(std::string ip, uint16_t port)
         while (true)
         {
             co::net::tcp_stream tcp_stream = co_await listener.accept(co::until{}).unwrap();
+            std::cout << tcp_stream.peer_address() << " connected\n";
             co::thread(serve_client(std::move(tcp_stream))).detach();
         }
     }
