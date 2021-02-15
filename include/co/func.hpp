@@ -231,19 +231,18 @@ inline constexpr bool is_func_v = impl::is_func<T>::value;
 template <typename T>
 concept FuncConcept = is_func_v<T>;
 
-template <typename F>
+// clang-format off
+template <typename F, typename... Args>
 concept FuncLambdaConcept = requires(F a)
 {
-    {
-        a()
-    }
-    ->FuncConcept;
+    { a(std::declval<Args>()...) } -> FuncConcept;
 };
+// clang-format on
 
-template <FuncLambdaConcept F, typename... Args>
-auto invoke(F&& f, Args&&... args)
+template <typename F, typename... Args>
+auto invoke(F&& f, Args&&... args) requires FuncLambdaConcept<F, Args...>
 {
-    return [](F f, Args&&... args) -> std::invoke_result_t<F, Args...> {
+    return [](F f, std::decay_t<Args>... args) -> std::invoke_result_t<F, Args...> {
         co_return co_await f(std::forward<Args>(args)...);
     }(std::move(f), std::forward<Args>(args)...);
 }
