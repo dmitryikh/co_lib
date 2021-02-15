@@ -3,14 +3,13 @@
 
 co::func<void> serve_client(co::net::tcp_stream tcp)
 {
-    const size_t buffer_size = 100;
-    std::string receive_data(buffer_size, '\0');
-    size_t read_len = co_await tcp.read(receive_data.data(), receive_data.size()).unwrap();
-    receive_data.resize(read_len);
-    std::cout << "Request is: " << receive_data << "\n";
+    constexpr size_t buffer_size = 100;
+    std::array<char, buffer_size> buffer;
+    std::span<char> received_data = co_await tcp.read(buffer).unwrap();
+    std::cout << "Request is: " << std::string_view{ received_data.data(), received_data.size() } << "\n";
 
-    std::cout << "Send message: " << receive_data << "\n";
-    co_await tcp.write(receive_data.data(), receive_data.size()).unwrap();
+    std::cout << "Send it back\n";
+    co_await tcp.write(received_data).unwrap();
     co_await tcp.shutdown().unwrap();
 }
 

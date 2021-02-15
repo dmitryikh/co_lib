@@ -9,13 +9,14 @@ co::func<void> client(std::string ip, uint16_t port)
 
         std::string send_data = "hello world";
         std::cout << "Send message: " << send_data << "\n";
-        co_await tcp_stream.write(send_data.data(), send_data.size()).unwrap();
+        co_await tcp_stream.write(send_data).unwrap();
 
         const size_t buffer_size = 100;
-        std::string receive_data(buffer_size, '\0');
-        size_t read_len = co_await tcp_stream.read(receive_data.data(), receive_data.size()).unwrap();
-        receive_data.resize(read_len);
-        std::cout << "Reply is: " << receive_data << "\n";
+        std::array<char, buffer_size> buffer;
+        std::span<char> received_data = co_await tcp_stream.read(buffer).unwrap();
+        std::cout << "Reply is: " << std::string_view{ received_data.data(), received_data.size() } << "\n";
+
+        co_await tcp_stream.shutdown().unwrap();
     }
     catch (const co::exception& coexc)
     {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cassert>
+#include <span>
+
 #include <co/event.hpp>
 #include <co/net/error_code.hpp>
 #include <co/result.hpp>
@@ -55,12 +57,11 @@ public:
     tcp_stream(tcp_stream&& other) = default;
     tcp_stream& operator=(tcp_stream&& other) = default;
 
-    func<result<size_t>> read(char* data, size_t len)
+    func<result<std::span<char>>> read(std::span<char> buffer)
     {
         struct read_state
         {
-            char* buffer_ptr;
-            size_t buffer_len;
+            std::span<char> buffer;
             int read_status;
             size_t read_len;
             event& ev;
@@ -68,7 +69,7 @@ public:
 
         event ev;
 
-        auto state = read_state{ data, len, 0, 0, ev };
+        auto state = read_state{ buffer, 0, 0, ev };
 
         auto alloc = [](uv_handle_t* handle, size_t /*suggested_size*/, uv_buf_t* buf)
         {
@@ -76,8 +77,8 @@ public:
             assert(handle->data != nullptr);
 
             auto& state = *static_cast<read_state*>(handle->data);
-            buf->base = state.buffer_ptr;
-            buf->len = state.buffer_len;
+            buf->base = state.buffer.data();
+            buf->len = static_cast<int>(state.buffer.size());
         };
 
         auto on_read = [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* /*buf*/)
@@ -122,10 +123,11 @@ public:
         if (state.read_len == 0)
             co_return co::err(eof);
 
-        co_return co::ok(state.read_len);
+        assert(state.read_len <= buffer.size());
+        co_return co::ok(buffer.subspan(0, state.read_len));
     }
 
-    func<result<void>> write(const char* data, size_t len)
+    func<result<void>> write(const std::span<char> buffer)
     {
         struct write_state
         {
@@ -134,7 +136,8 @@ public:
         };
 
         event ev;
-        std::array<uv_buf_t, 1> bufs = { uv_buf_init(const_cast<char*>(data), len) };
+        std::array<uv_buf_t, 1> bufs = { uv_buf_init(const_cast<char*>(buffer.data()),
+                                                     static_cast<int>(buffer.size())) };
 
         auto state = write_state{ 0, ev };
 
