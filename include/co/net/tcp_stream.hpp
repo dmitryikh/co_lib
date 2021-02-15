@@ -4,6 +4,7 @@
 #include <span>
 
 #include <co/event.hpp>
+#include <co/impl/uv_handler.hpp>
 #include <co/net/address.hpp>
 #include <co/net/error_code.hpp>
 #include <co/result.hpp>
@@ -16,24 +17,13 @@ namespace co::net
 namespace impl
 {
 
-inline void on_close(uv_handle_t* handle)
-{
-    assert(handle != nullptr);
-    delete handle;
-}
-
-void close_tcp_handle(uv_tcp_t* handle)
-{
-    uv_close((uv_handle_t*)handle, on_close);
-}
-
-using uv_tcp_ptr = std::unique_ptr<uv_tcp_t, decltype(&close_tcp_handle)>;
+using uv_tcp_ptr = co::impl::uv_handle_ptr<uv_tcp_t>;
 
 uv_tcp_ptr make_and_init_uv_tcp_handle()
 {
     uv_tcp_t* handle = new uv_tcp_t;
     uv_tcp_init(co::impl::get_scheduler().uv_loop(), handle);
-    return uv_tcp_ptr{ handle, close_tcp_handle };
+    return uv_tcp_ptr{ handle };
 }
 
 }  // namespace impl

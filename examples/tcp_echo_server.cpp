@@ -19,9 +19,14 @@ co::func<void> server(std::string ip, uint16_t port)
     {
         auto listener = co_await co::net::tcp_listener::bind(ip, port).unwrap();
 
+        co::stop_source stop_source;
+        auto signal_scoped = co::signal_ctrl_c(stop_source);
+
+        auto token = stop_source.get_token();
+
         while (true)
         {
-            co::net::tcp_stream tcp_stream = co_await listener.accept(co::until{}).unwrap();
+            co::net::tcp_stream tcp_stream = co_await listener.accept(co::until::cancel(token)).unwrap();
             std::cout << tcp_stream.peer_address() << " connected\n";
             co::thread(serve_client(std::move(tcp_stream))).detach();
         }
