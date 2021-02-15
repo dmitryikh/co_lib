@@ -24,4 +24,4 @@ target_link_directories(co_lib INTERFACE ${CONAN_LIB_DIRS})
 target_include_directories(co_lib INTERFACE ${CMAKE_SOURCE_DIR}/include ${CONAN_INCLUDE_DIRS})
 
 enable_testing()
-add_subdirectory(test)
+add_subdirectory(tests)
