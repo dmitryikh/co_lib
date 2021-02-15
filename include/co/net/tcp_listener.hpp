@@ -80,7 +80,7 @@ public:
         }
 
         assert(!_state->_queue.empty());
-        auto& msg = _state->_queue.front();
+        impl::message msg = _state->_queue.front();
         _state->_queue.pop();
 
         if (std::holds_alternative<impl::connection_msg>(msg))
