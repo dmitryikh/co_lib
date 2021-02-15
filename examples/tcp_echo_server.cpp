@@ -1,7 +1,7 @@
 #include <co/co.hpp>
 #include <co/net/net.hpp>
 
-co::func<void> serve_client(co::net::tcp tcp)
+co::func<void> serve_client(co::net::tcp_stream tcp)
 {
     const size_t buffer_size = 100;
     std::string receive_data(buffer_size, '\0');
@@ -18,12 +18,12 @@ co::func<void> server(std::string ip, uint16_t port)
 {
     try
     {
-        auto accept = co_await co::net::tcp::accept(ip, port).unwrap();
+        auto listener = co_await co::net::tcp_listener::bind(ip, port).unwrap();
 
         while (true)
         {
-            co::net::tcp socket = co_await accept.next(co::until{}).unwrap();
-            co::thread(serve_client(std::move(socket))).detach();
+            co::net::tcp_stream tcp_stream = co_await listener.accept(co::until{}).unwrap();
+            co::thread(serve_client(std::move(tcp_stream))).detach();
         }
     }
     catch (const co::exception& coexc)
