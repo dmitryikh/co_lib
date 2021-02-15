@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cassert>
+#include <queue>
 #include <co/func.hpp>
 #include <co/result.hpp>
+#include <co/condition_variable.hpp>
 #include <uv.h>
 
 #include <co/net/error_code.hpp>
@@ -72,7 +74,10 @@ public:
         }
 
         if (_state->_stopping)
-            co_return co::err(co::closed);
+        {
+            // TODO: use co::closed here after moving co::channel error codes to the common place
+            co_return co::err(co::other);
+        }
 
         assert(!_state->_queue.empty());
         auto& msg = _state->_queue.front();
