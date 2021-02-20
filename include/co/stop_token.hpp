@@ -16,7 +16,7 @@ struct stop_callback_node
     stop_callback_func callback;
     intrusive_list_hook hook;
 
-    stop_callback_node(stop_callback_func&& callback)
+    explicit stop_callback_node(stop_callback_func&& callback)
         : callback(callback)
     {}
 };
@@ -32,7 +32,7 @@ public:
         _callbacks.push_back(callback);
     }
 
-    void unregister_callback(stop_callback_node& callback)
+    static void unregister_callback(stop_callback_node& callback)
     {
         assert(callback.hook.is_linked());
         callback.hook.unlink();
@@ -77,12 +77,12 @@ class stop_token
 
     stop_token() = default;
 
-    stop_token(impl::stop_state_sptr stop_state)
+    explicit stop_token(impl::stop_state_sptr stop_state)
         : _stop_state(std::move(stop_state))
     {}
 
 public:
-    bool stop_requested() const
+    [[nodiscard]] bool stop_requested() const
     {
         if (!_stop_state)
             return false;
@@ -107,7 +107,7 @@ public:
         : _stop_state(std::make_shared<impl::stop_state>())
     {}
 
-    stop_token get_token() const
+    [[nodiscard]] stop_token get_token() const
     {
         return stop_token(_stop_state);
     }
@@ -120,7 +120,7 @@ public:
         _stop_state->request_stop();
     }
 
-    bool stop_requested() const
+    [[nodiscard]] bool stop_requested() const
     {
         if (!_stop_state)
             return false;

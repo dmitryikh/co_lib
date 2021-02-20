@@ -18,12 +18,12 @@ using uv_signal_ptr = uv_handle_ptr<uv_signal_t>;
 
 inline uv_signal_ptr make_uv_signal_ptr()
 {
-    uv_signal_t* signal = new uv_signal_t;
+    auto signal = new uv_signal_t;
     uv_signal_init(co::impl::get_scheduler().uv_loop(), signal);
     return uv_signal_ptr{ signal };
 }
 
-};  // namespace impl
+}  // namespace impl
 
 class [[nodiscard]] signal_callback
 {

@@ -11,8 +11,8 @@ namespace co::this_thread
 template <class Rep, class Period>
 func<void> sleep_for(std::chrono::duration<Rep, Period> sleep_duration)
 {
-    // NOTE: result will be always co::timeout
-    auto _ = co_await timed_event{}.wait({ sleep_duration });
+    auto res = co_await timed_event{}.wait({ sleep_duration });
+    assert(res == co::timeout);
 }
 
 template <class Rep, class Period>
@@ -27,8 +27,8 @@ func<result<void>> sleep_for(std::chrono::duration<Rep, Period> sleep_duration, 
 template <class Clock, class Duration>
 func<void> sleep_until(std::chrono::time_point<Clock, Duration> sleep_time)
 {
-    // NOTE: result will be always co::timeout
-    auto _ = co_await timed_event{}.wait({ sleep_time });
+    auto res = co_await timed_event{}.wait({ sleep_time });
+    assert(res == co::timeout);
 }
 
 template <class Clock, class Duration>

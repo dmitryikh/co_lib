@@ -50,7 +50,7 @@ struct channel_shared_state
 public:
     using queue_type = boost::circular_buffer<T>;
 
-    channel_shared_state(size_t capacity)
+    explicit channel_shared_state(size_t capacity)
         : _queue(capacity)
     {}
 
@@ -81,7 +81,7 @@ class channel
 {
 
 public:
-    channel(size_t capacity)
+    explicit channel(size_t capacity)
         : _state(std::make_shared<impl::channel_shared_state<T>>(capacity))
     {}
 
@@ -170,7 +170,7 @@ public:
         _state->_consumer_waiting_queue.notify_all();
     }
 
-    bool is_closed() const
+    [[nodiscard]] bool is_closed() const
     {
         check_shared_state();
         return _state->_closed;

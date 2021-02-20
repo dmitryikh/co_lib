@@ -4,7 +4,7 @@
 #include <coroutine>
 #else
 #include <experimental/coroutine>
-namespace std
+namespace std // NOLINT(cert-dcl58-cpp)
 {
 
 using std::experimental::coroutine_handle;

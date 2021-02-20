@@ -24,11 +24,11 @@ struct error_msg
 };
 using message = std::variant<connection_msg, error_msg>;
 
-// shared state is needed because we pass the (void*) addres on it into libuv
+// shared state is needed because we pass the (void*) address on it into libuv
 // request, we need that the address won't be changed with moving
 struct tcp_listener_shared_state
 {
-    tcp_listener_shared_state(uv_tcp_ptr&& tcp_ptr)
+    explicit tcp_listener_shared_state(uv_tcp_ptr&& tcp_ptr)
         : _server_tcp_ptr(std::move(tcp_ptr))
     {}
 
@@ -48,7 +48,7 @@ class tcp_listener
     static constexpr int INCOMING_MAX = 128;
 
 private:
-    tcp_listener(std::unique_ptr<impl::tcp_listener_shared_state>&& state)
+    explicit tcp_listener(std::unique_ptr<impl::tcp_listener_shared_state>&& state)
         : _state(std::move(state))
     {
         assert(_state != nullptr);
@@ -126,7 +126,7 @@ private:
 func<result<tcp_listener>> tcp_listener::bind(const std::string& ip, uint16_t port)
 {
 
-    struct sockaddr_in addr;
+    sockaddr_in addr{};
     int ret = uv_ip4_addr(ip.c_str(), port, &addr);
     if (ret != 0)
         co_return co::err(wrong_address);

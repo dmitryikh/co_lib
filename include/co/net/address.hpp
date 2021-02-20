@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iostream>
+
+#include <co/net/error_code.hpp>
 #include <uv.h>
 
 namespace co::net
@@ -22,7 +24,6 @@ class address
     friend class tcp_stream;
 
 private:
-    address() = delete;
     address(std::string&& ip, uint16_t port, address_family family)
         : _ip(std::move(ip))
         , _port(port)
@@ -40,7 +41,7 @@ private:
             if (res != 0)
                 throw co::exception(other_net, "uv_ip4_name failed");
 
-            uint16_t port = static_cast<uint16_t>(ntohs(addr.sin_port));
+            auto port = static_cast<uint16_t>(ntohs(addr.sin_port));
             return { buffer.data(), port, ip4 };
         }
         else if (addr_storage.ss_family == AF_INET6)
@@ -50,7 +51,7 @@ private:
             if (res != 0)
                 throw co::exception(other_net, "uv_ip6_name failed");
 
-            uint16_t port = static_cast<uint16_t>(ntohs(addr.sin6_port));
+            auto port = static_cast<uint16_t>(ntohs(addr.sin6_port));
             return { buffer.data(), port, ip6 };
         }
         else
@@ -60,17 +61,17 @@ private:
     }
 
 public:
-    address_family family() const
+    [[nodiscard]] address_family family() const
     {
         return _family;
     }
 
-    const std::string& ip() const
+    [[nodiscard]] const std::string& ip() const
     {
         return _ip;
     }
 
-    uint16_t port() const
+    [[nodiscard]] uint16_t port() const
     {
         return _port;
     }

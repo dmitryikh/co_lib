@@ -14,7 +14,7 @@ enum class event_status
 {
     init,
     waiting,
-    ok,  // actualy means successfully notified
+    ok,  // actually means successfully notified
     cancel,
     timeout
 };
@@ -23,7 +23,7 @@ template <typename event>
 class event_awaiter
 {
 public:
-    event_awaiter(event& _event);
+    explicit event_awaiter(event& _event);
 
     event_awaiter& operator=(const event_awaiter&) = delete;
     event_awaiter& operator=(event_awaiter&&) = delete;
@@ -65,7 +65,7 @@ public:
         return impl::event_awaiter<event>(*this);
     };
 
-    bool is_notified() const
+    [[nodiscard]] bool is_notified() const
     {
         return _status == impl::event_status::ok;
     }

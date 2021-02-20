@@ -21,7 +21,7 @@ namespace impl
 class symmetric_transfer_awaiter
 {
 public:
-    symmetric_transfer_awaiter(std::coroutine_handle<> continuation)
+    explicit symmetric_transfer_awaiter(std::coroutine_handle<> continuation)
         : _continuation(continuation)
     {}
 
@@ -52,7 +52,7 @@ class other_func_awaiter
     using type = typename Promise::type;
 
 public:
-    other_func_awaiter(std::coroutine_handle<Promise> coroutine) noexcept
+    explicit other_func_awaiter(std::coroutine_handle<Promise> coroutine) noexcept
         : _coroutine(coroutine)
     {}
 
@@ -244,7 +244,7 @@ auto invoke(F&& f, Args&&... args) requires FuncLambdaConcept<F, Args...>
 {
     return [](F f, std::decay_t<Args>... args) -> std::invoke_result_t<F, Args...> {
         co_return co_await f(std::forward<Args>(args)...);
-    }(std::move(f), std::forward<Args>(args)...);
+    }(std::forward<F>(f), std::forward<Args>(args)...);
 }
 
 }  // namespace co

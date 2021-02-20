@@ -16,7 +16,7 @@ int main()
 {
     // in order to execute the body of the co::func you can schedule it and run
     // the event loop. Event loop will use the current system thread to execute
-    // coroutines untill all coroutines will be finished
+    // coroutines until all coroutines will be finished
     co::loop(do_work());
 
     // Run coroutine sequentially. Note the lambda syntax to be used as unnamed co::func
@@ -29,7 +29,7 @@ int main()
     // Total execution time: 2s
 
     // To Run coroutine asynchronously. You need to run it inside co::thread.
-    // every co::thread schedule itself in the event loop idependently
+    // every co::thread schedule itself in the event loop independently
     co::loop(
         []() -> co::func<void>
         {
@@ -94,7 +94,7 @@ int main()
     // used to provide non blocking synchronization between co::threads. Below
     // is a toy example where 3 co::threads are spawned to consume the
     // co::channel, but processing is done under co::mutex. That leads to
-    // sequantial processing. Thus, it's no sense to use 3 co::threads, but..
+    // sequential processing. Thus, it's no sense to use 3 co::threads, but..
     // why not :)
     co::loop(
         []() -> co::func<void>
@@ -136,7 +136,7 @@ int main()
                 // co::func::unwrap() to get new co::func<void> which will throw
                 // co::exception in case of co::result::is_err()
                 co_await ch.push("package " + std::to_string(i + 1)).unwrap();
-            };
+            }
             ch.close();
 
             for (auto& th : threads)

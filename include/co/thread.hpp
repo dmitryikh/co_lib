@@ -114,17 +114,17 @@ public:
         co_return co_await _event_ptr->wait(until);
     }
 
-    bool is_joined() const
+    [[nodiscard]] bool is_joined() const
     {
         return _event_ptr->is_notified();
     }
 
-    stop_source get_stop_source() const
+    [[nodiscard]] stop_source get_stop_source() const
     {
         return _thread_storage_ptr->stop;
     }
 
-    stop_token get_stop_token() const
+    [[nodiscard]] stop_token get_stop_token() const
     {
         return _thread_storage_ptr->stop.get_token();
     }
@@ -151,7 +151,7 @@ inline const std::string& name()
     return co::impl::this_thread_storage_ref().name;
 }
 
-inline const uint64_t id()
+inline uint64_t id()
 {
     return co::impl::this_thread_storage_ref().id;
 }
@@ -166,6 +166,6 @@ inline bool stop_requested()
     return co::impl::this_thread_storage_ref().stop.stop_requested();
 }
 
-};  // namespace this_thread
+}  // namespace this_thread
 
 }  // namespace co

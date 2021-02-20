@@ -43,7 +43,7 @@ public:
         return true;
     }
 
-    bool is_locked() const
+    [[nodiscard]] bool is_locked() const
     {
         return _is_locked;
     }

@@ -34,7 +34,7 @@ public:
         {
             // promise has been destroyed but it didn't provide a result
             base::set_exception(
-                std::make_exception_ptr(co::exception(co::broken, "promise destroyed whithout result")));
+                std::make_exception_ptr(co::exception(co::broken, "promise destroyed without result")));
             _cv.notify_all();
         }
     }
@@ -101,14 +101,14 @@ class future
     friend class promise<T>;
 
 private:
-    future(impl::future_shared_state_sp<T> st)
+    explicit future(impl::future_shared_state_sp<T> st)
         : _shared_state{ std::move(st) }
     {}
 
 public:
     future() = default;
 
-    bool valid() const noexcept
+    [[nodiscard]] bool valid() const noexcept
     {
         return _shared_state != nullptr;
     }
@@ -146,8 +146,8 @@ public:
 
     promise(const promise&) = delete;
     promise& operator=(const promise&) = delete;
-    promise(promise&&) = default;
-    promise& operator=(promise&&) = default;
+    promise(promise&&) noexcept = default;
+    promise& operator=(promise&&) noexcept = default;
 
     future<T> get_future() const
     {

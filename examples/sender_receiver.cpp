@@ -41,7 +41,7 @@ int main()
                     }
                     catch (const co::exception& coexc)
                     {
-                        std::cout << co::this_thread::name() << ": stop sendings - " << coexc << "\n";
+                        std::cout << co::this_thread::name() << ": stop sending - " << coexc << "\n";
                     }
                     ch.close();
                 },

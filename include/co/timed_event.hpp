@@ -71,7 +71,7 @@ private:
 ///
 /// @describe event::notify() is used to show that event has
 /// happened. event::wait() family of methods are used to wait the event
-/// happened. After notification all event::wait() will return immidiately
+/// happened. After notification all event::wait() will return immediately
 class timed_event
 {
     template <typename T>

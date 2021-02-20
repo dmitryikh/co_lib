@@ -21,7 +21,7 @@ using uv_tcp_ptr = co::impl::uv_handle_ptr<uv_tcp_t>;
 
 uv_tcp_ptr make_and_init_uv_tcp_handle()
 {
-    uv_tcp_t* handle = new uv_tcp_t;
+    auto handle = new uv_tcp_t;
     uv_tcp_init(co::impl::get_scheduler().uv_loop(), handle);
     return uv_tcp_ptr{ handle };
 }
@@ -35,7 +35,7 @@ class tcp_stream
     friend tcp_listener;
 
 private:
-    tcp_stream(impl::uv_tcp_ptr tcp_ptr)
+    explicit tcp_stream(impl::uv_tcp_ptr tcp_ptr)
         : _tcp_ptr(std::move(tcp_ptr))
     {}
 
@@ -197,9 +197,9 @@ public:
         co_return co::ok();
     }
 
-    address local_address() const
+    [[nodiscard]] address local_address() const
     {
-        sockaddr_storage addr_storage;
+        sockaddr_storage addr_storage{};
         int len = sizeof(sockaddr_storage);
         auto res = uv_tcp_getsockname(_tcp_ptr.get(), (struct sockaddr*)&addr_storage, &len);
         if (res != 0)
@@ -208,9 +208,9 @@ public:
         return address::from(addr_storage);
     }
 
-    address peer_address() const
+    [[nodiscard]] address peer_address() const
     {
-        sockaddr_storage addr_storage;
+        sockaddr_storage addr_storage{};
         int len = sizeof(sockaddr_storage);
         auto res = uv_tcp_getpeername(_tcp_ptr.get(), (struct sockaddr*)&addr_storage, &len);
         if (res != 0)
@@ -245,7 +245,7 @@ func<result<tcp_stream>> tcp_stream::connect(const std::string& ip, uint16_t por
         state.ev.notify();
     };
 
-    struct sockaddr_in dest;
+    sockaddr_in dest{};
     int ret = uv_ip4_addr(ip.c_str(), port, &dest);
     using namespace std::string_literals;
     if (ret != 0)
