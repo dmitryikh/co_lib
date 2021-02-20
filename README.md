@@ -110,10 +110,9 @@ build & run tests manually:
 
 ```bash
 mkdir build && cd build
-conan install .. --build=missing -s build_type=Debug
 cmake -DCMAKE_BUILD_TYPE=Debug  ..
 cmake --build . -j 4
-ctest --build-config Debug
+ctest
 ```
 
 ## Thanks To

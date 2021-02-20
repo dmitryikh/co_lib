@@ -6,8 +6,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(co_lib LANGUAGES CXX)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(NO_OUTPUT_DIRS TARGETS)
+include(cmake/conan.cmake)
+conan_cmake_run(CONANFILE conanfile.py
+        BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS
+        BUILD missing)
 
 set(CMAKE_CXX_FLAGS_DEBUG
     "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined"
