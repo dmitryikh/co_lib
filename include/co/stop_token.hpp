@@ -51,7 +51,7 @@ public:
         }
     }
 
-    bool stop_requested() const
+    [[nodiscard]] bool stop_requested() const
     {
         return _stop_requested;
     }
@@ -70,21 +70,18 @@ using stop_state_sptr = std::shared_ptr<stop_state>;
 
 }  // namespace impl
 
-template <typename Callback>
-class stop_callback;
-
 class stop_token
 {
-    template <typename Callback>
     friend class stop_callback;
+    friend class stop_source;
 
-public:
     stop_token() = default;
 
     stop_token(impl::stop_state_sptr stop_state)
         : _stop_state(std::move(stop_state))
     {}
 
+public:
     bool stop_requested() const
     {
         if (!_stop_state)
@@ -135,11 +132,10 @@ private:
     impl::stop_state_sptr _stop_state;
 };
 
-template <typename Callback = stop_callback_func>
 class stop_callback
 {
 public:
-    stop_callback(const stop_token& token, Callback&& callback)
+    stop_callback(const stop_token& token, stop_callback_func&& callback)
         : _stop_state(token.stop_state())
         , _callback_node(std::move(callback))
     {
@@ -170,10 +166,5 @@ private:
     impl::stop_state_sptr _stop_state;
     impl::stop_callback_node _callback_node;
 };
-
-namespace impl
-{
-const stop_token dummy_stop_token{};
-}
 
 }  // namespace co

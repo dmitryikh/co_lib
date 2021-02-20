@@ -37,24 +37,40 @@ public:
         , _token(std::move(token))
     {}
 
-    static until deadline(clock::time_point deadline, const co::stop_token& token = impl::dummy_stop_token)
+    static until deadline(clock::time_point deadline)
     {
-        return until{ deadline, token };
+        return until{ deadline };
+    }
+
+    static until deadline(clock::time_point deadline, co::stop_token token)
+    {
+        return until{ deadline, std::move(token) };
+    }
+
+    template <class Rep, class Period>
+    static until timeout(std::chrono::duration<Rep, Period> timeout)
+    {
+        return until{ timeout };
     }
 
     template <class Rep, class Period>
     static until timeout(std::chrono::duration<Rep, Period> timeout,
-                         const co::stop_token& token = impl::dummy_stop_token)
+                         co::stop_token token)
     {
-        return until{ timeout, token };
+        return until{ timeout, std::move(token) };
     }
 
-    static until cancel(const co::stop_token& token)
+    static until cancel(co::stop_token token)
     {
         return until{ token };
     }
 
-    const co::stop_token& token() const
+    const std::optional<co::stop_token>& token() const
+    {
+        return _token;
+    }
+
+    std::optional<co::stop_token>& token()
     {
         return _token;
     }
@@ -66,7 +82,7 @@ public:
 
 private:
     clock::time_point _until = clock::time_point::max();
-    co::stop_token _token = impl::dummy_stop_token;
+    std::optional<co::stop_token> _token = std::nullopt;
 };
 
 }  // namespace co

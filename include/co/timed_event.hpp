@@ -26,23 +26,23 @@ class timed_event_awaiter
 
 public:
     timed_event_awaiter(timed_event& event)
-        : timed_event_awaiter(event, max_milliseconds, impl::dummy_stop_token)
+        : timed_event_awaiter(event, max_milliseconds, std::nullopt)
     {}
 
     timed_event_awaiter(timed_event& event, const co::until& until)
         : timed_event_awaiter(event, until.milliseconds(), until.token())
     {}
 
-    timed_event_awaiter(timed_event& event, int64_t milliseconds, const co::stop_token& token)
+    timed_event_awaiter(timed_event& event, int64_t milliseconds, const std::optional<co::stop_token>& tokenOpt)
         : _thread_storage(get_this_thread_storage_ptr())
         , _milliseconds(milliseconds)
         , _event(event)
-        , _token(token)
-        , _stop_callback(_token, stop_callback_func())
     {
         // we can't run async code outside of co::thread. Then _thread_storage should be
         // defined in any point of time
         assert(_thread_storage != nullptr);
+        if (tokenOpt.has_value())
+            _stop_callback.emplace(*tokenOpt, stop_callback_func());
     }
 
     timed_event_awaiter& operator=(const timed_event_awaiter&) = delete;
@@ -61,8 +61,7 @@ private:
     thread_storage* _thread_storage = nullptr;  // the thread to which the awaiter belongs
     const int64_t _milliseconds;
     timed_event& _event;
-    const co::stop_token& _token;
-    co::stop_callback<> _stop_callback;
+    std::optional<co::stop_callback> _stop_callback;
 };
 
 }  // namespace impl
@@ -153,14 +152,8 @@ inline void timed_event_awaiter::on_timer(void* awaiter_ptr)
 
 inline bool timed_event_awaiter::await_ready() const noexcept
 {
-    if (_event._status == event_status::ok)
+    if (_event._status > event_status::waiting)
         return true;
-
-    if (_token.stop_requested())
-    {
-        _event._status = event_status::cancel;
-        return true;
-    }
 
     if (_milliseconds <= 0)
     {
