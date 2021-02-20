@@ -115,5 +115,14 @@ cmake --build . -j 4
 ctest
 ```
 
+# Documentation
+Doxygen based documentations can be generated with the next commands:
+
+```bash
+cmake -Hdocs -Bbuild/doc
+cmake --build build/doc --target GenerateDocs
+open build/doc/doxygen/html/index.html
+```
+
 ## Thanks To
 CMake & Github Actions are based on https://github.com/TheLartians/ModernCppStarter
