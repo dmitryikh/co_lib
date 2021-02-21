@@ -1,3 +1,6 @@
+[![Ubuntu](https://github.com/dmitryikh/co_lib/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/dmitryikh/co_lib/actions/workflows/ubuntu.yml)
+
+
 # co_lib
 
 co_lib is an experimental asynchronous C++20 framework that feels like std library.
@@ -18,8 +21,8 @@ Current limitations:
 3. Developing and testing on clang 11 only
 
 # Dependencies
-1. C++ 20
-2. boost 1.75
+1. C++20 at clang-11
+2. boost 1.75 (headers only)
 3. libuv 1.40
 4. conan package manager
 
