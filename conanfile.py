@@ -12,6 +12,9 @@ class CoLibConan(ConanFile):
     exports_sources = "include/*", "CMakeLists.txt", "test/*", "cmake/*"
     requires = "libuv/1.40.0", "boost/1.75.0"
     build_requires = "catch2/2.13.4"
+    default_options = {
+        "boost:header_only": True,
+    }
 
     def package(self):
         self.copy("*.hpp")
