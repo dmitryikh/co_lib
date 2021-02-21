@@ -1,3 +1,4 @@
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/dmitryikh/co_lib?label=%20version&sort=semver&style=plastic)
 [![Ubuntu](https://github.com/dmitryikh/co_lib/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/dmitryikh/co_lib/actions/workflows/ubuntu.yml)
 
 
