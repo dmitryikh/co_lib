@@ -10,7 +10,7 @@ co_lib design priorities:
 co_lib benefits:
 1. Cancellation as a first class citizen: co::stop_token, co::stop_source, almost all awaited ops can be cancelled.
 2. co::result<T> type (like in Rust) to check the result of an operation
-3. based on libuv C library: even loop, network, timers, etc..
+3. based on libuv C library: event loop, network, timers, etc..
 
 Current limitations:
 1. Single threaded
@@ -71,7 +71,7 @@ int main()
                     }
                     catch (const co::exception& coexc)
                     {
-                        std::cout << co::this_thread::name() << ": stop sendings - " << coexc << "\n";
+                        std::cout << co::this_thread::name() << ": stop sending - " << coexc << "\n";
                     }
                     ch.close();
                 },
@@ -87,7 +87,7 @@ int main()
 
 # Build Instruction
 `co_lib` is header only library. It uses conan package manager to manage its
-dependecies and also to be included into other projects.
+dependencies and also to be included into other projects.
 
 To build the package locally:
 

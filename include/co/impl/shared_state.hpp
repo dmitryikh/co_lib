@@ -13,7 +13,7 @@ class shared_state
 public:
     shared_state() = default;
 
-    void set_exception(std::exception_ptr exc_ptr)
+    void set_exception(const std::exception_ptr& exc_ptr)
     {
         _variant = exc_ptr;
     }
@@ -24,7 +24,7 @@ public:
         _variant.template emplace<T>(std::forward<Args>(args)...);
     }
 
-    bool is_done() const
+    [[nodiscard]] bool is_done() const
     {
         return _variant.index() != 0;
     }
@@ -59,7 +59,7 @@ class shared_state<void>
 public:
     shared_state() = default;
 
-    void set_exception(std::exception_ptr exc_ptr)
+    void set_exception(const std::exception_ptr& exc_ptr)
     {
         _is_done = true;
         _exception_ptr = exc_ptr;
@@ -70,7 +70,7 @@ public:
         _is_done = true;
     }
 
-    bool is_done() const
+    [[nodiscard]] bool is_done() const
     {
         return _is_done;
     }

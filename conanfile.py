@@ -7,7 +7,7 @@ class CoLibConan(ConanFile):
     license = "MIT"
     author = "Dmitry Khominich khdmitryi@gmail.com"
     description = "experimental asynchronous C++20 framework that feels like std library"
-    topics = ("<Put some tag here>", "<here>", "<and here>")
+    topics = ("c++20", "coroutines", "asynchronous programming")
     generators = "cmake"
     exports_sources = "include/*", "CMakeLists.txt", "test/*", "cmake/*"
     requires = "libuv/1.40.0", "boost/1.75.0"
