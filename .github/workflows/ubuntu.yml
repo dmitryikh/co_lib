@@ -1,0 +1,50 @@
+name: Ubuntu
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: 1
+  CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm_modules
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: "**/cpm_modules"
+          key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
+
+      - name: conan
+        run: |
+            pip3 install conan
+            sudo ln -s /home/runner/.local/bin/conan /usr/local/bin/conan
+            conan --version
+
+      - name: clang-11
+        run: |
+            sudo apt-get update
+            sudo apt-get install clang-11 libc++-11-dev libc++abi-11-dev
+
+      - name: configure
+        run: cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug
+        env:
+            CC:  clang-11
+            CXX: clang++-11
+
+      - name: build
+        run: cmake --build build -j4
+
+      - name: test
+        run: |
+          cd build
+          ctest --build-config Debug

@@ -6,17 +6,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(co_lib LANGUAGES CXX)
 
+# this will help to use conan's libcxx profile
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+
 include(cmake/conan.cmake)
 conan_cmake_run(CONANFILE conanfile.py
         BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS
         BUILD missing)
-
-set(CMAKE_CXX_FLAGS_DEBUG
-    "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined"
-)
-set(CMAKE_LINKER_FLAGS_DEBUG
-    "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined"
-)
 
 include(cmake/CPM.cmake)
 
