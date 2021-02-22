@@ -1,3 +1,4 @@
+#include <mutex>
 #include <catch2/catch.hpp>
 #include <co/co.hpp>
 
@@ -198,5 +199,27 @@ TEST_CASE("mutex lock/unlock with contention", "[primitives]")
             rival_thread2.request_stop();
             co_await rival_thread1.join();
             co_await rival_thread2.join();
+        });
+}
+
+TEST_CASE("mutex adopt", "[primitives]")
+{
+
+    co::loop(
+        []() -> co::func<void>
+        {
+            co::mutex mutex;
+            {
+                co_await mutex.lock();
+                REQUIRE(mutex.is_locked() == true);
+                std::lock_guard lock(mutex, std::adopt_lock);
+            }
+            REQUIRE(mutex.is_locked() == false);
+            {
+                co_await mutex.lock();
+                REQUIRE(mutex.is_locked() == true);
+                std::unique_lock lock(mutex, std::adopt_lock);
+            }
+            REQUIRE(mutex.is_locked() == false);
         });
 }
