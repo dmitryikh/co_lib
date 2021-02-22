@@ -32,6 +32,7 @@ public:
     ~mutex()
     {
         assert(!_is_locked);
+        assert(_waiting_queue.empty());
     }
 
     bool try_lock()
@@ -53,7 +54,10 @@ public:
         assert(_is_locked);
         // TODO: check that unlock called from the proper coroutine
         if (!_is_locked)
+        {
+            // TODO: add diagnostic here
             return;
+        }
 
         if (!_waiting_queue.notify_one())
             _is_locked = false;

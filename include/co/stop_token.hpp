@@ -143,7 +143,12 @@ public:
             return;
 
         if (_stop_state->stop_requested())
+        {
             _callback_node.callback();
+            // we need stop state only to unregister the callback. But in case when stop is already
+            // requested we don't need stop state
+            _stop_state.reset();
+        }
         else
             _stop_state->register_callback(_callback_node);
     }
