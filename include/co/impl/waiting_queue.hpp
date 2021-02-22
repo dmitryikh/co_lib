@@ -49,7 +49,7 @@ public:
             w.hook.unlink();
     };
 
-    func<result<void>> wait(co::until until)
+    func<result<void>> wait(const co::until& until)
     {
         waker w;
         _wakers_list.push_back(w);

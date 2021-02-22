@@ -25,7 +25,7 @@ class timed_event_awaiter
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::milliseconds::max()).count();
 
 public:
-    timed_event_awaiter(timed_event& event)
+    explicit timed_event_awaiter(timed_event& event)
         : timed_event_awaiter(event, max_milliseconds, std::nullopt)
     {}
 

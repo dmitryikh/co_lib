@@ -21,7 +21,7 @@ public:
         co_await _waiting_queue.wait();
     }
 
-    func<result<void>> lock(co::until until)
+    func<result<void>> lock(const co::until& until)
     {
         if (try_lock())
             co_return co::ok();

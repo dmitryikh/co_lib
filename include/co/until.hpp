@@ -65,7 +65,7 @@ public:
         return until{ token };
     }
 
-    const std::optional<co::stop_token>& token() const
+    [[nodiscard]] const std::optional<co::stop_token>& token() const
     {
         return _token;
     }
@@ -75,7 +75,7 @@ public:
         return _token;
     }
 
-    const int64_t milliseconds() const
+    [[nodiscard]] int64_t milliseconds() const
     {
         return std::chrono::duration_cast<std::chrono::milliseconds>(_until - clock::now()).count();
     }

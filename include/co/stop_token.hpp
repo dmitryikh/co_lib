@@ -91,7 +91,7 @@ public:
     }
 
 private:
-    impl::stop_state_sptr stop_state() const
+    [[nodiscard]] impl::stop_state_sptr stop_state() const
     {
         return _stop_state;
     }
