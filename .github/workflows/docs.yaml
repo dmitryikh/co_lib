@@ -1,9 +1,6 @@
 name: Documentation
 
-on:
-  push:
-    tags:
-      - "*"
+on: workflow_dispatch
 
 env:
   CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm_modules
