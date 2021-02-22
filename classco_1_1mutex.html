@@ -52,7 +52,7 @@
           <span class="m-breadcrumb"><a href="namespaceco.html">co</a>::<wbr/></span>mutex <span class="m-thin">class</span>
           <div class="m-doc-include m-code m-inverted m-text-right"><span class="cp">#include</span> <a class="cpf" href="mutex_8hpp.html">&lt;co/mutex.hpp&gt;</a></div>
         </h1>
-        <p><span></span></p>
+        <p>non blocking mutex</p>
         <div class="m-block m-default">
           <h3>Contents</h3>
           <ul>
@@ -65,6 +65,17 @@
             </li>
           </ul>
         </div>
+<p>Trying to get the lock twice without <a href="classco_1_1mutex.html#a4e0aeba105f574d1e29541e3386b1c98" class="m-doc">unlock()</a> leads to deadlock</p><p>Usage:</p><pre class="m-code"><span class="n">co</span><span class="o">::</span><span class="n">mutex</span> <span class="n">mtx</span><span class="p">;</span>
+<span class="k">auto</span> <span class="n">th</span> <span class="o">=</span> <span class="n">co</span><span class="o">::</span><span class="kr">thread</span><span class="p">([</span><span class="o">&amp;</span><span class="n">mtx</span><span class="p">]()</span> <span class="p">{</span>
+    <span class="n">co_await</span> <span class="n">mtx</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
+    <span class="n">do_job_exclusively</span><span class="p">();</span>
+    <span class="n">mtx</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span>
+<span class="p">});</span>
+<span class="n">co_await</span> <span class="n">mtx</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
+<span class="n">do_job_exclusively</span><span class="p">();</span>
+<span class="n">mtx</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span>
+<span class="n">co_await</span> <span class="n">th</span><span class="p">.</span><span class="n">join</span><span class="p">();</span></pre><p>Mutex can be hold by std::unique_lock or std::lock_guard to be sure to be unlocked when leaving the scope</p><pre class="m-code"><span class="n">co_await</span> <span class="n">mtx</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
+<span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span> <span class="n">lock</span><span class="p">(</span><span class="n">mtx</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">adopt_lock</span><span class="p">);</span></pre>
         <section id="typeless-methods">
           <h2><a href="#typeless-methods">Constructors, destructors, conversion operators</a></h2>
           <dl class="m-doc">
@@ -80,24 +91,45 @@
             <dt id="a5f2e4886673ee6e0ea6f07be47a58c73">
               <span class="m-doc-wrap-bumper">auto <a href="#a5f2e4886673ee6e0ea6f07be47a58c73" class="m-doc-self">lock</a>(</span><span class="m-doc-wrap">) -&gt; <a href="classco_1_1func.html" class="m-doc">func</a>&lt;void&gt;</span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="ab676266177d0b5c1463f2d78ac6c1bcf">
-              <span class="m-doc-wrap-bumper">auto <a href="#ab676266177d0b5c1463f2d78ac6c1bcf" class="m-doc-self">lock</a>(</span><span class="m-doc-wrap"><a href="classco_1_1until.html" class="m-doc">co::<wbr />until</a> until) -&gt; <a href="classco_1_1func.html" class="m-doc">func</a>&lt;<a href="classco_1_1result.html" class="m-doc">result</a>&lt;void&gt;&gt;</span>
+            <dd>get the lock, if the lock is already taken <a href="classco_1_1mutex.html#a5f2e4886673ee6e0ea6f07be47a58c73" class="m-doc">lock()</a> will suspend to wait the lock</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#add18eeb7c3f1e1e7bc7045b5aa9086e7" class="m-doc">lock</a>(</span><span class="m-doc-wrap">const <a href="classco_1_1until.html" class="m-doc">co::<wbr />until</a>&amp; until) -&gt; <a href="classco_1_1func.html" class="m-doc">func</a>&lt;<a href="classco_1_1result.html" class="m-doc">result</a>&lt;void&gt;&gt;</span>
             </dt>
-            <dd><span></span></dd>
+            <dd>get the lock, if the lock is already taken <a href="classco_1_1mutex.html#a5f2e4886673ee6e0ea6f07be47a58c73" class="m-doc">lock()</a> will suspend to wait the lock. The wait period is controlled by until parameter.</dd>
             <dt id="a797f0fafda77caab404599c86936e18f">
               <span class="m-doc-wrap-bumper">auto <a href="#a797f0fafda77caab404599c86936e18f" class="m-doc-self">try_lock</a>(</span><span class="m-doc-wrap">) -&gt; bool</span>
             </dt>
-            <dd><span></span></dd>
+            <dd>non blocking version of getting the lock. returns true in case of the lock is obtained</dd>
             <dt id="a0624eb7732cb0fd4b4445241f21bd15e">
               <span class="m-doc-wrap-bumper">auto <a href="#a0624eb7732cb0fd4b4445241f21bd15e" class="m-doc-self">is_locked</a>(</span><span class="m-doc-wrap">) const -&gt; bool</span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="a4e0aeba105f574d1e29541e3386b1c98">
-              <span class="m-doc-wrap-bumper">void <a href="#a4e0aeba105f574d1e29541e3386b1c98" class="m-doc-self">unlock</a>(</span><span class="m-doc-wrap">)</span>
+            <dd>check whether the lock is taken by someone</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">void <a href="#a4e0aeba105f574d1e29541e3386b1c98" class="m-doc">unlock</a>(</span><span class="m-doc-wrap">)</span>
             </dt>
-            <dd><span></span></dd>
+            <dd>return the lock.</dd>
           </dl>
+        </section>
+        <section>
+          <h2>Function documentation</h2>
+          <section class="m-doc-details" id="add18eeb7c3f1e1e7bc7045b5aa9086e7"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper"><a href="classco_1_1func.html" class="m-doc">func</a>&lt;<a href="classco_1_1result.html" class="m-doc">result</a>&lt;void&gt;&gt; co::<wbr />mutex::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#add18eeb7c3f1e1e7bc7045b5aa9086e7" class="m-doc-self">lock</a>(</span><span class="m-doc-wrap">const <a href="classco_1_1until.html" class="m-doc">co::<wbr />until</a>&amp; until)</span></span>
+            </h3>
+            <p>get the lock, if the lock is already taken <a href="classco_1_1mutex.html#a5f2e4886673ee6e0ea6f07be47a58c73" class="m-doc">lock()</a> will suspend to wait the lock. The wait period is controlled by until parameter.</p>
+<p>Usage:</p><pre class="m-code"><span class="k">auto</span> <span class="n">res</span> <span class="o">=</span> <span class="n">co_await</span> <span class="n">mtx</span><span class="p">.</span><span class="n">lock</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>  <span class="c1">// wait up to 100 ms</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="n">co</span><span class="o">::</span><span class="n">timeout</span><span class="p">)</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;timeout</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span></pre><pre class="m-code"><span class="k">auto</span> <span class="n">res</span> <span class="o">=</span> <span class="n">co_await</span> <span class="n">mtx</span><span class="p">.</span><span class="n">lock</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">stop_token</span><span class="p">());</span>  <span class="c1">// wait until stop is requested</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="n">co</span><span class="o">::</span><span class="n">cancel</span><span class="p">)</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;cancelled</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span></pre><pre class="m-code"><span class="c1">// wait until either 100ms deadline passed or stop is requested</span>
+<span class="k">auto</span> <span class="n">res</span> <span class="o">=</span> <span class="n">co_await</span> <span class="n">mtx</span><span class="p">.</span><span class="n">lock</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">,</span> <span class="n">co</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">stop_token</span><span class="p">());</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">res</span><span class="p">.</span><span class="n">is_err</span><span class="p">())</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;timeout or cancelled</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span></pre>
+          </div></section>
+          <section class="m-doc-details" id="a4e0aeba105f574d1e29541e3386b1c98"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">void co::<wbr />mutex::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a4e0aeba105f574d1e29541e3386b1c98" class="m-doc-self">unlock</a>(</span><span class="m-doc-wrap">)</span></span>
+            </h3>
+            <p>return the lock.</p>
+<p>Trying to return the lock from other <a href="classco_1_1thread.html" class="m-doc">co::<wbr />thread</a> is undefined behaviour. Trying to unlock twice has no effect in Release build but will produce diagnostic in Debug build</p>
+          </div></section>
         </section>
       </div>
     </div>
