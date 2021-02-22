@@ -3,7 +3,7 @@
 
 using namespace std::chrono_literals;
 
-TEST_CASE("co::mutex", "[co::mutex]")
+TEST_CASE("mutex usage", "[primitives]")
 {
     auto start = std::chrono::steady_clock::now();
     co::loop(

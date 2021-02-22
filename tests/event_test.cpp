@@ -3,7 +3,7 @@
 
 using namespace std::chrono_literals;
 
-TEST_CASE("co::event::wait", "[base]")
+TEST_CASE("event wait/notify", "[core]")
 {
     std::vector<co::event> events(1000);
     co::loop(

@@ -3,7 +3,7 @@
 
 using namespace std::chrono_literals;
 
-TEST_CASE("co::condition_variable", "[co::condition_variable]")
+TEST_CASE("condition_variable usage", "[primitives]")
 {
     auto start = std::chrono::steady_clock::now();
     co::loop(

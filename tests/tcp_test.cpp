@@ -74,7 +74,7 @@ co::func<void> client(std::string ip, uint16_t port)
     }
 }
 
-TEST_CASE("co::net::tcp", "[co::net]")
+TEST_CASE("tcp client/server", "[net]")
 {
     co::loop(
         []() -> co::func<void>

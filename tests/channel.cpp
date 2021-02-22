@@ -3,7 +3,7 @@
 
 using namespace std::chrono_literals;
 
-TEST_CASE("co::channel", "[co::channel]")
+TEST_CASE("channel usage", "[primitives]")
 {
     auto start = std::chrono::steady_clock::now();
     co::loop(

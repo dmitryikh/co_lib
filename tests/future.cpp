@@ -3,7 +3,7 @@
 
 using namespace std::chrono_literals;
 
-TEST_CASE("co::future", "[co::future]")
+TEST_CASE("future usage", "[primitives]")
 {
     co::loop(
         []() -> co::func<void>

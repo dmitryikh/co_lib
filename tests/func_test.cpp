@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 #include <co/co.hpp>
 
-TEST_CASE("invoke", "[base]")
+TEST_CASE("invoke usage", "[core]")
 {
     auto i_ptr = std::make_unique<int>(42);
     auto func = co::invoke(
