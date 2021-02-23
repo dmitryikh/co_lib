@@ -52,7 +52,7 @@
           <span class="m-breadcrumb"><a href="namespaceco.html">co</a>::<wbr/></span>timed_event <span class="m-thin">class</span>
           <div class="m-doc-include m-code m-inverted m-text-right"><span class="cp">#include</span> <a class="cpf" href="timed__event_8hpp.html">&lt;co/timed_event.hpp&gt;</a></div>
         </h1>
-        <p><a href="classco_1_1timed__event.html" class="m-doc">timed_<wbr />event</a> is simple synchronisation primitive for notification between two <a href="classco_1_1thread.html" class="m-doc">co::<wbr />thread</a>.</p>
+        <p>is a interruptable synchronisation primitive for one time notification</p>
         <div class="m-block m-default">
           <h3>Contents</h3>
           <ul>
@@ -64,27 +64,98 @@
             </li>
           </ul>
         </div>
-<p>@describe <a href="classco_1_1event.html#a2d7810d25c098644e86fe9f728e746b4" class="m-doc">event::<wbr />notify()</a> is used to show that event has happened. <a href="classco_1_1event.html#ae109ad6eb77f1cb0fa594aab795046c7" class="m-doc">event::<wbr />wait()</a> family of methods are used to wait the event happened. After notification all <a href="classco_1_1event.html#ae109ad6eb77f1cb0fa594aab795046c7" class="m-doc">event::<wbr />wait()</a> will return immediately</p>
+<p>Example:</p><pre class="m-code"><span class="n">co</span><span class="o">::</span><span class="n">timed_event</span> <span class="n">e</span><span class="p">;</span>
+<span class="n">co</span><span class="o">::</span><span class="kr">thread</span><span class="p">([</span><span class="o">&amp;</span><span class="n">e</span><span class="p">]()</span> <span class="o">-&gt;</span> <span class="n">co</span><span class="o">::</span><span class="n">func</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span>
+<span class="p">{</span>
+    <span class="n">e</span><span class="p">.</span><span class="n">notify</span><span class="p">();</span>
+<span class="p">}).</span><span class="n">detach</span><span class="p">();</span>
+<span class="k">auto</span> <span class="n">res</span> <span class="o">=</span> <span class="n">co_await</span> <span class="n">e</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">until</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">,</span> <span class="n">co</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">stop_token</span><span class="p">()));</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="n">co</span><span class="o">::</span><span class="n">cancel</span><span class="p">)</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;cancelled by stop token</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="n">co</span><span class="o">::</span><span class="n">timeout</span><span class="p">)</span>
+     <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;timeout</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="k">else</span>
+<span class="p">{</span>
+    <span class="n">assert</span><span class="p">(</span><span class="n">res</span><span class="p">.</span><span class="n">is_ok</span><span class="p">());</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;successfully notified</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="p">}</span></pre>
         <section id="pub-methods">
           <h2><a href="#pub-methods">Public functions</a></h2>
           <dl class="m-doc">
-            <dt id="a1c492db2bfb68d3f23868f6044f963c1">
-              <span class="m-doc-wrap-bumper">auto <a href="#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc-self">notify</a>(</span><span class="m-doc-wrap">) -&gt; bool <span class="m-label m-flat m-success">noexcept</span></span>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc">notify</a>(</span><span class="m-doc-wrap">) -&gt; bool <span class="m-label m-flat m-success">noexcept</span></span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="a3192454c3c84aee7961e7c97150c0183">
-              <span class="m-doc-wrap-bumper">auto <a href="#a3192454c3c84aee7961e7c97150c0183" class="m-doc-self">wait</a>(</span><span class="m-doc-wrap">) -&gt; <a href="classco_1_1impl_1_1event__awaiter.html" class="m-doc">impl::<wbr />event_awaiter</a>&lt;<a href="classco_1_1timed__event.html" class="m-doc">timed_<wbr />event</a>&gt;</span>
+            <dd>notify the awaited side that the event is ready.</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#a3192454c3c84aee7961e7c97150c0183" class="m-doc">wait</a>(</span><span class="m-doc-wrap">) -&gt; <a href="classco_1_1impl_1_1event__awaiter.html" class="m-doc">impl::<wbr />event_awaiter</a>&lt;<a href="classco_1_1timed__event.html" class="m-doc">timed_<wbr />event</a>&gt;</span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="a000ba012ceb84a08662e6fe4930e0720">
-              <span class="m-doc-wrap-bumper">auto <a href="#a000ba012ceb84a08662e6fe4930e0720" class="m-doc-self">wait</a>(</span><span class="m-doc-wrap">const <a href="classco_1_1until.html" class="m-doc">co::<wbr />until</a>&amp; until) -&gt; <a href="classco_1_1impl_1_1timed__event__awaiter.html" class="m-doc">impl::<wbr />timed_event_awaiter</a></span>
+            <dd>will suspend the <a href="classco_1_1thread.html" class="m-doc">co::<wbr />thread</a> until the notification will be received with <a href="classco_1_1timed__event.html#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc">notify()</a> method</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#a000ba012ceb84a08662e6fe4930e0720" class="m-doc">wait</a>(</span><span class="m-doc-wrap">const <a href="classco_1_1until.html" class="m-doc">co::<wbr />until</a>&amp; until) -&gt; <a href="classco_1_1impl_1_1timed__event__awaiter.html" class="m-doc">impl::<wbr />timed_event_awaiter</a></span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="a40dba32d4d21f44013bd4ff96e4e4d53">
-              <span class="m-doc-wrap-bumper">auto <a href="#a40dba32d4d21f44013bd4ff96e4e4d53" class="m-doc-self">is_notified</a>(</span><span class="m-doc-wrap">) const -&gt; bool</span>
+            <dd>will suspend the <a href="classco_1_1thread.html" class="m-doc">co::<wbr />thread</a> until the notification will be received with <a href="classco_1_1timed__event.html#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc">notify()</a> method or interruption is happened according to the until object</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#a40dba32d4d21f44013bd4ff96e4e4d53" class="m-doc">is_notified</a>(</span><span class="m-doc-wrap">) const -&gt; bool</span>
             </dt>
-            <dd><span></span></dd>
+            <dd>check whether <a href="classco_1_1timed__event.html#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc">notify()</a> was successfully called</dd>
           </dl>
+        </section>
+        <section>
+          <h2>Function documentation</h2>
+          <section class="m-doc-details" id="a1c492db2bfb68d3f23868f6044f963c1"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">bool co::<wbr />timed_event::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc-self">notify</a>(</span><span class="m-doc-wrap">) <span class="m-label m-success">noexcept</span></span></span>
+            </h3>
+            <p>notify the awaited side that the event is ready.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <tfoot>
+                <tr>
+                  <th style="width: 1%">Returns</th>
+                  <td>true only in case when the notification is successful. That means that awaited side will not block on <a href="classco_1_1timed__event.html#a3192454c3c84aee7961e7c97150c0183" class="m-doc">wait()</a> or will be resumed without errors (<a href="classco_1_1result.html#aed1310f2fbc9903cfadf15abf42422f6" class="m-doc">co::<wbr />result::<wbr />is_ok()</a> == true);</td>
+                </tr>
+              </tfoot>
+            </table>
+<p>Notify can be called many times, but only first time has an effect.</p>
+          </div></section>
+          <section class="m-doc-details" id="a3192454c3c84aee7961e7c97150c0183"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper"><a href="classco_1_1impl_1_1event__awaiter.html" class="m-doc">impl::<wbr />event_awaiter</a>&lt;<a href="classco_1_1timed__event.html" class="m-doc">timed_<wbr />event</a>&gt; co::<wbr />timed_event::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a3192454c3c84aee7961e7c97150c0183" class="m-doc-self">wait</a>(</span><span class="m-doc-wrap">)</span></span>
+            </h3>
+            <p>will suspend the <a href="classco_1_1thread.html" class="m-doc">co::<wbr />thread</a> until the notification will be received with <a href="classco_1_1timed__event.html#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc">notify()</a> method</p>
+            <table class="m-table m-fullwidth m-flat">
+              <tfoot>
+                <tr>
+                  <th style="width: 1%">Returns</th>
+                  <td>void</td>
+                </tr>
+              </tfoot>
+            </table>
+<p><a href="classco_1_1timed__event.html#a3192454c3c84aee7961e7c97150c0183" class="m-doc">wait()</a> won&#x27;t block if <a href="classco_1_1timed__event.html#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc">notify()</a> is called in advance. <a href="classco_1_1timed__event.html#a3192454c3c84aee7961e7c97150c0183" class="m-doc">wait()</a> can be called twice, however the second time it will return immediately. The event can be waited only from one thread</p><p>Usage: <code class="m-code"><span class="n">co_await</span> <span class="n">event</span><span class="p">.</span><span class="n">wait</span><span class="p">();</span></code></p>
+          </div></section>
+          <section class="m-doc-details" id="a000ba012ceb84a08662e6fe4930e0720"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper"><a href="classco_1_1impl_1_1timed__event__awaiter.html" class="m-doc">impl::<wbr />timed_event_awaiter</a> co::<wbr />timed_event::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a000ba012ceb84a08662e6fe4930e0720" class="m-doc-self">wait</a>(</span><span class="m-doc-wrap">const <a href="classco_1_1until.html" class="m-doc">co::<wbr />until</a>&amp; until)</span></span>
+            </h3>
+            <p>will suspend the <a href="classco_1_1thread.html" class="m-doc">co::<wbr />thread</a> until the notification will be received with <a href="classco_1_1timed__event.html#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc">notify()</a> method or interruption is happened according to the until object</p>
+            <table class="m-table m-fullwidth m-flat">
+              <tfoot>
+                <tr>
+                  <th style="width: 1%">Returns</th>
+                  <td>void</td>
+                </tr>
+              </tfoot>
+            </table>
+<p><a href="classco_1_1timed__event.html#a3192454c3c84aee7961e7c97150c0183" class="m-doc">wait()</a> won&#x27;t block if <a href="classco_1_1timed__event.html#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc">notify()</a> is called in advance. <a href="classco_1_1timed__event.html#a3192454c3c84aee7961e7c97150c0183" class="m-doc">wait()</a> can be called twice, however the second time it will return immediately. The event can be waited only from one thread</p><p>Usage:</p><pre class="m-code"><span class="n">co</span><span class="o">::</span><span class="n">result</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span> <span class="n">res</span> <span class="o">=</span> <span class="n">co_await</span> <span class="n">event</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">until</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">,</span> <span class="n">co</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">stop_token</span><span class="p">()));</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">res</span><span class="p">.</span><span class="n">is_err</span><span class="p">())</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;interrupted</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span></pre>
+          </div></section>
+          <section class="m-doc-details" id="a40dba32d4d21f44013bd4ff96e4e4d53"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">bool co::<wbr />timed_event::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a40dba32d4d21f44013bd4ff96e4e4d53" class="m-doc-self">is_notified</a>(</span><span class="m-doc-wrap">) const</span></span>
+            </h3>
+            <p>check whether <a href="classco_1_1timed__event.html#a1c492db2bfb68d3f23868f6044f963c1" class="m-doc">notify()</a> was successfully called</p>
+<p><a href="classco_1_1timed__event.html#a40dba32d4d21f44013bd4ff96e4e4d53" class="m-doc">is_<wbr />notified()</a> returns false if the event was interrupted or not notified</p>
+          </div></section>
         </section>
       </div>
     </div>
