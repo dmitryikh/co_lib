@@ -53,5 +53,5 @@ TEST_CASE("channel usage", "[primitives]")
         }());
     auto end = std::chrono::steady_clock::now();
     REQUIRE(end - start > 20ms);
-    REQUIRE(end - start < 45ms);
+    REQUIRE(end - start < 50ms);
 }

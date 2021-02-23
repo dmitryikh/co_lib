@@ -41,30 +41,63 @@ private:
 
 }  // namespace impl
 
-/// @brief simplest not interruptable event between 2 objects
+/// \brief the simplest non interruptable awaitable object
+///
+/// Example:
+/// \code
+///     co::event e;
+///     co::thread([&e]() -> co::func<void>
+///     {
+///         e.notify();
+///     }).detach();
+///     co_await e.wait();
+/// \endcode
 class event
 {
     template <typename T>
     friend class impl::event_awaiter;
 
 public:
+    /// \brief notify the awaited side that the event is ready.
+    ///
+    /// Notify can be called many times, but only first time has an effect.
+    /// \return true only in case when the notification is successful. That means that awaited side will not block on
+    /// wait() or will be resumed
     bool notify() noexcept
     {
         if (_status == impl::event_status::ok)
             return false;
 
         if (_status == impl::event_status::waiting)
+        {
+            assert(_waiting_coro != nullptr);
             impl::get_scheduler().ready(_waiting_coro);
+        }
 
         _status = impl::event_status::ok;
         return true;
     }
 
+    /// \brief will suspend the co::thread until the notification will be received with notify() method
+    ///
+    /// wait() won't block if notify() is called in advance. wait() can be called twice, however the second time it will
+    /// return immediately. The event can be waited only from one thread.
+    ///
+    /// Usage:
+    /// \code
+    ///     co_await event.wait();
+    /// \endcode
+    ///
+    /// \return void
     [[nodiscard("co_await me")]] impl::event_awaiter<event> wait()
     {
+        if (_status == impl::event_status::waiting)
+            throw std::logic_error("event already waiting");
+
         return impl::event_awaiter<event>(*this);
     };
 
+    /// \brief check whether notify() was called
     [[nodiscard]] bool is_notified() const
     {
         return _status == impl::event_status::ok;

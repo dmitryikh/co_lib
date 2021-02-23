@@ -33,17 +33,7 @@ public:
         : timed_event_awaiter(event, until.milliseconds(), until.token())
     {}
 
-    timed_event_awaiter(timed_event& event, int64_t milliseconds, const std::optional<co::stop_token>& tokenOpt)
-        : _thread_storage(get_this_thread_storage_ptr())
-        , _milliseconds(milliseconds)
-        , _event(event)
-    {
-        // we can't run async code outside of co::thread. Then _thread_storage should be
-        // defined in any point of time
-        assert(_thread_storage != nullptr);
-        if (tokenOpt.has_value())
-            _stop_callback.emplace(*tokenOpt, stop_callback_func());
-    }
+    timed_event_awaiter(timed_event& event, int64_t milliseconds, const std::optional<co::stop_token>& tokenOpt);
 
     timed_event_awaiter& operator=(const timed_event_awaiter&) = delete;
     timed_event_awaiter& operator=(timed_event_awaiter&&) = delete;
@@ -66,12 +56,26 @@ private:
 
 }  // namespace impl
 
-/// @brief timed_event is simple synchronisation primitive for notification
-/// between two co::thread.
+/// \brief is a interruptable synchronisation primitive for one time notification
 ///
-/// @describe event::notify() is used to show that event has
-/// happened. event::wait() family of methods are used to wait the event
-/// happened. After notification all event::wait() will return immediately
+/// Example:
+/// \code
+///     co::timed_event e;
+///     co::thread([&e]() -> co::func<void>
+///     {
+///         e.notify();
+///     }).detach();
+///     auto res = co_await e.wait(co::until(100ms, co::this_thread::stop_token()));
+///     if (res == co::cancel)
+///         std::cout << "cancelled by stop token\n";
+///     else if (res == co::timeout)
+///          std::cout << "timeout\n";
+///     else
+///     {
+///         assert(res.is_ok());
+///         std::cout << "successfully notified\n";
+///     }
+/// \endcode
 class timed_event
 {
     template <typename T>
@@ -79,6 +83,11 @@ class timed_event
     friend class impl::timed_event_awaiter;
 
 public:
+    /// \brief notify the awaited side that the event is ready.
+    ///
+    /// Notify can be called many times, but only first time has an effect.
+    /// \return true only in case when the notification is successful. That means that awaited side will not block on
+    /// wait() or will be resumed without errors (co::result::is_ok() == true);
     bool notify() noexcept
     {
         if (_status >= impl::event_status::ok)
@@ -91,11 +100,39 @@ public:
         return true;
     }
 
+    /// \brief will suspend the co::thread until the notification will be received with notify() method
+    ///
+    /// wait() won't block if notify() is called in advance. wait() can be called twice, however the second time it will
+    /// return immediately. The event can be waited only from one thread
+    ///
+    /// Usage:
+    /// \code
+    ///     co_await event.wait();
+    /// \endcode
+    ///
+    /// \return void
     [[nodiscard("co_await me")]] impl::event_awaiter<timed_event> wait()
     {
+        if (_status == impl::event_status::waiting)
+            throw std::logic_error("event already waiting");
+
         return impl::event_awaiter<timed_event>(*this);
     };
 
+    /// \brief will suspend the co::thread until the notification will be received with notify() method or interruption
+    /// is happened according to the until object
+    ///
+    /// wait() won't block if notify() is called in advance. wait() can be called twice, however the second time it will
+    /// return immediately. The event can be waited only from one thread
+    ///
+    /// Usage:
+    /// \code
+    ///     co::result<void> res = co_await event.wait(co::until(100ms, co::this_thread::stop_token()));
+    ///     if (res.is_err())
+    ///         std::cout << "interrupted\n";
+    /// \endcode
+    ///
+    /// \return void
     [[nodiscard("co_await me")]] impl::timed_event_awaiter wait(const co::until& until)
     {
         if (_status == impl::event_status::waiting)
@@ -104,6 +141,9 @@ public:
         return impl::timed_event_awaiter(*this, until);
     };
 
+    /// \brief check whether notify() was successfully called
+    ///
+    /// is_notified() returns false if the event was interrupted or not notified
     bool is_notified() const
     {
         return _status == impl::event_status::ok;
@@ -116,6 +156,27 @@ private:
 
 namespace impl
 {
+
+inline timed_event_awaiter::timed_event_awaiter(timed_event& event,
+                                                int64_t milliseconds,
+                                                const std::optional<co::stop_token>& tokenOpt)
+    : _thread_storage(get_this_thread_storage_ptr())
+    , _milliseconds(milliseconds)
+    , _event(event)
+{
+    // we can't run async code outside of co::thread. Then _thread_storage should be
+    // defined in any point of time
+    assert(_thread_storage != nullptr);
+    assert(_event._waiting_coro == nullptr);
+    if (_event._status != event_status::ok)
+        _event._status = event_status::waiting;
+
+    if (_milliseconds <= 0)
+        _event._status = event_status::timeout;
+
+    if (tokenOpt.has_value())
+        _stop_callback.emplace(*tokenOpt, stop_callback_func());
+}
 
 inline co::stop_callback_func timed_event_awaiter::stop_callback_func()
 {
@@ -152,23 +213,21 @@ inline void timed_event_awaiter::on_timer(void* awaiter_ptr)
 
 inline bool timed_event_awaiter::await_ready() const noexcept
 {
+    assert(_event._status >= event_status::waiting);
+
     if (_event._status > event_status::waiting)
         return true;
-
-    if (_milliseconds <= 0)
-    {
-        _event._status = event_status::timeout;
-        return true;
-    }
 
     return false;
 }
 
 inline void timed_event_awaiter::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
 {
+    assert(_event._status == event_status::waiting);
+    assert(_event._waiting_coro == nullptr);
+
     _thread_storage->_timer.set_timer(_milliseconds, on_timer, static_cast<void*>(this));
     _event._waiting_coro = awaiting_coroutine;
-    _event._status = event_status::waiting;
     set_this_thread_storage_ptr(nullptr);
 }
 
@@ -178,6 +237,7 @@ inline result<void> timed_event_awaiter::await_resume()
 
     set_this_thread_storage_ptr(_thread_storage);
     _thread_storage->_timer.stop();  // do not wait the timer anymore
+    _event._waiting_coro = nullptr;
 
     switch (_event._status)
     {

@@ -62,7 +62,7 @@ public:
 
     static until cancel(co::stop_token token)
     {
-        return until{ token };
+        return until{ std::move(token) };
     }
 
     [[nodiscard]] const std::optional<co::stop_token>& token() const
@@ -77,7 +77,7 @@ public:
 
     [[nodiscard]] int64_t milliseconds() const
     {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(_until - clock::now()).count();
+        return std::chrono::round<std::chrono::milliseconds>(_until - clock::now()).count();
     }
 
 private:
