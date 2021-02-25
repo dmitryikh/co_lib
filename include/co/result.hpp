@@ -66,7 +66,7 @@ public:
     /// \brief returns an error code if the result contains an error. Throws an exception otherwise
     [[nodiscard]] const std::error_code& errc() const
     {
-        return _res.error().errc;
+        return _res.error().errc();
     }
 
     /// \brief returns an error description if the result contains an error. Throws an exception otherwise
