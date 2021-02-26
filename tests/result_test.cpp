@@ -133,3 +133,29 @@ TEST_CASE("result error_desc", "[primitives]")
     REQUIRE(res.err() != co::error_desc(co::cancel, msg));
     REQUIRE(res.err() != co::error_desc(co::cancel));
 }
+
+TEST_CASE("result can be copied", "[primitives]") {
+    {
+        co::result<only_copy> res = co::ok(10);
+        co::result<only_copy> res2 = res;
+    }
+
+    {
+        const char* msg = "my favorite error";
+        co::result<only_copy> res = co::err(co::cancel, msg);
+        co::result<only_copy> res2 = res;
+    }
+}
+
+TEST_CASE("result can be moved", "[primitives]") {
+    {
+        co::result<only_move> res = co::ok(10);
+        co::result<only_move> res2 = std::move(res);
+    }
+
+    {
+        const char* msg = "my favorite error";
+        co::result<only_copy> res = co::err(co::cancel, msg);
+        co::result<only_copy> res2 = std::move(res);
+    }
+}
