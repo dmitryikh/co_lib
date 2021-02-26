@@ -301,6 +301,11 @@
               std::shared_ptr&lt;<a href="structco_1_1impl_1_1thread__storage.html" class="m-doc">thread_<wbr />storage</a>&gt; thread_storage) -&gt; <a href="classco_1_1impl_1_1thread__func.html" class="m-doc">thread_<wbr />func</a></span>
             </dt>
             <dd><span></span></dd>
+            <dt>
+              <div class="m-doc-template">template&lt;typename TargetClock, typename Clock, typename Duration&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a href="#af4eda61fcf9ef26f349205d48be24aa8" class="m-doc">time_point_conv</a>(</span><span class="m-doc-wrap">const std::chrono::time_point&lt;Clock, Duration&gt;&amp; time) -&gt; TargetClock::time_point</span>
+            </dt>
+            <dd>converts time point from Clock to TargetClock</dd>
           </dl>
         </section>
         <section id="var-members">
@@ -475,6 +480,16 @@
               <div class="m-doc-include m-code m-inverted m-text-right"><span class="cp">#include</span> <a class="cpf" href="thread_8hpp.html">&lt;co/thread.hpp&gt;</a></div>
             </h3>
             <p><span></span></p>
+          </div></section>
+          <section class="m-doc-details" id="af4eda61fcf9ef26f349205d48be24aa8"><div>
+            <h3>
+              <div class="m-doc-include m-code m-inverted m-right-m m-text-right"><span class="cp">#include</span> <a class="cpf" href="until_8hpp.html">&lt;co/until.hpp&gt;</a></div>
+              <div class="m-doc-template">
+                template&lt;typename TargetClock, typename Clock, typename Duration&gt;
+              </div>
+              <span class="m-doc-wrap-bumper">TargetClock::time_point co::<wbr />impl::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#af4eda61fcf9ef26f349205d48be24aa8" class="m-doc-self">time_point_conv</a>(</span><span class="m-doc-wrap">const std::chrono::time_point&lt;Clock, Duration&gt;&amp; time)</span></span>
+            </h3>
+            <p>converts time point from Clock to TargetClock</p>
           </div></section>
         </section>
         <section>

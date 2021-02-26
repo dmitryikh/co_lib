@@ -52,14 +52,13 @@
           <span class="m-breadcrumb"><a href="namespaceco.html">co</a>::<wbr/></span>until <span class="m-thin">class</span>
           <div class="m-doc-include m-code m-inverted m-text-right"><span class="cp">#include</span> <a class="cpf" href="until_8hpp.html">&lt;co/until.hpp&gt;</a></div>
         </h1>
-        <p><span></span></p>
+        <p><a href="classco_1_1until.html" class="m-doc">co::<wbr />until</a> is an immutable object representing interruption conditions for awaitable task.</p>
         <div class="m-block m-default">
           <h3>Contents</h3>
           <ul>
             <li>
               Reference
               <ul>
-                <li><a href="#pub-types">Public types</a></li>
                 <li><a href="#pub-static-methods">Public static functions</a></li>
                 <li><a href="#typeless-methods">Constructors, destructors, conversion operators</a></li>
                 <li><a href="#pub-methods">Public functions</a></li>
@@ -67,42 +66,49 @@
             </li>
           </ul>
         </div>
-        <section id="pub-types">
-          <h2><a href="#pub-types">Public types</a></h2>
-          <dl class="m-doc">
-            <dt id="a40cd4e06aeb4fa1eef890d1778cdd880">
-              using <a href="#a40cd4e06aeb4fa1eef890d1778cdd880" class="m-doc-self">clock</a> = std::chrono::steady_clock
-            </dt>
-            <dd><span></span></dd>
-          </dl>
-        </section>
+<p>Two types of interruptions are supported. Can be combined.</p><ul><li>timeout or deadline, represented by std::chrono::time_point and std::chrono::duration respectively</li><li><a href="classco_1_1stop__token.html" class="m-doc">co::<wbr />stop_token</a>, representing external stop signal</li></ul><p>Usage:</p><pre class="m-code"><span class="n">co_await</span> <span class="nf">foo</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">until</span><span class="o">::</span><span class="n">cancel</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">stop_token</span><span class="p">()));</span>
+<span class="n">co_await</span> <span class="nf">foo</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">stop_token</span><span class="p">());</span>  <span class="c1">// implicit short form</span>
+
+<span class="n">co_await</span> <span class="nf">foo</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">until</span><span class="o">::</span><span class="n">timeout</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">));</span>
+<span class="n">co_await</span> <span class="nf">foo</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>  <span class="c1">// implicit short form</span>
+
+<span class="n">co_await</span> <span class="nf">foo</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">until</span><span class="o">::</span><span class="n">deadline</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">()</span> <span class="o">+</span> <span class="mi">100</span><span class="n">ms</span><span class="p">));</span>
+<span class="n">co_await</span> <span class="nf">foo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">()</span> <span class="o">+</span> <span class="mi">100</span><span class="n">ms</span><span class="p">);</span>  <span class="c1">// implicit short form</span>
+
+<span class="c1">// combination of timeout &amp; stop signal</span>
+<span class="n">co_await</span> <span class="nf">foo</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">until</span><span class="o">::</span><span class="n">timeout</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">,</span> <span class="n">co</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">stop_token</span><span class="p">()));</span>
+
+<span class="c1">// shorter version, using until constructors</span>
+<span class="n">co_await</span> <span class="nf">foo</span><span class="p">(</span><span class="n">co</span><span class="o">::</span><span class="n">until</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">,</span> <span class="n">co</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">stop_token</span><span class="p">()));</span></pre>
         <section id="pub-static-methods">
           <h2><a href="#pub-static-methods">Public static functions</a></h2>
           <dl class="m-doc">
-            <dt id="addfd38e991f8d868113cbc4a2cc1235f">
-              <span class="m-doc-wrap-bumper">static auto <a href="#addfd38e991f8d868113cbc4a2cc1235f" class="m-doc-self">deadline</a>(</span><span class="m-doc-wrap">clock::time_point deadline) -&gt; <a href="classco_1_1until.html" class="m-doc">until</a></span>
+            <dt id="a469c0e0949a315aa257a17db3fdaa453">
+              <div class="m-doc-template">template&lt;class Clock, class Duration&gt;</div>
+              <span class="m-doc-wrap-bumper">static auto <a href="#a469c0e0949a315aa257a17db3fdaa453" class="m-doc-self">deadline</a>(</span><span class="m-doc-wrap">std::chrono::time_point&lt;Clock, Duration&gt; deadline) -&gt; <a href="classco_1_1until.html" class="m-doc">until</a></span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="ace75ff04901ed14349050b9733d144d4">
-              <span class="m-doc-wrap-bumper">static auto <a href="#ace75ff04901ed14349050b9733d144d4" class="m-doc-self">deadline</a>(</span><span class="m-doc-wrap">clock::time_point deadline,
+            <dd>static method to explicitly create an object with only deadline set</dd>
+            <dt id="a0554acedde21ae697b108d5ac6290f73">
+              <div class="m-doc-template">template&lt;class Clock, class Duration&gt;</div>
+              <span class="m-doc-wrap-bumper">static auto <a href="#a0554acedde21ae697b108d5ac6290f73" class="m-doc-self">deadline</a>(</span><span class="m-doc-wrap">std::chrono::time_point&lt;Clock, Duration&gt; deadline,
               <a href="classco_1_1stop__token.html" class="m-doc">co::<wbr />stop_token</a> token) -&gt; <a href="classco_1_1until.html" class="m-doc">until</a></span>
             </dt>
-            <dd><span></span></dd>
+            <dd>static method to explicitly create an object with deadline &amp; stop token</dd>
             <dt id="a8091a4fead236dd51db96eb99b517402">
               <div class="m-doc-template">template&lt;class Rep, class Period&gt;</div>
               <span class="m-doc-wrap-bumper">static auto <a href="#a8091a4fead236dd51db96eb99b517402" class="m-doc-self">timeout</a>(</span><span class="m-doc-wrap">std::chrono::duration&lt;Rep, Period&gt; timeout) -&gt; <a href="classco_1_1until.html" class="m-doc">until</a></span>
             </dt>
-            <dd><span></span></dd>
+            <dd>static method to explicitly create an object with only timeout set</dd>
             <dt id="aa2d963783e261af3929557031a203a54">
               <div class="m-doc-template">template&lt;class Rep, class Period&gt;</div>
               <span class="m-doc-wrap-bumper">static auto <a href="#aa2d963783e261af3929557031a203a54" class="m-doc-self">timeout</a>(</span><span class="m-doc-wrap">std::chrono::duration&lt;Rep, Period&gt; timeout,
               <a href="classco_1_1stop__token.html" class="m-doc">co::<wbr />stop_token</a> token) -&gt; <a href="classco_1_1until.html" class="m-doc">until</a></span>
             </dt>
-            <dd><span></span></dd>
+            <dd>static method to explicitly create an object with timeout &amp; stop token</dd>
             <dt id="a4580f98236da532943d610647ffeb1be">
               <span class="m-doc-wrap-bumper">static auto <a href="#a4580f98236da532943d610647ffeb1be" class="m-doc-self">cancel</a>(</span><span class="m-doc-wrap"><a href="classco_1_1stop__token.html" class="m-doc">co::<wbr />stop_token</a> token) -&gt; <a href="classco_1_1until.html" class="m-doc">until</a></span>
             </dt>
-            <dd><span></span></dd>
+            <dd>static method to explicitly create an object with only stop token set</dd>
           </dl>
         </section>
         <section id="typeless-methods">
@@ -111,31 +117,33 @@
             <dt id="a83326a44f0087ea371ceff26c8ce287a">
               <span class="m-doc-wrap-bumper"><a href="#a83326a44f0087ea371ceff26c8ce287a" class="m-doc-self">until</a>(</span><span class="m-doc-wrap">) <span class="m-label m-flat m-info">defaulted</span></span>
             </dt>
-            <dd><span></span></dd>
+            <dd>default constructor, set no timeout, no deadline, and no stop signal</dd>
             <dt id="ac3ccd245ed3a54fc1bf2d40283944385">
               <span class="m-doc-wrap-bumper"><a href="#ac3ccd245ed3a54fc1bf2d40283944385" class="m-doc-self">until</a>(</span><span class="m-doc-wrap"><a href="classco_1_1stop__token.html" class="m-doc">co::<wbr />stop_token</a> token)</span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="a74868ae8d671fb08025907800e5a826d">
+            <dd>set only stop token</dd>
+            <dt id="afba5927eef43ed3ab29941b419baf909">
               <div class="m-doc-template">template&lt;class Rep, class Period&gt;</div>
-              <span class="m-doc-wrap-bumper"><a href="#a74868ae8d671fb08025907800e5a826d" class="m-doc-self">until</a>(</span><span class="m-doc-wrap">std::chrono::duration&lt;Rep, Period&gt; sleep_duration)</span>
+              <span class="m-doc-wrap-bumper"><a href="#afba5927eef43ed3ab29941b419baf909" class="m-doc-self">until</a>(</span><span class="m-doc-wrap">std::chrono::duration&lt;Rep, Period&gt; timeout)</span>
             </dt>
-            <dd><span></span></dd>
+            <dd>set only timeout</dd>
             <dt id="a7b736aacb537d552ec22f5e45b9d06b2">
               <div class="m-doc-template">template&lt;class Rep, class Period&gt;</div>
               <span class="m-doc-wrap-bumper"><a href="#a7b736aacb537d552ec22f5e45b9d06b2" class="m-doc-self">until</a>(</span><span class="m-doc-wrap">std::chrono::duration&lt;Rep, Period&gt; timeout,
               <a href="classco_1_1stop__token.html" class="m-doc">co::<wbr />stop_token</a> token)</span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="aa8e9527124819de992149c0df51a169e">
-              <span class="m-doc-wrap-bumper"><a href="#aa8e9527124819de992149c0df51a169e" class="m-doc-self">until</a>(</span><span class="m-doc-wrap">clock::time_point deadline)</span>
+            <dd>set timeout &amp; stop token</dd>
+            <dt id="ad6e4393a60e52cc6fea5a1c566f2776a">
+              <div class="m-doc-template">template&lt;class Clock, class Duration&gt;</div>
+              <span class="m-doc-wrap-bumper"><a href="#ad6e4393a60e52cc6fea5a1c566f2776a" class="m-doc-self">until</a>(</span><span class="m-doc-wrap">std::chrono::time_point&lt;Clock, Duration&gt; deadline)</span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="a0d901b56762ff1e4a91d3f6ca5519564">
-              <span class="m-doc-wrap-bumper"><a href="#a0d901b56762ff1e4a91d3f6ca5519564" class="m-doc-self">until</a>(</span><span class="m-doc-wrap">clock::time_point deadline,
+            <dd>set deadline</dd>
+            <dt id="a9934b2c3f041628d087f497f475c0bc5">
+              <div class="m-doc-template">template&lt;class Clock, class Duration&gt;</div>
+              <span class="m-doc-wrap-bumper"><a href="#a9934b2c3f041628d087f497f475c0bc5" class="m-doc-self">until</a>(</span><span class="m-doc-wrap">std::chrono::time_point&lt;Clock, Duration&gt; deadline,
               <a href="classco_1_1stop__token.html" class="m-doc">co::<wbr />stop_token</a> token)</span>
             </dt>
-            <dd><span></span></dd>
+            <dd>set deadline &amp; stop token</dd>
           </dl>
         </section>
         <section id="pub-methods">
@@ -144,16 +152,26 @@
             <dt id="ad96896de4f3ca996cb464f72f50503e4">
               <span class="m-doc-wrap-bumper">auto <a href="#ad96896de4f3ca996cb464f72f50503e4" class="m-doc-self">token</a>(</span><span class="m-doc-wrap">) const -&gt; const std::optional&lt;<a href="classco_1_1stop__token.html" class="m-doc">co::<wbr />stop_token</a>&gt;&amp;</span>
             </dt>
-            <dd><span></span></dd>
+            <dd>get the token, std::nullopt otherwise</dd>
             <dt id="a5da6bf0df28e70ead93935098e276217">
               <span class="m-doc-wrap-bumper">auto <a href="#a5da6bf0df28e70ead93935098e276217" class="m-doc-self">token</a>(</span><span class="m-doc-wrap">) -&gt; std::optional&lt;<a href="classco_1_1stop__token.html" class="m-doc">co::<wbr />stop_token</a>&gt;&amp;</span>
             </dt>
-            <dd><span></span></dd>
-            <dt id="afa14d997b6743e6e7afa97a9dd000693">
-              <span class="m-doc-wrap-bumper">auto <a href="#afa14d997b6743e6e7afa97a9dd000693" class="m-doc-self">milliseconds</a>(</span><span class="m-doc-wrap">) const -&gt; int64_t</span>
+            <dd>get the token, std::nullopt otherwise</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#a31c954fe993b7470bd04c5ed9f2637ee" class="m-doc">milliseconds</a>(</span><span class="m-doc-wrap">) const -&gt; std::optional&lt;int64_t&gt;</span>
             </dt>
-            <dd><span></span></dd>
+            <dd>returns number of milliseconds until cancellation, if timeout or deadline are set.</dd>
           </dl>
+        </section>
+        <section>
+          <h2>Function documentation</h2>
+          <section class="m-doc-details" id="a31c954fe993b7470bd04c5ed9f2637ee"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">std::optional&lt;int64_t&gt; co::<wbr />until::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a31c954fe993b7470bd04c5ed9f2637ee" class="m-doc-self">milliseconds</a>(</span><span class="m-doc-wrap">) const</span></span>
+            </h3>
+            <p>returns number of milliseconds until cancellation, if timeout or deadline are set.</p>
+<p>returns std::nullopt otherwise</p>
+          </div></section>
         </section>
       </div>
     </div>
