@@ -10,7 +10,7 @@ namespace co
 template <typename T1, typename T2>
 co::func<std::tuple<T1, T2>> when_any(co::func<T1>&& f1, co::func<T2>&& f2, co::stop_source& stop)
 {
-    co::timed_event finish;
+    co::event finish;
     // need to use optional here because T1,2 could be not default constructable
     std::optional<T1> res1;
     std::optional<T2> res2;
@@ -42,8 +42,8 @@ co::func<std::tuple<T1, T2>> when_any(co::func<T1>&& f1, co::func<T2>&& f2, co::
 template <typename T1, typename T2>
 co::func<std::tuple<T1, T2>> when_all(co::func<T1>&& f1, co::func<T2>&& f2, const co::stop_token& token)
 {
-    co::timed_event finish1;
-    co::timed_event finish2;
+    co::event finish1;
+    co::event finish2;
     std::tuple<T1, T2> res;
     auto l1 = [&res, &finish1](co::func<T1>&& f1) -> co::func<void>
     {

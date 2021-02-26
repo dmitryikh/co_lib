@@ -1,7 +1,7 @@
 #pragma once
 
+#include <co/event.hpp>
 #include <co/impl/intrusive_list.hpp>
-#include <co/timed_event.hpp>
 
 namespace co::impl
 {
@@ -21,7 +21,7 @@ public:
     }
 
 private:
-    timed_event _event;
+    event _event;
     intrusive_list_hook hook;
 };
 
