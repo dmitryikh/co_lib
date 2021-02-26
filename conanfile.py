@@ -9,7 +9,7 @@ class CoLibConan(ConanFile):
     description = "experimental asynchronous C++20 framework that feels like std library"
     topics = ("c++20", "coroutines", "asynchronous programming")
     generators = "cmake"
-    exports_sources = "include/*", "CMakeLists.txt", "test/*", "cmake/*"
+    exports_sources = "include/*", "CMakeLists.txt", "tests/*", "cmake/*"
     requires = "libuv/1.40.0", "boost/1.75.0"
     build_requires = "catch2/2.13.4"
     default_options = {
