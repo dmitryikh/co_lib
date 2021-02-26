@@ -33,7 +33,9 @@ public:
         : timed_event_awaiter(event, until.milliseconds(), until.token())
     {}
 
-    timed_event_awaiter(timed_event& event, int64_t milliseconds, const std::optional<co::stop_token>& tokenOpt);
+    timed_event_awaiter(timed_event& event,
+                        std::optional<int64_t> milliseconds,
+                        const std::optional<co::stop_token>& tokenOpt);
 
     timed_event_awaiter& operator=(const timed_event_awaiter&) = delete;
     timed_event_awaiter& operator=(timed_event_awaiter&&) = delete;
@@ -49,8 +51,8 @@ private:
     static void on_timer(void* awaiter_ptr);
 
     thread_storage* _thread_storage = nullptr;  // the thread to which the awaiter belongs
-    const int64_t _milliseconds;
     timed_event& _event;
+    const std::optional<int64_t> _milliseconds_opt;
     std::optional<co::stop_callback> _stop_callback;
 };
 
@@ -158,11 +160,11 @@ namespace impl
 {
 
 inline timed_event_awaiter::timed_event_awaiter(timed_event& event,
-                                                int64_t milliseconds,
-                                                const std::optional<co::stop_token>& tokenOpt)
+                                                std::optional<int64_t> milliseconds_opt,
+                                                const std::optional<co::stop_token>& token_opt)
     : _thread_storage(get_this_thread_storage_ptr())
-    , _milliseconds(milliseconds)
     , _event(event)
+    , _milliseconds_opt(std::move(milliseconds_opt))
 {
     // we can't run async code outside of co::thread. Then _thread_storage should be
     // defined in any point of time
@@ -171,11 +173,13 @@ inline timed_event_awaiter::timed_event_awaiter(timed_event& event,
     if (_event._status != event_status::ok)
         _event._status = event_status::waiting;
 
-    if (_milliseconds <= 0)
+    if (_milliseconds_opt.has_value() && _milliseconds_opt.value() <= 0)
+    {
         _event._status = event_status::timeout;
+    }
 
-    if (tokenOpt.has_value())
-        _stop_callback.emplace(*tokenOpt, stop_callback_func());
+    if (token_opt.has_value())
+        _stop_callback.emplace(*token_opt, stop_callback_func());
 }
 
 inline co::stop_callback_func timed_event_awaiter::stop_callback_func()
@@ -226,7 +230,9 @@ inline void timed_event_awaiter::await_suspend(std::coroutine_handle<> awaiting_
     assert(_event._status == event_status::waiting);
     assert(_event._waiting_coro == nullptr);
 
-    _thread_storage->_timer.set_timer(_milliseconds, on_timer, static_cast<void*>(this));
+    if (_milliseconds_opt.has_value())
+        _thread_storage->_timer.set_timer(_milliseconds_opt.value(), on_timer, static_cast<void*>(this));
+
     _event._waiting_coro = awaiting_coroutine;
     set_this_thread_storage_ptr(nullptr);
 }
@@ -236,7 +242,10 @@ inline result<void> timed_event_awaiter::await_resume()
     assert(_event._status > event_status::waiting);
 
     set_this_thread_storage_ptr(_thread_storage);
-    _thread_storage->_timer.stop();  // do not wait the timer anymore
+
+    if (_milliseconds_opt.has_value())
+        _thread_storage->_timer.stop();  // do not wait the timer anymore
+
     _event._waiting_coro = nullptr;
 
     switch (_event._status)
