@@ -1,6 +1,6 @@
 #pragma once
 
-#include <co/error_code.hpp>
+#include <co/status_code.hpp>
 #include <co/impl/thread_storage.hpp>
 #include <co/result.hpp>
 #include <co/std.hpp>

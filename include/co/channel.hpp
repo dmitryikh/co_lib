@@ -3,33 +3,41 @@
 #include <boost/circular_buffer.hpp>
 #include <co/event.hpp>
 #include <co/impl/waiting_queue.hpp>
+#include <co/status_code.hpp>
 
 namespace co::impl
 {
 
-enum class channel_error_code
+enum class channel_code
 {
     empty = 1,
     full = 2,
     closed = 3
 };
 
-struct channel_error_code_category : std::error_category
+class channel_code_category : public status_category
 {
-    const char* name() const noexcept override
+    constexpr static uint64_t id = 0x853350d6a1dd9bee;
+
+public:
+    channel_code_category()
+        : co::status_category(id)
+    {}
+
+    [[nodiscard]] const char* name() const noexcept override
     {
-        return "co_channel errors";
+        return "co_lib";
     }
 
-    std::string message(int ev) const override
+    [[nodiscard]] const char* message(int ev) const noexcept override
     {
-        switch (static_cast<channel_error_code>(ev))
+        switch (static_cast<channel_code>(ev))
         {
-        case channel_error_code::empty:
+        case channel_code::empty:
             return "empty";
-        case channel_error_code::full:
+        case channel_code::full:
             return "full";
-        case channel_error_code::closed:
+        case channel_code::closed:
             return "closed";
         }
         assert(false);
@@ -37,11 +45,10 @@ struct channel_error_code_category : std::error_category
     }
 };
 
-const channel_error_code_category global_channel_error_code_category{};
-
-inline std::error_code make_error_code(channel_error_code e)
+inline co::status_code make_status_code(channel_code e)
 {
-    return std::error_code{ static_cast<int>(e), global_channel_error_code_category };
+    const static channel_code_category global_channel_code_category;
+    return co::status_code{ e, &global_channel_code_category };
 }
 
 template <typename T>
@@ -62,19 +69,12 @@ public:
 
 }  // namespace co::impl
 
-namespace std
-{
-template <>
-struct is_error_code_enum<co::impl::channel_error_code> : true_type
-{};
-}  // namespace std
-
 namespace co
 {
 
-const auto full = make_error_code(impl::channel_error_code::full);
-const auto empty = make_error_code(impl::channel_error_code::empty);
-const auto closed = make_error_code(impl::channel_error_code::closed);
+const auto full = impl::channel_code::full;
+const auto empty = impl::channel_code::empty;
+const auto closed = impl::channel_code::closed;
 
 template <typename T>
 class channel

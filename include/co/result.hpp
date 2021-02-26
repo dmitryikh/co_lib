@@ -2,6 +2,7 @@
 
 #include <boost/outcome.hpp>
 #include <co/exception.hpp>
+#include <co/status_code.hpp>
 
 namespace co
 {
@@ -37,13 +38,13 @@ public:
 
 public:
     /// \brief build an error result from the error description object
-    result(error_desc errc) // NOLINT(google-explicit-constructor)
-        : _res(impl::outcome::failure(errc))
+    result(error_desc status) // NOLINT(google-explicit-constructor)
+        : _res(impl::outcome::failure(status))
     {}
 
     /// \brief build an error result from the error code
-    result(const std::error_code& errc) // NOLINT(google-explicit-constructor)
-        : _res(impl::outcome::failure(errc))
+    result(const co::status_code& status) // NOLINT(google-explicit-constructor)
+        : _res(impl::outcome::failure(status))
     {}
 
     /// \brief build an successful result from void (for T = void)
@@ -64,9 +65,9 @@ public:
     }
 
     /// \brief returns an error code if the result contains an error. Throws an exception otherwise
-    [[nodiscard]] const std::error_code& errc() const
+    [[nodiscard]] const co::status_code& status() const
     {
-        return _res.error().errc();
+        return _res.error().status();
     }
 
     /// \brief returns an error description if the result contains an error. Throws an exception otherwise
@@ -127,30 +128,30 @@ private:
 };
 
 template <typename T>
-bool operator==(const result<T>& r, const std::error_code& errc)
+bool operator==(const result<T>& r, const co::status_code& status)
 {
     if (!r.is_err())
         return false;
 
-    return r.err() == errc;
+    return r.err() == status;
 }
 
 template <typename T>
-bool operator==(const std::error_code& errc, const result<T>& r)
+bool operator==(const co::status_code& status, const result<T>& r)
 {
-    return r == errc;
+    return r == status;
 }
 
 template <typename T>
-bool operator!=(const result<T>& r, const std::error_code& errc)
+bool operator!=(const result<T>& r, const co::status_code& status)
 {
-    return !(r == errc);
+    return !(r == status);
 }
 
 template <typename T>
-bool operator!=(const std::error_code& errc, const result<T>& r)
+bool operator!=(const co::status_code& status, const result<T>& r)
 {
-    return !(r == errc);
+    return !(r == status);
 }
 
 template <typename T>
@@ -158,7 +159,7 @@ std::ostream& operator<<(std::ostream& out, const result<T>& r)
 {
     if (r.is_err())
     {
-        out << "ERR " << r.err().category().name() << "::" << r.err().message() << "(" << r.err().value() << ") "
+        out << "ERR " << r.err().category_name() << "::" << r.err().message() << "(" << r.err().message() << ") "
             << r.what();
     }
     else

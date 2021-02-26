@@ -5,29 +5,36 @@
 namespace co::net::impl
 {
 
-enum class error_code
+enum class net_code
 {
     eof = 1,
     wrong_address = 2,
     other_net = 3
 };
 
-struct error_code_category : std::error_category
+class net_code_category : public status_category
 {
-    const char* name() const noexcept override
+    constexpr static uint64_t id = 0xf86aa57188f959fd;
+
+public:
+    net_code_category()
+        : co::status_category(id)
+    {}
+
+    [[nodiscard]] const char* name() const noexcept override
     {
         return "co_net";
     }
 
-    std::string message(int ev) const override
+    [[nodiscard]] const char* message(int ev) const noexcept override
     {
-        switch (static_cast<error_code>(ev))
+        switch (static_cast<net_code>(ev))
         {
-        case error_code::eof:
+        case net_code::eof:
             return "eof";
-        case error_code::wrong_address:
+        case net_code::wrong_address:
             return "wrong address";
-        case error_code::other_net:
+        case net_code::other_net:
             return "other net";
         }
         assert(false);
@@ -35,27 +42,19 @@ struct error_code_category : std::error_category
     }
 };
 
-const error_code_category global_error_code_category{};
-
-inline std::error_code make_error_code(error_code e)
+inline co::status_code make_status_code(net_code e)
 {
-    return std::error_code{ static_cast<int>(e), global_error_code_category };
+    const static net_code_category global_net_code_category;
+    return co::status_code{ e, &global_net_code_category };
 }
 
 }  // namespace co::net::impl
 
-namespace std
-{
-template <>
-struct is_error_code_enum<co::net::impl::error_code> : true_type
-{};
-}  // namespace std
-
 namespace co::net
 {
 
-const auto eof = make_error_code(impl::error_code::eof);
-const auto wrong_address = make_error_code(impl::error_code::wrong_address);
-const auto other_net = make_error_code(impl::error_code::other_net);
+const auto eof = impl::net_code::eof;
+const auto wrong_address = impl::net_code::wrong_address;
+const auto other_net = impl::net_code::other_net;
 
 }  // namespace co::net

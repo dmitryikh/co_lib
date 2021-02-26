@@ -1,25 +1,28 @@
 #pragma once
 
 #include <exception>
-#include <system_error>
+#include <co/status_code.hpp>
 
 namespace co
 {
 
 class exception;
 
-class error_desc : public std::error_code
+class error_desc : public co::status_code
 {
 public:
-    error_desc() = default;  // boost::outcome::result needs that
+    // TODO: boost::outcome::result needs that
+    error_desc()
+        : co::status_code(co::other)
+    {}
 
-    error_desc(const std::error_code& errc, const char* desc)
-        : std::error_code(errc)
+    error_desc(const co::status_code& status, const char* desc)
+        : co::status_code(status)
         , _desc(desc)
     {}
 
-    error_desc(const std::error_code& errc)
-        : std::error_code(errc)
+    error_desc(const co::status_code& status)
+        : co::status_code(status)
     {}
 
     error_desc(const co::exception& coexc);
@@ -30,20 +33,20 @@ public:
         return _desc;
     }
 
-    [[nodiscard]] const std::error_code& errc() const
+    [[nodiscard]] const co::status_code& status() const
     {
         return *this;
     }
 
 private:
-    const char* _desc = "";  // error descriprion, MUST HAVE static lifetime duration
+    const char* _desc = "";  // error description, MUST HAVE static lifetime duration
 };
 
 class exception : public std::exception
 {
 public:
-    exception(const std::error_code& errc, const char* desc = "")
-        : _edesc(errc, desc)
+    exception(const co::status_code& status, const char* desc = "")
+        : _edesc(status, desc)
     {}
 
     explicit exception(const error_desc& edesc)
@@ -55,9 +58,9 @@ public:
         return _edesc.what();
     }
 
-    [[nodiscard]] const std::error_code& errc() const noexcept
+    [[nodiscard]] const co::status_code& status() const noexcept
     {
-        return _edesc.errc();
+        return _edesc.status();
     }
 
     [[nodiscard]] const error_desc& err() const noexcept
@@ -71,13 +74,13 @@ private:
 
 inline std::ostream& operator<<(std::ostream& out, const co::exception& coexc)
 {
-    out << coexc.errc().category().name() << "::" << coexc.errc().message() << "(" << coexc.errc().value() << ") "
+    out << coexc.status().category_name() << "::" << coexc.status().message() << "(" << coexc.status().message() << ") "
         << coexc.what();
     return out;
 }
 
 inline error_desc::error_desc(const co::exception& coexc)
-    : error_desc(coexc.errc(), coexc.what())
+    : error_desc(coexc.status(), coexc.what())
 {}
 
 }  // namespace co
