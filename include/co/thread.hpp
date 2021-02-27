@@ -5,6 +5,7 @@
 #include <co/func.hpp>
 #include <co/impl/shared_state.hpp>
 #include <co/impl/thread_storage.hpp>
+#include <co/impl/scheduler.hpp>
 #include <co/std.hpp>
 #include <co/impl/timer.hpp>
 
