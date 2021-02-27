@@ -40,46 +40,17 @@ public:
     waiting_queue& operator=(const waiting_queue&) = delete;
     waiting_queue& operator=(waiting_queue&&) = default;
 
-    func<void> wait()
-    {
-        waker w;
-        _wakers_list.push_back(w);
-        co_await w._event.wait();
-        if (w.hook.is_linked())
-            w.hook.unlink();
-    };
+    /// \brief unconditionally waits until been notified
+    func<void> wait();;
 
-    func<result<void>> wait(const co::until& until)
-    {
-        waker w;
-        _wakers_list.push_back(w);
-        auto status = co_await w._event.wait(until);
-        if (w.hook.is_linked())
-            w.hook.unlink();
-        co_return status;
-    };
+    /// \brief waits until been notified or interruption occurs based on until object
+    co::func<co::result<void>> wait(const co::until& until);;
 
-    bool notify_one()
-    {
-        while (!_wakers_list.empty())
-        {
-            waker& w = _wakers_list.front();
-            _wakers_list.pop_front();
-            if (w.wake())
-                return true;
-        }
-        return false;
-    }
+    /// \brief notify on of the waiters. Returns true if the waiter was successfully notified
+    bool notify_one();
 
-    void notify_all()
-    {
-        while (!_wakers_list.empty())
-        {
-            waker& w = _wakers_list.front();
-            _wakers_list.pop_front();
-            w.wake();
-        }
-    }
+    /// \brief notify all of the waiters. All waiting co::threads will be resumed
+    void notify_all();
 
     [[nodiscard]] bool empty() const
     {
