@@ -6,7 +6,7 @@
 #include <co/event.hpp>
 #include <co/impl/uv_handler.hpp>
 #include <co/net/address.hpp>
-#include <co/net/error_code.hpp>
+#include <co/net/status_codes.hpp>
 #include <co/result.hpp>
 #include <co/scheduler.hpp>
 #include <uv.h>

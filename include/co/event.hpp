@@ -1,8 +1,8 @@
 #pragma once
 
-#include <co/status_code.hpp>
 #include <co/impl/thread_storage.hpp>
 #include <co/result.hpp>
+#include <co/status_code.hpp>
 #include <co/std.hpp>
 #include <co/stop_token.hpp>
 #include <co/until.hpp>

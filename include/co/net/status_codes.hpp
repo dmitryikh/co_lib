@@ -42,9 +42,10 @@ public:
     }
 };
 
-inline co::status_code make_status_code(net_code e)
+const net_code_category global_net_code_category{};
+
+inline constexpr co::status_code make_status_code(net_code e)
 {
-    const static net_code_category global_net_code_category;
     return co::status_code{ e, &global_net_code_category };
 }
 
@@ -53,8 +54,8 @@ inline co::status_code make_status_code(net_code e)
 namespace co::net
 {
 
-const auto eof = impl::net_code::eof;
-const auto wrong_address = impl::net_code::wrong_address;
-const auto other_net = impl::net_code::other_net;
+constexpr auto eof = impl::make_status_code(impl::net_code::eof);
+constexpr auto wrong_address = impl::make_status_code(impl::net_code::wrong_address);
+constexpr auto other_net = impl::make_status_code(impl::net_code::other_net);
 
 }  // namespace co::net

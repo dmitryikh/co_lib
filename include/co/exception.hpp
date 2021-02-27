@@ -1,7 +1,7 @@
 #pragma once
 
 #include <exception>
-#include <co/status_code.hpp>
+#include <co/status_codes.hpp>
 
 namespace co
 {

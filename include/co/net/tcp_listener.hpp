@@ -7,7 +7,7 @@
 #include <co/condition_variable.hpp>
 #include <uv.h>
 
-#include <co/net/error_code.hpp>
+#include <co/net/status_codes.hpp>
 #include <co/net/tcp_stream.hpp>
 
 namespace co::net

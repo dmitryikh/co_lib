@@ -45,9 +45,10 @@ public:
     }
 };
 
-inline co::status_code make_status_code(channel_code e)
+const channel_code_category global_channel_code_category{};
+
+inline constexpr co::status_code make_status_code(channel_code e)
 {
-    const static channel_code_category global_channel_code_category;
     return co::status_code{ e, &global_channel_code_category };
 }
 
@@ -72,9 +73,9 @@ public:
 namespace co
 {
 
-const auto full = impl::channel_code::full;
-const auto empty = impl::channel_code::empty;
-const auto closed = impl::channel_code::closed;
+constexpr auto full = impl::make_status_code(impl::channel_code::full);
+constexpr auto empty = impl::make_status_code(impl::channel_code::empty);
+constexpr auto closed = impl::make_status_code(impl::channel_code::closed);
 
 template <typename T>
 class channel
