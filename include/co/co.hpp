@@ -5,9 +5,9 @@
 #include <co/event.hpp>
 #include <co/func.hpp>
 #include <co/future.hpp>
+#include <co/impl/scheduler.hpp>
 #include <co/mutex.hpp>
 #include <co/result.hpp>
-#include <co/scheduler.hpp>
 #include <co/signal.hpp>
 #include <co/sleep.hpp>
 #include <co/thread.hpp>

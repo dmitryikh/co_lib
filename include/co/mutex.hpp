@@ -1,8 +1,8 @@
 #pragma once
 
 #include <list>
+#include <co/impl/scheduler.hpp>
 #include <co/impl/waiting_queue.hpp>
-#include <co/scheduler.hpp>
 #include <co/std.hpp>
 #include <co/stop_token.hpp>
 #include <co/until.hpp>

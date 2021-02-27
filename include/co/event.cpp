@@ -1,5 +1,5 @@
 #include <co/event.hpp>
-#include <co/scheduler.hpp>
+#include <co/impl/scheduler.hpp>
 
 namespace co
 {

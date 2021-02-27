@@ -45,18 +45,14 @@ private:
 
 class interruptible_event_awaiter
 {
-public:
-    explicit interruptible_event_awaiter(event& event)
-        : interruptible_event_awaiter(event, std::nullopt, std::nullopt)
-    {}
-
-    interruptible_event_awaiter(event& event, const co::until& until)
-        : interruptible_event_awaiter(event, until.milliseconds(), until.token())
-    {}
-
     interruptible_event_awaiter(event& event,
                                 std::optional<int64_t> milliseconds,
                                 const std::optional<co::stop_token>& tokenOpt);
+
+public:
+    interruptible_event_awaiter(event& event, const co::until& until)
+        : interruptible_event_awaiter(event, until.milliseconds(), until.token())
+    {}
 
     interruptible_event_awaiter& operator=(const interruptible_event_awaiter&) = delete;
     interruptible_event_awaiter& operator=(interruptible_event_awaiter&&) = delete;

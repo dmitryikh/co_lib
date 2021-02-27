@@ -4,8 +4,8 @@
 #include <uv.h>
 
 #include <co/exception.hpp>
+#include <co/impl/scheduler.hpp>
 #include <co/impl/uv_handler.hpp>
-#include <co/scheduler.hpp>
 #include <co/stop_token.hpp>
 
 namespace co
