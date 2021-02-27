@@ -16,7 +16,11 @@ conan_cmake_run(CONANFILE conanfile.py
 
 include(cmake/CPM.cmake)
 
-add_library(co_lib include/co/event.cpp include/co/impl/timer.cpp)
+add_library(co_lib
+        include/co/event.cpp
+        include/co/impl/timer.cpp
+        include/co/impl/scheduler.cpp
+)
 target_link_libraries(co_lib PUBLIC ${CONAN_LIBS})
 target_link_directories(co_lib PUBLIC ${CONAN_LIB_DIRS})
 target_include_directories(co_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${CONAN_INCLUDE_DIRS})
