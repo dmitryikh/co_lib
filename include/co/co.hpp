@@ -9,5 +9,5 @@
 #include <co/mutex.hpp>
 #include <co/result.hpp>
 #include <co/signal.hpp>
-#include <co/sleep.hpp>
+#include <co/this_thread.hpp>
 #include <co/thread.hpp>

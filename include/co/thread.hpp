@@ -1,20 +1,20 @@
 #pragma once
 
 #include <iostream>
-#include <co/event.hpp>
 #include <co/func.hpp>
-#include <co/impl/shared_state.hpp>
-#include <co/impl/thread_storage.hpp>
-#include <co/impl/scheduler.hpp>
 #include <co/std.hpp>
+#include <co/until.hpp>
 #include <co/impl/timer.hpp>
 
 namespace co
 {
 
+class event;
+
 namespace impl
 {
 
+class thread_storage;
 class thread_func;
 
 class thread_func_promise : public func_promise_base<void>
@@ -47,34 +47,35 @@ public:
     std::coroutine_handle<promise_type> _coroutine;
 };
 
-inline thread_func thread_func_promise::get_return_object() noexcept
-{
-    using coroutine_handle = std::coroutine_handle<thread_func_promise>;
-    return thread_func{ coroutine_handle::from_promise(*this) };
-}
 
+/// \brief wrap func into a separate co::thread execution context
+/// \param func the work need to be concurrently run
+/// \param finish signal that the current thread is finished
+/// \param thread_storage current co::thread local storage
 inline thread_func create_thread_main_func(func<void> func,
                                            std::shared_ptr<event> finish,
-                                           std::shared_ptr<thread_storage> thread_storage)
-{
-    try
-    {
-        set_this_thread_storage_ptr(thread_storage.get());
-        thread_storage->_timer.init(co::impl::get_scheduler().uv_loop());
-        co_await func;
-    }
-    catch (const std::exception& exc)
-    {
-        // TODO: terminate here
-        std::cerr << "func error: " << exc.what() << "\n";
-    }
-    co_await thread_storage->_timer.close();
-    finish->notify();
-    set_this_thread_storage_ptr(nullptr);
-}
+                                           std::shared_ptr<thread_storage> thread_storage);
 
 }  // namespace impl
 
+/// \brief represents a task, running concurrently in the event loop
+///
+/// can be in two stated: to be joined or detached.
+/// Usage:
+/// \code
+///     auto th = co::thread([]() -> co::func<void>
+///     {
+///         co_await co::this_thread::sleep_for(100ms);
+///     });
+///     co_await th.join();
+/// \endcode
+///
+/// \code
+///     co::thread([]() -> co::func<void>
+///     {
+///         co_await co::this_thread::sleep_for(100ms);
+///     }).detached();
+/// \endcode
 class thread
 {
 public:
@@ -83,14 +84,7 @@ public:
         : thread(co::invoke(std::forward<F>(f)), thread_name)
     {}
 
-    explicit thread(func<void>&& func, const std::string& thread_name = "")
-        : _thread_storage_ptr(impl::create_thread_storage(thread_name, ++id))
-        , _event_ptr(std::make_shared<event>())
-        , _thread_func(impl::create_thread_main_func(std::move(func), _event_ptr, _thread_storage_ptr))
-    {
-        // schedule the thread execution
-        co::impl::get_scheduler().ready(_thread_func._coroutine);
-    }
+    explicit thread(func<void>&& func, const std::string& thread_name = "");
 
     ~thread()
     {
@@ -101,40 +95,43 @@ public:
         }
     }
 
+    /// \brief detach the thread. The thread no more need to be joined before destruction
     void detach()
     {
         _detached = true;
     }
 
-    func<void> join()
-    {
-        co_await _event_ptr->wait();
-    }
+    /// \brief waits until the thread will be finished
+    co::func<void> join();
 
-    func<result<void>> join(co::until until)
-    {
-        co_return co_await _event_ptr->wait(until);
-    }
+    /// \brief waits until the thread will be finished. Can be interrupted by until conditions
+    co::func<co::result<void>> join(co::until until);
 
-    [[nodiscard]] bool is_joined() const
-    {
-        return _event_ptr->is_notified();
-    }
+    /// \brief checks whether the thread is already joined
+    [[nodiscard]] bool is_joined() const;
 
-    [[nodiscard]] stop_source get_stop_source() const
-    {
-        return _thread_storage_ptr->stop;
-    }
+    /// \brief get a stop source object of the current thread
+    [[nodiscard]] co::stop_source get_stop_source() const;
 
-    [[nodiscard]] stop_token get_stop_token() const
-    {
-        return _thread_storage_ptr->stop.get_token();
-    }
+    /// \brief get a stop token object of the current thread
+    /// Example:
+    /// \code
+    ///     auto th = co::thread([]()
+    ///     {
+    ///         co_await co::this_thread::sleep_for(100ms, co::this_thread::stop_token());
+    ///     });
+    ///     co_await co::this_thread::sleep_for(50ms);
+    ///     th.request_stop();
+    ///     co_await th.join();
+    /// \endcode
+    [[nodiscard]] co::stop_token get_stop_token() const;
 
-    void request_stop() const
-    {
-        _thread_storage_ptr->stop.request_stop();
-    }
+    /// \brief set a stop signal for stop source object of the thread
+    /// Equivalent:
+    /// \code
+    ///     thread.get_stop_source().request_stop();
+    /// \endcode
+    void request_stop() const;
 
 private:
     static inline uint64_t id = 0;
@@ -145,29 +142,5 @@ private:
     impl::thread_func _thread_func;
 };
 
-namespace this_thread
-{
-
-inline const std::string& name()
-{
-    return co::impl::this_thread_storage_ref().name;
-}
-
-inline uint64_t id()
-{
-    return co::impl::this_thread_storage_ref().id;
-}
-
-inline stop_token stop_token()
-{
-    return co::impl::this_thread_storage_ref().stop.get_token();
-}
-
-inline bool stop_requested()
-{
-    return co::impl::this_thread_storage_ref().stop.stop_requested();
-}
-
-}  // namespace this_thread
 
 }  // namespace co
