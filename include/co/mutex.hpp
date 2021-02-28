@@ -1,10 +1,7 @@
 #pragma once
 
-#include <list>
-#include <co/impl/scheduler.hpp>
+#include <co/func.hpp>
 #include <co/impl/waiting_queue.hpp>
-#include <co/std.hpp>
-#include <co/stop_token.hpp>
 #include <co/until.hpp>
 
 namespace co
@@ -37,13 +34,7 @@ class mutex
 {
 public:
     /// \brief get the lock, if the lock is already taken lock() will suspend to wait the lock
-    func<void> lock()
-    {
-        if (try_lock())
-            co_return;
-
-        co_await _waiting_queue.wait();
-    }
+    co::func<void> lock();
 
     /// \brief get the lock, if the lock is already taken lock() will suspend to wait the lock. The wait period is
     /// controlled by until parameter.
@@ -62,23 +53,10 @@ public:
     ///     auto res = co_await mtx.lock(100ms, co::this_thread::stop_token());
     ///     if (res.is_err()) std::cout << "timeout or cancelled\n";
     /// \endcode
-    func<result<void>> lock(const co::until& until)
-    {
-        if (try_lock())
-            co_return co::ok();
-
-        co_return co_await _waiting_queue.wait(until);
-    }
+    co::func<co::result<void>> lock(const co::until& until);
 
     /// \brief non blocking version of getting the lock. returns true in case of the lock is obtained
-    bool try_lock()
-    {
-        if (_is_locked)
-            return false;
-
-        _is_locked = true;
-        return true;
-    }
+    bool try_lock();
 
     /// \brief check whether the lock is taken by someone
     [[nodiscard]] bool is_locked() const
@@ -90,18 +68,7 @@ public:
     ///
     /// Trying to return the lock from other co::thread is undefined behaviour. Trying to unlock
     /// twice has no effect in Release build but will produce diagnostic in Debug build
-    void unlock()
-    {
-        // TODO: check that unlock called from the proper coroutine
-        if (!_is_locked)
-        {
-            // TODO: add diagnostic here
-            return;
-        }
-
-        if (!_waiting_queue.notify_one())
-            _is_locked = false;
-    }
+    void unlock();
 
     ~mutex()
     {

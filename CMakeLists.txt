@@ -22,7 +22,8 @@ add_library(co_lib
         include/co/impl/scheduler.cpp
         include/co/impl/waiting_queue.cpp
         include/co/thread.cpp
-        include/co/this_thread.cpp)
+        include/co/this_thread.cpp
+        include/co/mutex.cpp)
 
 target_link_libraries(co_lib PUBLIC ${CONAN_LIBS})
 target_link_directories(co_lib PUBLIC ${CONAN_LIB_DIRS})
