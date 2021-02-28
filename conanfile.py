@@ -10,7 +10,7 @@ class CoLibConan(ConanFile):
     topics = ("c++20", "coroutines", "asynchronous programming")
     generators = "cmake"
     settings = "os", "compiler", "build_type", "arch"
-    exports_sources = "include/*", "CMakeLists.txt", "tests/*", "cmake/*"
+    exports_sources = "src/*", "CMakeLists.txt", "tests/*", "cmake/*"
     requires = "libuv/1.40.0", "boost/1.75.0"
     build_requires = "catch2/2.13.4"
     default_options = {
@@ -18,7 +18,7 @@ class CoLibConan(ConanFile):
     }
 
     def package(self):
-        self.copy("*.hpp", dst="include", src="include")
+        self.copy("*.hpp", dst="include", src="src")
         self.copy("*.lib", dst="lib", keep_path=False)
         self.copy("*.a", dst="lib", keep_path=False)
 
