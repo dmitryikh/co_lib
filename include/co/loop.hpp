@@ -13,7 +13,7 @@ inline void loop()
     co::impl::get_scheduler().run();
 }
 
-/// \brief schedules f as a main co::thread and runs event loop untill all co::threads will be done
+/// \brief schedules f as a main co::thread and runs event loop until all co::threads will be done
 template <FuncLambdaConcept F>
 inline void loop(F&& f)
 {
@@ -21,7 +21,7 @@ inline void loop(F&& f)
     co::impl::get_scheduler().run();
 }
 
-/// \brief schedules func as a main co::thread and runs event loop untill all co::threads will be done
+/// \brief schedules func as a main co::thread and runs event loop until all co::threads will be done
 inline void loop(func<void>&& func)
 {
     co::thread(std::move(func), "main").detach();
