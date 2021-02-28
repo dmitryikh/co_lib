@@ -7,6 +7,6 @@
 #include <co/loop.hpp>
 #include <co/mutex.hpp>
 #include <co/result.hpp>
-#include <co/signal.hpp>
+#include <co/signal_callback.hpp>
 #include <co/this_thread.hpp>
 #include <co/thread.hpp>
