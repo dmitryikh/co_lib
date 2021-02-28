@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>co_lib</title>
+  <title>co/func.hpp file | co_lib</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,400i,600,600i%7CSource+Code+Pro:400,400i,600" />
   <link rel="stylesheet" href="m-dark+documentation.compiled.css" />
   <link rel="icon" href="favicon-dark.png" type="image/png" />
@@ -30,7 +30,7 @@
                 <li><a href="about.html">About</a></li>
               </ol>
             </li>
-            <li><a href="namespaces.html" id="m-navbar-current">Namespaces</a></li>
+            <li><a href="namespaces.html">Namespaces</a></li>
           </ol>
           <ol class="m-col-t-6 m-col-m-none" start="3">
             <li><a href="annotated.html">Classes</a></li>
@@ -48,39 +48,80 @@
   <div class="m-container m-container-inflatable">
     <div class="m-row">
       <div class="m-col-l-10 m-push-l-1">
-        <h1>Namespaces</h1>
-        <ul class="m-doc">
-          <li class="m-doc-collapsible">
-            <a href="#" onclick="return toggle(this)">namespace</a> <a href="namespaceco.html" class="m-doc">co</a> <span class="m-doc"><span></span></span>
-            <ul class="m-doc">
-              <li>namespace <a href="namespaceco_1_1impl.html" class="m-doc">impl</a> <span class="m-doc"><span></span></span></li>
-              <li class="m-doc-collapsible">
-                <a href="#" onclick="return toggle(this)">namespace</a> <a href="namespaceco_1_1net.html" class="m-doc">net</a> <span class="m-doc"><span></span></span>
-                <ul class="m-doc">
-                  <li>namespace <a href="namespaceco_1_1net_1_1impl.html" class="m-doc">impl</a> <span class="m-doc"><span></span></span></li>
-                </ul>
-              </li>
-              <li>namespace <a href="namespaceco_1_1this__thread.html" class="m-doc">this_thread</a> <span class="m-doc"><span></span></span></li>
-            </ul>
-          </li>
-          <li>namespace <a href="namespacestd.html" class="m-doc">std</a> <span class="m-doc"><span></span></span></li>
-        </ul>
-        <script>
-        function toggle(e) {
-            e.parentElement.className = e.parentElement.className == 'm-doc-collapsible' ?
-                'm-doc-expansible' : 'm-doc-collapsible';
-            return false;
-        }
-        /* Collapse all nodes marked as such. Doing it via JS instead of
-           directly in markup so disabling it doesn't harm usability. The list
-           is somehow regenerated on every iteration and shrinks as I change
-           the classes. It's not documented anywhere and I'm not sure if this
-           is the same across browsers, so I am going backwards in that list to
-           be sure. */
-        var collapsed = document.getElementsByClassName("collapsed");
-        for(var i = collapsed.length - 1; i >= 0; --i)
-            collapsed[i].className = 'm-doc-expansible';
-        </script>
+        <h1>
+          <span class="m-breadcrumb"><a href="dir_eed869e8c616fe8a1ce47f4bf8985f9a.html">co</a>/</span>func.hpp <span class="m-thin">file</span>
+        </h1>
+        <p><span></span></p>
+        <div class="m-block m-default">
+          <h3>Contents</h3>
+          <ul>
+            <li>
+              Reference
+              <ul>
+                <li><a href="#namespaces">Namespaces</a></li>
+                <li><a href="#nested-classes">Classes</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <section id="namespaces">
+          <h2><a href="#namespaces">Namespaces</a></h2>
+          <dl class="m-doc">
+            <dt>namespace <a href="namespaceco.html" class="m-doc">co</a></dt>
+            <dd><span></span></dd>
+            <dt>namespace <a href="namespaceco_1_1impl.html" class="m-doc">co::impl</a></dt>
+            <dd><span></span></dd>
+          </dl>
+        </section>
+        <section id="nested-classes">
+          <h2><a href="#nested-classes">Classes</a></h2>
+          <dl class="m-doc">
+            <dt>
+              <div class="m-doc-template">template&lt;typename T&gt;</div>
+              class <a href="classco_1_1func.html" class="m-doc">co::func</a>
+            </dt>
+            <dd><span></span></dd>
+            <dt>
+              class <a href="classco_1_1impl_1_1symmetric__transfer__awaiter.html" class="m-doc">co::impl::symmetric_transfer_awaiter</a>
+            </dt>
+            <dd><span></span></dd>
+            <dt>
+              <div class="m-doc-template">template&lt;typename Promise&gt;</div>
+              class <a href="classco_1_1impl_1_1other__func__awaiter.html" class="m-doc">co::impl::other_func_awaiter</a>
+            </dt>
+            <dd><span></span></dd>
+            <dt>
+              <div class="m-doc-template">template&lt;typename T&gt;</div>
+              class <a href="classco_1_1impl_1_1func__promise__base.html" class="m-doc">co::impl::func_promise_base</a>
+            </dt>
+            <dd><span></span></dd>
+            <dt>
+              <div class="m-doc-template">template&lt;typename T&gt;</div>
+              class <a href="classco_1_1impl_1_1func__promise.html" class="m-doc">co::impl::func_promise</a>
+            </dt>
+            <dd><span></span></dd>
+            <dt>
+              <div class="m-doc-template">template&lt;typename T&gt;</div>
+              class <a href="classco_1_1func.html" class="m-doc">co::func</a>
+            </dt>
+            <dd><span></span></dd>
+            <dt>
+              <div class="m-doc-template">template&lt;&gt;</div>
+              class <a href="classco_1_1impl_1_1func__promise_3_01void_01_4.html" class="m-doc">co::impl::func_promise&lt;void&gt;</a>
+            </dt>
+            <dd><span></span></dd>
+            <dt>
+              <div class="m-doc-template">template&lt;typename T&gt;</div>
+              struct <a href="structco_1_1impl_1_1is__func.html" class="m-doc">co::impl::is_func</a>
+            </dt>
+            <dd><span></span></dd>
+            <dt>
+              <div class="m-doc-template">template&lt;typename T&gt;</div>
+              struct <a href="structco_1_1impl_1_1is__func_3_01func_3_01T_01_4_01_4.html" class="m-doc">co::impl::is_func&lt;func&lt;T&gt;&gt;</a>
+            </dt>
+            <dd><span></span></dd>
+          </dl>
+        </section>
       </div>
     </div>
   </div>

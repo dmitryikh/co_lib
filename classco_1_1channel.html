@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>co_lib</title>
+  <title>co::channel class | co_lib</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,400i,600,600i%7CSource+Code+Pro:400,400i,600" />
   <link rel="stylesheet" href="m-dark+documentation.compiled.css" />
   <link rel="icon" href="favicon-dark.png" type="image/png" />
@@ -30,7 +30,7 @@
                 <li><a href="about.html">About</a></li>
               </ol>
             </li>
-            <li><a href="namespaces.html" id="m-navbar-current">Namespaces</a></li>
+            <li><a href="namespaces.html">Namespaces</a></li>
           </ol>
           <ol class="m-col-t-6 m-col-m-none" start="3">
             <li><a href="annotated.html">Classes</a></li>
@@ -48,39 +48,65 @@
   <div class="m-container m-container-inflatable">
     <div class="m-row">
       <div class="m-col-l-10 m-push-l-1">
-        <h1>Namespaces</h1>
-        <ul class="m-doc">
-          <li class="m-doc-collapsible">
-            <a href="#" onclick="return toggle(this)">namespace</a> <a href="namespaceco.html" class="m-doc">co</a> <span class="m-doc"><span></span></span>
-            <ul class="m-doc">
-              <li>namespace <a href="namespaceco_1_1impl.html" class="m-doc">impl</a> <span class="m-doc"><span></span></span></li>
-              <li class="m-doc-collapsible">
-                <a href="#" onclick="return toggle(this)">namespace</a> <a href="namespaceco_1_1net.html" class="m-doc">net</a> <span class="m-doc"><span></span></span>
-                <ul class="m-doc">
-                  <li>namespace <a href="namespaceco_1_1net_1_1impl.html" class="m-doc">impl</a> <span class="m-doc"><span></span></span></li>
-                </ul>
-              </li>
-              <li>namespace <a href="namespaceco_1_1this__thread.html" class="m-doc">this_thread</a> <span class="m-doc"><span></span></span></li>
-            </ul>
-          </li>
-          <li>namespace <a href="namespacestd.html" class="m-doc">std</a> <span class="m-doc"><span></span></span></li>
-        </ul>
-        <script>
-        function toggle(e) {
-            e.parentElement.className = e.parentElement.className == 'm-doc-collapsible' ?
-                'm-doc-expansible' : 'm-doc-collapsible';
-            return false;
-        }
-        /* Collapse all nodes marked as such. Doing it via JS instead of
-           directly in markup so disabling it doesn't harm usability. The list
-           is somehow regenerated on every iteration and shrinks as I change
-           the classes. It's not documented anywhere and I'm not sure if this
-           is the same across browsers, so I am going backwards in that list to
-           be sure. */
-        var collapsed = document.getElementsByClassName("collapsed");
-        for(var i = collapsed.length - 1; i >= 0; --i)
-            collapsed[i].className = 'm-doc-expansible';
-        </script>
+        <h1>
+          <div class="m-doc-include m-code m-inverted m-right-m m-text-right"><span class="cp">#include</span> <a class="cpf" href="channel_8hpp.html">&lt;co/channel.hpp&gt;</a></div>
+          <div class="m-doc-template">template&lt;typename T&gt;</div>
+          <span class="m-breadcrumb"><a href="namespaceco.html">co</a>::<wbr/></span>channel <span class="m-thin">class</span>
+        </h1>
+        <p><span></span></p>
+        <div class="m-block m-default">
+          <h3>Contents</h3>
+          <ul>
+            <li>
+              Reference
+              <ul>
+                <li><a href="#typeless-methods">Constructors, destructors, conversion operators</a></li>
+                <li><a href="#pub-methods">Public functions</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <section id="typeless-methods">
+          <h2><a href="#typeless-methods">Constructors, destructors, conversion operators</a></h2>
+          <dl class="m-doc">
+            <dt id="a0939856edf2f140eaff07992159a644b">
+              <span class="m-doc-wrap-bumper"><a href="#a0939856edf2f140eaff07992159a644b" class="m-doc-self">channel</a>(</span><span class="m-doc-wrap">size_t capacity) <span class="m-label m-flat m-info">explicit</span> </span>
+            </dt>
+            <dd><span></span></dd>
+          </dl>
+        </section>
+        <section id="pub-methods">
+          <h2><a href="#pub-methods">Public functions</a></h2>
+          <dl class="m-doc">
+            <dt id="a37689be9a31983d44efb7af003083b65">
+              <div class="m-doc-template">template&lt;typename T2&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a href="#a37689be9a31983d44efb7af003083b65" class="m-doc-self">try_push</a>(</span><span class="m-doc-wrap">T2&amp;&amp; t) -&gt; <a href="classco_1_1result.html" class="m-doc">result</a>&lt;void&gt;</span>
+            </dt>
+            <dd><span></span></dd>
+            <dt id="a22eb47847e0b931e10931ced2c0d5b0b">
+              <div class="m-doc-template">template&lt;typename T2&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a href="#a22eb47847e0b931e10931ced2c0d5b0b" class="m-doc-self">push</a>(</span><span class="m-doc-wrap">T2&amp;&amp; t,
+              <a href="classco_1_1until.html" class="m-doc">co::<wbr />until</a> until = {}) -&gt; <a href="classco_1_1func.html" class="m-doc">func</a>&lt;<a href="classco_1_1result.html" class="m-doc">result</a>&lt;void&gt;&gt;</span>
+            </dt>
+            <dd><span></span></dd>
+            <dt id="a5bffd9892d603f62f46327742cbfb290">
+              <span class="m-doc-wrap-bumper">auto <a href="#a5bffd9892d603f62f46327742cbfb290" class="m-doc-self">try_pop</a>(</span><span class="m-doc-wrap">) -&gt; <a href="classco_1_1result.html" class="m-doc">result</a>&lt;T&gt;</span>
+            </dt>
+            <dd><span></span></dd>
+            <dt id="a0507b5e8e5ff93ceb0053838bccc5618">
+              <span class="m-doc-wrap-bumper">auto <a href="#a0507b5e8e5ff93ceb0053838bccc5618" class="m-doc-self">pop</a>(</span><span class="m-doc-wrap"><a href="classco_1_1until.html" class="m-doc">co::<wbr />until</a> until = {}) -&gt; <a href="classco_1_1func.html" class="m-doc">func</a>&lt;<a href="classco_1_1result.html" class="m-doc">result</a>&lt;T&gt;&gt;</span>
+            </dt>
+            <dd><span></span></dd>
+            <dt id="af2f9f30c4f403c97a6c8700d2f67e328">
+              <span class="m-doc-wrap-bumper">void <a href="#af2f9f30c4f403c97a6c8700d2f67e328" class="m-doc-self">close</a>(</span><span class="m-doc-wrap">)</span>
+            </dt>
+            <dd><span></span></dd>
+            <dt id="a5cc56446477e8cdfa3d721925463e764">
+              <span class="m-doc-wrap-bumper">auto <a href="#a5cc56446477e8cdfa3d721925463e764" class="m-doc-self">is_closed</a>(</span><span class="m-doc-wrap">) const -&gt; bool</span>
+            </dt>
+            <dd><span></span></dd>
+          </dl>
+        </section>
       </div>
     </div>
   </div>
