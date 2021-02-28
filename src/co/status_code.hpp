@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <concepts>
+#include <cstdint>
 #include <type_traits>
 
 namespace co
@@ -43,7 +44,7 @@ class status_code
 {
 public:
     template <StatusEnum T>
-    constexpr status_code(T code) // NOLINT(google-explicit-constructor)
+    constexpr status_code(T code)  // NOLINT(google-explicit-constructor)
         : status_code(make_status_code(code))
     {}
 
