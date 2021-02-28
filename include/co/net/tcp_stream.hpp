@@ -3,30 +3,18 @@
 #include <cassert>
 #include <span>
 
+#include <uv.h>
+
 #include <co/event.hpp>
 #include <co/impl/scheduler.hpp>
 #include <co/impl/uv_handler.hpp>
 #include <co/net/address.hpp>
+#include <co/net/impl/uv_tcp_ptr.hpp>
 #include <co/net/status_codes.hpp>
 #include <co/result.hpp>
-#include <uv.h>
 
 namespace co::net
 {
-
-namespace impl
-{
-
-using uv_tcp_ptr = co::impl::uv_handle_ptr<uv_tcp_t>;
-
-uv_tcp_ptr make_and_init_uv_tcp_handle()
-{
-    auto handle = new uv_tcp_t;
-    uv_tcp_init(co::impl::get_scheduler().uv_loop(), handle);
-    return uv_tcp_ptr{ handle };
-}
-
-}  // namespace impl
 
 class tcp_listener;
 
