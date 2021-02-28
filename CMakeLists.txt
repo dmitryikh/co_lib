@@ -29,7 +29,8 @@ add_library(co_lib
         src/co/net/tcp_stream.cpp
         src/co/condition_variable.cpp
         src/co/signal_callback.cpp
-        src/co/exception.cpp)
+        src/co/exception.cpp
+        src/co/net/address.cpp)
 
 target_link_libraries(co_lib PUBLIC ${CONAN_LIBS})
 target_link_directories(co_lib PUBLIC ${CONAN_LIB_DIRS})

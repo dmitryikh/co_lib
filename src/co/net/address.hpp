@@ -1,11 +1,8 @@
 #pragma once
 
-#include <iostream>
-
+#include <iosfwd>
+#include <string>
 #include <uv.h>
-
-#include <co/exception.hpp>
-#include <co/net/status_codes.hpp>
 
 namespace co::net
 {
@@ -21,6 +18,14 @@ constexpr address_family ip6 = address_family::ip6;
 
 class tcp_stream;
 
+/// \brief holds network address information
+///
+/// Usage:
+/// \code
+///     co::net::tcp_stream stream = ...;
+///     std::cout << "local address: " << stream.local_address() << "\n";
+///     std::cout << "peer address: " << stream.peer_address() << "\n";
+/// \endcode
 class address
 {
     friend class tcp_stream;
@@ -32,35 +37,7 @@ private:
         , _family(family)
     {}
 
-    static address from(const sockaddr_storage& addr_storage)
-    {
-        std::array<char, 32> buffer = { '\0' };
-
-        if (addr_storage.ss_family == AF_INET)
-        {
-            sockaddr_in addr = (struct sockaddr_in&)addr_storage;
-            auto res = uv_ip4_name(&addr, buffer.data(), buffer.size());
-            if (res != 0)
-                throw co::exception(other_net, "uv_ip4_name failed");
-
-            auto port = static_cast<uint16_t>(ntohs(addr.sin_port));
-            return { buffer.data(), port, ip4 };
-        }
-        else if (addr_storage.ss_family == AF_INET6)
-        {
-            sockaddr_in6 addr = (struct sockaddr_in6&)addr_storage;
-            auto res = uv_ip6_name(&addr, buffer.data(), buffer.size());
-            if (res != 0)
-                throw co::exception(other_net, "uv_ip6_name failed");
-
-            auto port = static_cast<uint16_t>(ntohs(addr.sin6_port));
-            return { buffer.data(), port, ip6 };
-        }
-        else
-        {
-            throw co::exception(other_net, "unknown socket type");
-        }
-    }
+    static address from(const sockaddr_storage& addr_storage);
 
 public:
     [[nodiscard]] address_family family() const
@@ -84,10 +61,6 @@ private:
     const address_family _family;
 };
 
-inline std::ostream& operator<<(std::ostream& out, const address& address)
-{
-    out << address.ip() << ":" << address.port();
-    return out;
-}
+std::ostream& operator<<(std::ostream& out, const address& address);
 
 }  // namespace co::net
