@@ -72,10 +72,9 @@ TEST_CASE("mutex lock/unlock no contention", "[primitives]")
                 mutex.unlock();
             }
 
-            // TODO: add support of other clocks to co::until
-            // REQUIRE((co_await mutex.lock(co::until(std::chrono::system_clock::now() + 10ms))).is_ok() == true);
-            // REQUIRE(mutex.is_locked() == true);
-            // mutex.unlock();
+            REQUIRE((co_await mutex.lock(co::until(std::chrono::system_clock::now() + 10ms))).is_ok() == true);
+            REQUIRE(mutex.is_locked() == true);
+            mutex.unlock();
 
             auto stop_source = co::stop_source();
             auto token = stop_source.get_token();
@@ -163,10 +162,9 @@ TEST_CASE("mutex lock/unlock with contention", "[primitives]")
                 mutex.unlock();
             }
 
-            // TODO: add support of other clocks to co::until
-            // REQUIRE((co_await mutex.lock(co::until(std::chrono::system_clock::now() + 10ms))).is_ok() == true);
-            // REQUIRE(mutex.is_locked() == true);
-            // mutex.unlock();
+            REQUIRE((co_await mutex.lock(co::until(std::chrono::system_clock::now() + 10ms))).is_ok() == true);
+            REQUIRE(mutex.is_locked() == true);
+            mutex.unlock();
 
             auto stop_source = co::stop_source();
             const auto token = stop_source.get_token();
