@@ -25,7 +25,8 @@ add_library(co_lib
         include/co/this_thread.cpp
         include/co/mutex.cpp
         include/co/net/tcp_listener.cpp
-        include/co/net/impl/uv_tcp_ptr.cpp)
+        include/co/net/impl/uv_tcp_ptr.cpp
+        include/co/net/tcp_stream.cpp)
 
 target_link_libraries(co_lib PUBLIC ${CONAN_LIBS})
 target_link_directories(co_lib PUBLIC ${CONAN_LIB_DIRS})

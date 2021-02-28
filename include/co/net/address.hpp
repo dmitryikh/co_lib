@@ -2,8 +2,10 @@
 
 #include <iostream>
 
-#include <co/net/status_codes.hpp>
 #include <uv.h>
+
+#include <co/exception.hpp>
+#include <co/net/status_codes.hpp>
 
 namespace co::net
 {
