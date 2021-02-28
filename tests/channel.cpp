@@ -1,4 +1,5 @@
 #include <catch2/catch.hpp>
+#include <co/channel.hpp>
 #include <co/co.hpp>
 
 using namespace std::chrono_literals;
@@ -54,4 +55,32 @@ TEST_CASE("channel usage", "[primitives]")
     auto end = std::chrono::steady_clock::now();
     REQUIRE(end - start > 20ms);
     REQUIRE(end - start < 50ms);
+}
+
+TEST_CASE("channel simple usage", "[primitives]")
+{
+    co::loop(
+        []() -> co::func<void>
+        {
+            const size_t capacity = 2;
+            co::channel<int> ch(capacity);
+
+            auto th1 = co::thread(
+                [ch]() mutable -> co::func<void>
+                {
+                    co_await ch.push(1).unwrap();
+                    co_await ch.push(2).unwrap();
+                    co_await ch.push(3).unwrap();
+                    ch.close();
+                },
+                "producer");
+
+            while (true)
+            {
+                auto val = co_await ch.pop();
+                if (val == co::closed)
+                    break;
+            }
+            co_await th1.join();
+        }());
 }

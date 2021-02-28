@@ -119,7 +119,7 @@ TEST_CASE("result comparison", "[primitives]")
     REQUIRE(res.is_ok() == false);
     REQUIRE(res.err() == co::cancel);
     REQUIRE(res == co::cancel);
-    REQUIRE(res.errc() == co::cancel);
+    REQUIRE(res.status() == co::cancel);
 }
 
 TEST_CASE("result error_desc", "[primitives]")

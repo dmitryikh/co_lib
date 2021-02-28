@@ -16,10 +16,25 @@ conan_cmake_run(CONANFILE conanfile.py
 
 include(cmake/CPM.cmake)
 
-add_library(co_lib INTERFACE IMPORTED)
-target_link_libraries(co_lib INTERFACE ${CONAN_LIBS})
-target_link_directories(co_lib INTERFACE ${CONAN_LIB_DIRS})
-target_include_directories(co_lib INTERFACE ${CMAKE_SOURCE_DIR}/include ${CONAN_INCLUDE_DIRS})
+add_library(co_lib
+        src/co/event.cpp
+        src/co/impl/timer.cpp
+        src/co/impl/scheduler.cpp
+        src/co/impl/waiting_queue.cpp
+        src/co/thread.cpp
+        src/co/this_thread.cpp
+        src/co/mutex.cpp
+        src/co/net/tcp_listener.cpp
+        src/co/net/impl/uv_tcp_ptr.cpp
+        src/co/net/tcp_stream.cpp
+        src/co/condition_variable.cpp
+        src/co/signal_callback.cpp
+        src/co/exception.cpp
+        src/co/net/address.cpp)
+
+target_link_libraries(co_lib PUBLIC ${CONAN_LIBS})
+target_link_directories(co_lib PUBLIC ${CONAN_LIB_DIRS})
+target_include_directories(co_lib PUBLIC ${CMAKE_SOURCE_DIR}/src ${CONAN_INCLUDE_DIRS})
 
 enable_testing()
 add_subdirectory(tests)
