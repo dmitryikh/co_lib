@@ -1,6 +1,5 @@
 #pragma once
 
-#include <co/channel.hpp>
 #include <co/condition_variable.hpp>
 #include <co/event.hpp>
 #include <co/func.hpp>

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <boost/circular_buffer.hpp>
-#include <co/event.hpp>
 #include <co/impl/waiting_queue.hpp>
 #include <co/status_code.hpp>
+#include <co/until.hpp>
 
 namespace co::impl
 {
@@ -77,105 +77,68 @@ constexpr auto full = impl::make_status_code(impl::channel_code::full);
 constexpr auto empty = impl::make_status_code(impl::channel_code::empty);
 constexpr auto closed = impl::make_status_code(impl::channel_code::closed);
 
+/// \brief buffered channel to pass data of type T between co::threads
+/// \tparam T type of data to be passed
+///
+/// channel owns a count referenced data inside. Thus it's cheap to copy a channel.
+/// Usage:
+/// \code
+///     const size_t capacity = 2;
+///     co::channel<int> ch(capacity);
+///
+///     auto th1 = co::thread(
+///         [ch]() mutable -> co::func<void>
+///         {
+///           co_await ch.push(1).unwrap();
+///           co_await ch.push(2).unwrap();
+///           co_await ch.push(3).unwrap();
+///           ch.close();
+///         },
+///         "producer");
+///
+///     while (true)
+///     {
+///         auto val = co_await ch.pop();
+///         if (val == co::closed)
+///             break;
+///     }
+///     co_await th1.join();
+/// \endcode
 template <typename T>
 class channel
 {
-
 public:
+    /// \brief create a new channel with capacity
     explicit channel(size_t capacity)
         : _state(std::make_shared<impl::channel_shared_state<T>>(capacity))
     {}
 
+    /// \brief pushes a new value to the channel. Returns co::full if the channel is full
+    /// \tparam T2 type
+    /// \param t value of some type that can be convertible to channel's type T
+    /// \return ok, co::full, co::close
     template <typename T2>
-    result<void> try_push(T2&& t)
-    {
-        check_shared_state();
-        if (_state->_closed)
-            return co::err(co::closed);
+    co::result<void> try_push(T2&& t) requires(std::is_constructible_v<T, T2>);
 
-        if (_state->_queue.full())
-            return co::err(co::full);
-
-        _state->_queue.push_back(std::forward<T2>(t));
-        _state->_consumer_waiting_queue.notify_one();
-        return co::ok();
-    }
-
+    /// \brief pushes a new value to the channel. Blocks until the channel has space or is interrupted
+    /// \param t value of some type that can be convertible to channel's type T
+    /// \return ok, co::full, co::close, co::cancel, co::timeout
     template <typename T2>
-    func<result<void>> push(T2&& t, co::until until = {})
-    {
-        check_shared_state();
-        if (_state->_closed)
-            co_return co::err(co::closed);
+    co::func<co::result<void>> push(T2&& t, co::until until = {}) requires(std::is_constructible_v<T, T2>);
 
-        while (_state->_queue.full() && !_state->_closed)
-        {
-            auto res = co_await _state->_producer_waiting_queue.wait(until);
-            if (res.is_err())
-                co_return res.err();
-        }
+    /// \brief pop the front value from the channel or returns co::empty
+    /// \return ok, co::empty, co::close
+    co::result<T> try_pop();
 
-        if (_state->_closed)
-            co_return co::err(co::closed);
+    /// \brief pop the front value from the channel. Blocks until the channel has some values or is interrupted
+    /// \return ok, co::empty, co::close, co::cancel, co::timeout
+    co::func<co::result<T>> pop(co::until until = {});
 
-        assert(!_state->_queue.full());
-        _state->_queue.push_back(std::forward<T2>(t));
-        _state->_consumer_waiting_queue.notify_one();
-        co_return co::ok();
-    }
+    /// \brief closes the channel. Pop operations will return co::closed after drained last elements
+    void close();
 
-    result<T> try_pop()
-    {
-        check_shared_state();
-        if (_state->_closed && _state->_queue.empty())
-            return co::err(co::closed);
-
-        if (_state->_queue.empty())
-            return co::err(co::empty);
-
-        result<T> res = co::ok(std::move(_state->_queue.front()));
-        _state->_queue.pop_front();
-        _state->_producer_waiting_queue.notify_one();
-        return res;
-    }
-
-    func<result<T>> pop(co::until until = {})
-    {
-        check_shared_state();
-        while (_state->_queue.empty() && !_state->_closed)
-        {
-            auto res = co_await _state->_consumer_waiting_queue.wait(until);
-            if (res.is_err())
-            {
-                // need to notify other consumer to wake up and try to get ready items
-                _state->_consumer_waiting_queue.notify_one();
-                co_return res.err();
-            }
-        }
-
-        if (_state->_closed && _state->_queue.empty())
-            co_return co::err(co::closed);
-
-        assert(!_state->_queue.empty());
-        result<T> res = co::ok(std::move(_state->_queue.front()));
-        _state->_queue.pop_front();
-        _state->_producer_waiting_queue.notify_one();
-        co_return res;
-    }
-
-    void close()
-    {
-        check_shared_state();
-        _state->_closed = true;
-        _state->_producer_waiting_queue.notify_all();
-        _state->_consumer_waiting_queue.notify_all();
-    }
-
-    [[nodiscard]] bool is_closed() const
-    {
-        check_shared_state();
-        return _state->_closed;
-    }
+    /// \brief returns true is the channel is closed
+    [[nodiscard]] bool is_closed() const;
 
 private:
     void check_shared_state() const
@@ -187,5 +150,102 @@ private:
 private:
     std::shared_ptr<impl::channel_shared_state<T>> _state;
 };
+
+template <typename T>
+template <typename T2>
+co::result<void> channel<T>::try_push(T2&& t) requires(std::is_constructible_v<T, T2>)
+{
+    check_shared_state();
+    if (_state->_closed)
+        return co::err(co::closed);
+
+    if (_state->_queue.full())
+        return co::err(co::full);
+
+    _state->_queue.push_back(std::forward<T2>(t));
+    _state->_consumer_waiting_queue.notify_one();
+    return co::ok();
+}
+
+template <typename T>
+template <typename T2>
+co::func<co::result<void>> channel<T>::push(T2&& t, co::until until) requires(std::is_constructible_v<T, T2>)
+{
+    check_shared_state();
+    if (_state->_closed)
+        co_return co::err(co::closed);
+
+    while (_state->_queue.full() && !_state->_closed)
+    {
+        auto res = co_await _state->_producer_waiting_queue.wait(until);
+        if (res.is_err())
+            co_return res.err();
+    }
+
+    if (_state->_closed)
+        co_return co::err(co::closed);
+
+    assert(!_state->_queue.full());
+    _state->_queue.push_back(std::forward<T2>(t));
+    _state->_consumer_waiting_queue.notify_one();
+    co_return co::ok();
+}
+
+template <typename T>
+co::result<T> channel<T>::try_pop()
+{
+    check_shared_state();
+    if (_state->_closed && _state->_queue.empty())
+        return co::err(co::closed);
+
+    if (_state->_queue.empty())
+        return co::err(co::empty);
+
+    result<T> res = co::ok(std::move(_state->_queue.front()));
+    _state->_queue.pop_front();
+    _state->_producer_waiting_queue.notify_one();
+    return res;
+}
+
+template <typename T>
+co::func<co::result<T>> channel<T>::pop(co::until until)
+{
+    check_shared_state();
+    while (_state->_queue.empty() && !_state->_closed)
+    {
+        auto res = co_await _state->_consumer_waiting_queue.wait(until);
+        if (res.is_err())
+        {
+            // need to notify other consumer to wake up and try to get ready items
+            _state->_consumer_waiting_queue.notify_one();
+            co_return res.err();
+        }
+    }
+
+    if (_state->_closed && _state->_queue.empty())
+        co_return co::err(co::closed);
+
+    assert(!_state->_queue.empty());
+    result<T> res = co::ok(std::move(_state->_queue.front()));
+    _state->_queue.pop_front();
+    _state->_producer_waiting_queue.notify_one();
+    co_return res;
+}
+
+template <typename T>
+void channel<T>::close()
+{
+    check_shared_state();
+    _state->_closed = true;
+    _state->_producer_waiting_queue.notify_all();
+    _state->_consumer_waiting_queue.notify_all();
+}
+
+template <typename T>
+[[nodiscard]] bool channel<T>::is_closed() const
+{
+    check_shared_state();
+    return _state->_closed;
+}
 
 }  // namespace co
