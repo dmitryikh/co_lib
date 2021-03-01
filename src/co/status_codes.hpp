@@ -10,8 +10,11 @@ enum core_codes
 {
     cancel = 1,
     timeout = 2,
-    broken = 3,
-    other = 4
+    empty = 3,
+    full = 4,
+    closed = 5,
+    broken = 6,
+    other = 7
 };
 
 class core_codes_category : public status_category
@@ -38,6 +41,12 @@ public:
             return "timeout";
         case core_codes::broken:
             return "broken";
+        case core_codes::empty:
+            return "empty";
+        case core_codes::full:
+            return "full";
+        case core_codes::closed:
+            return "closed";
         case core_codes::other:
             return "other";
         }
@@ -61,6 +70,9 @@ namespace co
 constexpr auto cancel = impl::make_status_code(impl::core_codes::cancel);
 constexpr auto timeout = impl::make_status_code(impl::core_codes::timeout);
 constexpr auto broken = impl::make_status_code(impl::core_codes::broken);
+constexpr auto full = impl::make_status_code(impl::core_codes::full);
+constexpr auto empty = impl::make_status_code(impl::core_codes::empty);
+constexpr auto closed = impl::make_status_code(impl::core_codes::closed);
 constexpr auto other = impl::make_status_code(impl::core_codes::other);
 
 }  // namespace co

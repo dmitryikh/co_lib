@@ -2,55 +2,11 @@
 
 #include <boost/circular_buffer.hpp>
 #include <co/impl/waiting_queue.hpp>
-#include <co/status_code.hpp>
+#include <co/status_codes.hpp>
 #include <co/until.hpp>
 
 namespace co::impl
 {
-
-enum class channel_code
-{
-    empty = 1,
-    full = 2,
-    closed = 3
-};
-
-class channel_code_category : public status_category
-{
-    constexpr static uint64_t id = 0x853350d6a1dd9bee;
-
-public:
-    channel_code_category()
-        : co::status_category(id)
-    {}
-
-    [[nodiscard]] const char* name() const noexcept override
-    {
-        return "co_lib";
-    }
-
-    [[nodiscard]] const char* message(int ev) const noexcept override
-    {
-        switch (static_cast<channel_code>(ev))
-        {
-        case channel_code::empty:
-            return "empty";
-        case channel_code::full:
-            return "full";
-        case channel_code::closed:
-            return "closed";
-        }
-        assert(false);
-        return "undefined";
-    }
-};
-
-const channel_code_category global_channel_code_category{};
-
-inline constexpr co::status_code make_status_code(channel_code e)
-{
-    return co::status_code{ e, &global_channel_code_category };
-}
 
 template <typename T>
 struct channel_shared_state
@@ -72,10 +28,6 @@ public:
 
 namespace co
 {
-
-constexpr auto full = impl::make_status_code(impl::channel_code::full);
-constexpr auto empty = impl::make_status_code(impl::channel_code::empty);
-constexpr auto closed = impl::make_status_code(impl::channel_code::closed);
 
 /// \brief buffered channel to pass data of type T between co::threads
 /// \tparam T type of data to be passed
