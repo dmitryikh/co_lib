@@ -1,5 +1,6 @@
 #include <co/event.hpp>
 
+#include <stdexcept>
 #include <co/impl/scheduler.hpp>
 #include <co/impl/thread_storage.hpp>
 

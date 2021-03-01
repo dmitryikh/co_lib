@@ -14,7 +14,7 @@ class event;
 namespace impl
 {
 
-class thread_storage;
+struct thread_storage;
 
 enum class event_status
 {

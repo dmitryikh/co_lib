@@ -7,7 +7,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 project(co_lib LANGUAGES CXX)
 
 # this will help to use conan's libcxx profile
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+endif()
+
+if (WIN32)
+    add_definitions(-DNOMINMAX)
+endif()
 
 include(cmake/conan.cmake)
 conan_cmake_run(CONANFILE conanfile.py

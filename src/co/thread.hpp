@@ -14,7 +14,7 @@ class event;
 namespace impl
 {
 
-class thread_storage;
+struct thread_storage;
 class thread_func;
 
 class thread_func_promise : public func_promise_base<void>

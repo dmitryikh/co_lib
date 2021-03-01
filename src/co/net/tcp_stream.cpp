@@ -1,5 +1,6 @@
 #include <co/net/tcp_stream.hpp>
 
+#include <array>
 #include <co/event.hpp>
 #include <co/impl/scheduler.hpp>
 #include <co/net/status_codes.hpp>

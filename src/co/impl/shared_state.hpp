@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdexcept>
 #include <variant>
 
 namespace co::impl

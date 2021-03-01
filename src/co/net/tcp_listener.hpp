@@ -14,7 +14,7 @@ namespace co::net
 
 namespace impl
 {
-class tcp_listener_shared_state;
+struct tcp_listener_shared_state;
 }
 
 class tcp_stream;
