@@ -1,5 +1,7 @@
 #include <co/event.hpp>
+
 #include <co/impl/scheduler.hpp>
+#include <co/impl/thread_storage.hpp>
 
 namespace co
 {
@@ -75,16 +77,16 @@ co::stop_callback_func interruptible_event_awaiter::stop_callback_func()
 {
     return [this]()
     {
-      if (_event._status > event_status::waiting)
-      {
-          // the waiter of the event is already notified. do nothing
-          return;
-      }
-      _event._status = event_status::cancel;
-      if (_event._waiting_coro)
-      {
-          get_scheduler().ready(_event._waiting_coro);
-      }
+        if (_event._status > event_status::waiting)
+        {
+            // the waiter of the event is already notified. do nothing
+            return;
+        }
+        _event._status = event_status::cancel;
+        if (_event._waiting_coro)
+        {
+            get_scheduler().ready(_event._waiting_coro);
+        }
     };
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <co/event.hpp>
+#include <co/func.hpp>
 #include <co/impl/intrusive_list.hpp>
 
 namespace co::impl
@@ -41,10 +42,12 @@ public:
     waiting_queue& operator=(waiting_queue&&) = default;
 
     /// \brief unconditionally waits until been notified
-    func<void> wait();;
+    co::func<void> wait();
+    ;
 
     /// \brief waits until been notified or interruption occurs based on until object
-    co::func<co::result<void>> wait(const co::until& until);;
+    co::func<co::result<void>> wait(const co::until& until);
+    ;
 
     /// \brief notify on of the waiters. Returns true if the waiter was successfully notified
     bool notify_one();

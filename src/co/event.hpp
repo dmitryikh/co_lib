@@ -1,6 +1,5 @@
 #pragma once
 
-#include <co/impl/thread_storage.hpp>
 #include <co/result.hpp>
 #include <co/status_code.hpp>
 #include <co/std.hpp>
@@ -14,6 +13,8 @@ class event;
 
 namespace impl
 {
+
+class thread_storage;
 
 enum class event_status
 {
