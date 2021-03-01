@@ -1,5 +1,7 @@
-#include <co/event.hpp>
 #include <co/impl/timer.hpp>
+
+#include <string>
+#include <co/event.hpp>
 
 namespace co::impl
 {

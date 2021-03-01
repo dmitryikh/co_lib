@@ -1,7 +1,9 @@
+#include <co/thread.hpp>
+
+#include <iostream>
 #include <co/event.hpp>
 #include <co/impl/scheduler.hpp>
 #include <co/impl/thread_storage.hpp>
-#include <co/thread.hpp>
 
 namespace co::impl
 {

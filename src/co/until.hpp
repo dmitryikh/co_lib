@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 #include <variant>
 #include <co/stop_token.hpp>
 
@@ -69,18 +70,18 @@ class until
     using duration_type = clock_type::duration;
     using deadline_variants = std::variant<std::monostate, time_type, duration_type>;
 
-public :
+public:
     /// \brief default constructor, set no timeout, no deadline, and no stop signal
     until() = default;
 
     /// \brief set only stop token
-    until(co::stop_token token) // NOLINT(google-explicit-constructor)
+    until(co::stop_token token)  // NOLINT(google-explicit-constructor)
         : _token(std::move(token))
     {}
 
     /// \brief set only timeout
     template <class Rep, class Period>
-    until(std::chrono::duration<Rep, Period> timeout) // NOLINT(google-explicit-constructor)
+    until(std::chrono::duration<Rep, Period> timeout)  // NOLINT(google-explicit-constructor)
         : _deadline(std::chrono::duration_cast<duration_type>(timeout))
     {}
 
@@ -93,7 +94,7 @@ public :
 
     /// \brief set deadline
     template <class Clock, class Duration>
-    until(std::chrono::time_point<Clock, Duration> deadline) // NOLINT(google-explicit-constructor)
+    until(std::chrono::time_point<Clock, Duration> deadline)  // NOLINT(google-explicit-constructor)
         : _deadline(impl::time_point_conv<clock_type>(deadline))
     {}
 
