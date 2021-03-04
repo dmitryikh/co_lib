@@ -40,7 +40,7 @@ public:
     /// \brief waits until the condition variable is notified or the operation is interrupted
     ///
     /// notification should be called after wait
-    co::func<co::result<void>> wait(co::until until);
+    co::func<co::result<void>> wait(const co::until& until);
 
     /// \brief waits until the condition variable is notified and predicate is satisfied
     ///

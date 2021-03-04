@@ -57,7 +57,7 @@ public:
 
     /// \brief waits for an incoming connection
     /// \return co::net::tcp_stream or interruption status or network error
-    co::func<co::result<tcp_stream>> accept(co::until until = {});
+    co::func<co::result<tcp_stream>> accept(const co::until& until = {});
 
 private:
     static void on_new_connection(uv_stream_t* server, int status);

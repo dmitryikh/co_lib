@@ -84,7 +84,7 @@ void tcp_listener::on_new_connection(uv_stream_t* server, int status)
     state._cv.notify_one();
 }
 
-co::func<co::result<tcp_stream>> tcp_listener::accept(co::until until)
+co::func<co::result<tcp_stream>> tcp_listener::accept(const co::until& until)
 {
     while (_state->_queue.empty() && !_state->_stopping)
     {

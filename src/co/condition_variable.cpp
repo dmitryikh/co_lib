@@ -8,7 +8,7 @@ co::func<void> condition_variable::wait()
     co_await _waiting_queue.wait();
 }
 
-co::func<co::result<void>> condition_variable::wait(co::until until)
+co::func<co::result<void>> condition_variable::wait(const co::until& until)
 {
     return _waiting_queue.wait(until);
 }
