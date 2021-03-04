@@ -144,7 +144,7 @@ TEST_CASE("event never notified", "[core]")
               REQUIRE(res == co::timeout);
               REQUIRE(event.is_notified() == false);
               // TODO: fix rounding problem
-              REQUIRE(std::chrono::steady_clock::now() - start >= 100ms);
+              REQUIRE(std::chrono::steady_clock::now() - start >= 100ms - 1ms);
           }
 
           {
@@ -152,7 +152,7 @@ TEST_CASE("event never notified", "[core]")
               auto res = co_await event.wait(deadline);
               REQUIRE(res == co::timeout);
               REQUIRE(event.is_notified() == false);
-              REQUIRE(std::chrono::steady_clock::now() >= deadline);
+              REQUIRE(std::chrono::steady_clock::now() >= deadline - 1ms);
           }
 
           auto stop_source = co::stop_source();
@@ -190,7 +190,7 @@ TEST_CASE("event never notified", "[core]")
               auto res = co_await event.wait(co::until(100ms, stop_token));
               REQUIRE(res == co::cancel);
               REQUIRE(event.is_notified() == false);
-              REQUIRE(std::chrono::steady_clock::now() - start >= 50ms);
+              REQUIRE(std::chrono::steady_clock::now() - start >= 50ms - 1ms);
               REQUIRE(std::chrono::steady_clock::now() - start < 100ms);
               co_await th.join();
           }
@@ -214,7 +214,7 @@ TEST_CASE("event notified concurrently", "[core]")
 
               auto start = std::chrono::steady_clock::now();
               co_await event.wait();
-              REQUIRE(std::chrono::steady_clock::now() - start >= 50ms);
+              REQUIRE(std::chrono::steady_clock::now() - start >= 50ms - 1ms);
               co_await th.join();
           }
           {
@@ -230,7 +230,7 @@ TEST_CASE("event notified concurrently", "[core]")
               auto start = std::chrono::steady_clock::now();
               auto res = co_await event.wait(25ms);
               REQUIRE(res == co::timeout);
-              REQUIRE(std::chrono::steady_clock::now() - start >= 25ms);
+              REQUIRE(std::chrono::steady_clock::now() - start >= 25ms - 1ms);
               REQUIRE(std::chrono::steady_clock::now() - start < 50ms);
               co_await th.join();
           }
@@ -247,7 +247,7 @@ TEST_CASE("event notified concurrently", "[core]")
               auto start = std::chrono::steady_clock::now();
               auto res = co_await event.wait(100ms);
               REQUIRE(res.is_ok());
-              REQUIRE(std::chrono::steady_clock::now() - start >= 50ms);
+              REQUIRE(std::chrono::steady_clock::now() - start >= 50ms - 1ms);
               co_await th.join();
           }
           {
@@ -271,7 +271,7 @@ TEST_CASE("event notified concurrently", "[core]")
               auto start = std::chrono::steady_clock::now();
               auto res = co_await event.wait(co::until(100ms, stop_token));
               REQUIRE(res == co::cancel);
-              REQUIRE(std::chrono::steady_clock::now() - start >= 25ms);
+              REQUIRE(std::chrono::steady_clock::now() - start >= 25ms - 1ms);
               REQUIRE(std::chrono::steady_clock::now() - start < 50ms);
               co_await th1.join();
               co_await th2.join();
@@ -297,7 +297,7 @@ TEST_CASE("event notified concurrently", "[core]")
               auto start = std::chrono::steady_clock::now();
               auto res = co_await event.wait(co::until(100ms, stop_token));
               REQUIRE(res.is_ok());
-              REQUIRE(std::chrono::steady_clock::now() - start >= 25ms);
+              REQUIRE(std::chrono::steady_clock::now() - start >= 25ms - 1ms);
               REQUIRE(std::chrono::steady_clock::now() - start < 50ms);
               co_await th1.join();
               co_await th2.join();
@@ -323,7 +323,7 @@ TEST_CASE("event notified concurrently", "[core]")
               auto start = std::chrono::steady_clock::now();
               auto res = co_await event.wait(co::until(25ms, stop_token));
               REQUIRE(res == co::timeout);
-              REQUIRE(std::chrono::steady_clock::now() - start >= 25ms);
+              REQUIRE(std::chrono::steady_clock::now() - start >= 25ms - 1ms);
               REQUIRE(std::chrono::steady_clock::now() - start < 50ms);
               co_await th1.join();
               co_await th2.join();
