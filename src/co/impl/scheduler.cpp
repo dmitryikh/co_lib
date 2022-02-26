@@ -19,9 +19,12 @@ void scheduler::run()
         uv_unref((uv_handle_t*)h);
         if (uv_loop_alive(&self._uv_loop) == 0)
         {
-            uv_stop(&self._uv_loop);
+            uv_close((uv_handle_t*)h, /*on_close*/nullptr);
         }
-        uv_ref((uv_handle_t*)h);
+        else
+        {
+            uv_ref((uv_handle_t*)h);
+        }
     };
     uv_prepare_start(&uv_prepare, cb);
     uv_run(&_uv_loop, UV_RUN_DEFAULT);

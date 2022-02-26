@@ -61,7 +61,7 @@ public:
     void notify_all();
 
 private:
-    co::impl::waiting_queue _waiting_queue;
+    impl::waiting_queue _waiting_queue;
 };
 
 template <typename Predicate>

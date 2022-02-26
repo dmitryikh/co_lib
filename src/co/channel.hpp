@@ -74,7 +74,7 @@ public:
 
     /// \brief pushes a new value to the channel. Blocks until the channel has space or is interrupted
     /// \param t value of some type that can be convertible to channel's type T
-    /// \return ok, co::full, co::close, co::cancel, co::timeout
+    /// \return ok, co::close, co::cancel, co::timeout
     template <typename T2>
     co::func<co::result<void>> push(T2&& t, co::until until = {}) requires(std::is_constructible_v<T, T2>);
 
@@ -83,13 +83,13 @@ public:
     co::result<T> try_pop();
 
     /// \brief pop the front value from the channel. Blocks until the channel has some values or is interrupted
-    /// \return ok, co::empty, co::close, co::cancel, co::timeout
+    /// \return ok, co::close, co::cancel, co::timeout
     co::func<co::result<T>> pop(co::until until = {});
 
     /// \brief closes the channel. Pop operations will return co::closed after drained last elements
     void close();
 
-    /// \brief returns true is the channel is closed
+    /// \brief returns true if the channel is closed
     [[nodiscard]] bool is_closed() const;
 
 private:
