@@ -38,7 +38,7 @@ private:
     std::queue<coroutine_handle> _ready;
 };
 
-/// \brief returns global scheduler object
+/// \brief returns thread local scheduler object
 scheduler& get_scheduler();
 
 }  // namespace co::impl

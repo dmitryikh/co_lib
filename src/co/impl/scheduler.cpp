@@ -49,7 +49,7 @@ void scheduler::resume_ready()
 
 scheduler& get_scheduler()
 {
-    static scheduler _scheduler;
+    thread_local scheduler _scheduler;
     return _scheduler;
 }
 

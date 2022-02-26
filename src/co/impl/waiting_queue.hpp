@@ -49,7 +49,7 @@ public:
     co::func<co::result<void>> wait(const co::until& until);
     ;
 
-    /// \brief notify on of the waiters. Returns true if the waiter was successfully notified
+    /// \brief notify one of the waiters. Returns true if the waiter was successfully notified
     bool notify_one();
 
     /// \brief notify all of the waiters. All waiting co::threads will be resumed

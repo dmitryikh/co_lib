@@ -1,4 +1,5 @@
 #include <catch2/catch.hpp>
+#include <thread>
 #include <co/co.hpp>
 
 using namespace std::chrono_literals;
@@ -29,6 +30,60 @@ TEST_CASE("event usage", "[core]")
     for (auto& event : events)
     {
         REQUIRE(event.is_notified());
+    }
+}
+TEST_CASE("ts::event usage", "[core][ts]")
+{
+    std::cout << "Start the test" << std::endl;
+    constexpr int n_events = 1000;
+    constexpr int n_threads = 10;
+    std::vector<co::ts::event> events(n_events);
+    int events_counter = 0;
+    std::vector<std::thread> threads;
+    threads.reserve(n_threads);
+    for (int i = 0; i < n_threads; i++)
+    {
+        auto th = std::thread([&events]()
+            {
+                co::loop(
+                    [&events]() -> co::func<void>
+                    {
+                        for (auto& event : events)
+                        {
+                            co::thread(
+                                [&event]() -> co::func<void>
+                                {
+                                    co_await co::this_thread::sleep_for(2ms);
+                                    event.notify();
+                                });
+                        }
+                        co_return;
+                    }
+                );
+            });
+        threads.push_back(std::move(th));
+    }
+    co::loop(
+        [&events, &events_counter]() -> co::func<void>
+        {
+            for (auto& event : events)
+            {
+                co::thread([&event, &events_counter]() -> co::func<void>
+                {
+                    co_await event.wait();
+                    events_counter++;
+                });
+            }
+            co_return;
+        }); 
+    REQUIRE(events_counter == n_events);
+    for (auto& event : events)
+    {
+        REQUIRE(event.is_notified());
+    }
+    for (auto& thread : threads)
+    {
+        thread.join();
     }
 }
 TEST_CASE("event wait/notify", "[core]")
