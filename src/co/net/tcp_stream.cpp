@@ -122,7 +122,7 @@ co::func<co::result<std::span<char>>> tcp_stream::read(std::span<char> buffer)
     co_return co::ok(buffer.subspan(0, state.read_len));
 }
 
-co::func<co::result<void>> tcp_stream::write(const std::span<char> buffer)
+co::func<co::result<void>> tcp_stream::write(std::span<const char> buffer)
 {
     struct write_state
     {

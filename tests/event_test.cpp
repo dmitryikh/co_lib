@@ -75,7 +75,7 @@ TEST_CASE("ts::event usage", "[core][ts]")
                 });
             }
             co_return;
-        }); 
+        });
     REQUIRE(events_counter == n_events);
     for (auto& event : events)
     {

@@ -60,8 +60,8 @@ co::func<void> client(std::string ip, uint16_t port)
         REQUIRE(tcp_stream.local_address().ip() == "127.0.0.1");
         REQUIRE(tcp_stream.local_address().family() == co::net::ip4);
 
-        std::string send_data = "hello world";
-        co_await tcp_stream.write(send_data).unwrap();
+        const std::string send_data = "hello world";
+        co_await tcp_stream.write({ send_data.data(), send_data.size() }).unwrap();
 
         const size_t buffer_size = 100;
         std::array<char, buffer_size> buffer;

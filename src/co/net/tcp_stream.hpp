@@ -58,7 +58,7 @@ public:
 
     /// \brief writes from the buffer to the tcp stream
     /// \return network error in case of failure
-    co::func<co::result<void>> write(const std::span<char> buffer);
+    co::func<co::result<void>> write(std::span<const char> buffer);
 
     /// \brief perform graceful shutdown of the one side of tcp stream
     /// \return network error in case of failure
