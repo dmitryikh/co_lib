@@ -32,9 +32,55 @@ TEST_CASE("event usage", "[core]")
         REQUIRE(event.is_notified());
     }
 }
+TEST_CASE("ts::event blocking usage", "[core][ts]")
+{
+    constexpr int n_events = 1000;
+    constexpr int n_threads = 10;
+    std::vector<co::ts::event> events(n_events);
+    int events_counter = 0;
+    std::vector<std::thread> threads;
+    threads.reserve(n_threads);
+    for (int i = 0; i < n_threads; i++)
+    {
+        auto th = std::thread([&events]()
+            {
+                co::loop(
+                    [&events]() -> co::func<void>
+                    {
+                        for (auto& event : events)
+                        {
+                            co::thread(
+                                [&event]() -> co::func<void>
+                                {
+                                    co_await co::this_thread::sleep_for(2ms);
+                                    event.notify();
+                                    co_return;
+                                });
+                        }
+                        co_return;
+                    }
+                );
+            });
+        threads.push_back(std::move(th));
+    }
+    for (auto& event : events)
+    {
+        event.blocking_wait();
+        events_counter++;
+    }
+
+    REQUIRE(events_counter == n_events);
+    for (auto& event : events)
+    {
+        REQUIRE(event.is_notified());
+    }
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
+}
 TEST_CASE("ts::event usage", "[core][ts]")
 {
-    std::cout << "Start the test" << std::endl;
     constexpr int n_events = 1000;
     constexpr int n_threads = 10;
     std::vector<co::ts::event> events(n_events);

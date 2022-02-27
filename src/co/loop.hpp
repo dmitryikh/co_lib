@@ -2,7 +2,6 @@
 #include <co/func.hpp>
 #include <co/thread.hpp>
 #include <co/impl/scheduler.hpp>
-#include <co/event.hpp>
 
 namespace co
 {
