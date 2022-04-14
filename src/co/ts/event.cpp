@@ -18,6 +18,7 @@ using co::impl::get_this_thread_storage_ptr;
 
 coroutine_notifier::coroutine_notifier(const std::coroutine_handle<>& coro)
 {
+    // The callback will be called in the current event loop thread.
     const auto cb = [](uv_async_t *handle)
     {
       auto coro = std::coroutine_handle<>::from_address(handle->data);
@@ -80,7 +81,7 @@ bool event_awaiter::await_suspend(std::coroutine_handle<> awaiting_coroutine) no
 
     // _event._status has been already changed from init to ok, let's resume the current coroutine 
     assert(_event._status.load(std::memory_order_acquire) == event_status::ok);
-    _event._notifier = std::monostate{};
+    _event._notifier.emplace<std::monostate>();
     return false;
 }
 
@@ -91,7 +92,7 @@ void event_awaiter::await_resume()
 
     set_this_thread_storage_ptr(_thread_storage);
 
-    _event._notifier = std::monostate{};
+    _event._notifier.emplace<std::monostate>();
 
     switch (status)
     {
@@ -139,7 +140,8 @@ bool event::notify()
         }
         return true;
     }
-
+    // The event has been already notified.
+    assert(expected == event_status::ok);
     return false;
 }
 
@@ -169,9 +171,12 @@ void event::blocking_wait()
     {
         std::get<impl::thread_notifier>(_notifier).wait();
     }
-
+    else
+    {
+        assert(expected == event_status::ok);
+    }
     assert(_status.load(std::memory_order_acquire) == event_status::ok);
-    _notifier = std::monostate{};
+    _notifier.emplace<std::monostate>();
 }
 
 }  // namespace co
