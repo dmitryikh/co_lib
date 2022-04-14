@@ -1,16 +1,17 @@
 #include <catch2/catch.hpp>
 #include <co/channel.hpp>
+#include <co/ts/channel.hpp>
 #include <co/co.hpp>
 
 using namespace std::chrono_literals;
 
-TEST_CASE("channel usage", "[primitives]")
+TEMPLATE_TEST_CASE("channel usage", "[primitives]", co::channel<int>, co::ts::channel<int>)
 {
     auto start = std::chrono::steady_clock::now();
     co::loop(
         []() -> co::func<void>
         {
-            co::channel<int> ch(3);
+            TestType ch(3);
             auto th1 = co::thread(
                 [ch]() mutable -> co::func<void>
                 {

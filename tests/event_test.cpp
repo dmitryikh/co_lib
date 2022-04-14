@@ -132,12 +132,12 @@ TEST_CASE("ts::event usage", "[core][ts]")
         thread.join();
     }
 }
-TEST_CASE("event wait/notify", "[core]")
+TEMPLATE_TEST_CASE("event wait/notify", "[core]", co::event, co::ts::event)
 {
     co::loop(
         []() -> co::func<void>
         {
-            co::event event;
+            TestType event;
             REQUIRE(event.is_notified() == false);
 
             REQUIRE(event.notify() == true);
@@ -159,7 +159,7 @@ TEST_CASE("event wait/notify", "[core]")
     co::loop(
         []() -> co::func<void>
         {
-            co::event event;
+            TestType event;
             bool notified = false;
             auto th = co::thread(
                 [&event, &notified]() -> co::func<void>
