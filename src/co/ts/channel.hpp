@@ -138,7 +138,7 @@ co::result<void> channel<T>::blocking_push(T2&& t) requires(std::is_constructibl
     while (_state->_queue.full() && !_state->_closed)
     {
         // `blocking_wait` will reacquire the lock
-        _state->_producer_waiting_queue.blocking_wait(&lk);
+        _state->_producer_waiting_queue.blocking_wait(lk);
         // TODO: wait can't return an error?
     }
 
@@ -189,9 +189,30 @@ co::func<co::result<T>> channel<T>::pop()
 }
 
 template <typename T>
+co::result<T> channel<T>::blocking_pop()
+{
+    check_shared_state();
+    std::unique_lock lk(_state->_mutex);
+    while (_state->_queue.empty() && !_state->_closed)
+    {
+        _state->_producer_waiting_queue.blocking_wait(lk);
+    }
+
+    if (_state->_closed && _state->_queue.empty())
+        return co::err(co::closed);
+
+    assert(!_state->_queue.empty());
+    result<T> res = co::ok(std::move(_state->_queue.front()));
+    _state->_queue.pop_front();
+    _state->_producer_waiting_queue.notify_one();
+    return res;
+}
+
+template <typename T>
 void channel<T>::close()
 {
     check_shared_state();
+    std::unique_lock lk(_state->_mutex);
     _state->_closed = true;
     _state->_producer_waiting_queue.notify_all();
     _state->_consumer_waiting_queue.notify_all();

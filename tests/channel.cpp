@@ -3,6 +3,8 @@
 #include <co/ts/channel.hpp>
 #include <co/co.hpp>
 
+#include <thread>
+
 using namespace std::chrono_literals;
 
 TEMPLATE_TEST_CASE("channel usage", "[primitives]", co::channel<int>, co::ts::channel<int>)
@@ -85,4 +87,101 @@ TEST_CASE("channel simple usage", "[primitives]")
             }
             co_await th1.join();
         }());
+}
+
+TEST_CASE("ts::channel basic stress test", "[ts][primitives]")
+{
+    // Use std::thread and co::thread for push/pop simultaneously.
+    // Do not use interruptions (timeout, stop_tokens, etc).
+    constexpr int n_elements = 10000;
+    constexpr int n_capacity = 10;
+    constexpr int n_threads = 10;
+    co::ts::channel<std::string> ch(n_capacity);
+    int events_counter = 0;
+    std::vector<std::thread> sender_threads, receiver_threads;
+    sender_threads.reserve(n_threads * 2);
+    receiver_threads.reserve(n_threads * 2);
+    std::atomic<int> reciever_counter = 0;
+
+    // receivers threads for blocking_pop
+    for (int i = 0; i < n_threads; i++)
+    {
+        auto th = std::thread([ch, &reciever_counter]() mutable
+            {
+                while (true)
+                {
+                    co::result<std::string> result = ch.blocking_pop();
+                    if (result == co::closed)
+                        break;
+                    std::string local_copy = result.unwrap();
+                    assert(local_copy.size() > 0);
+                    reciever_counter.fetch_add(1, std::memory_order::release);
+                }
+            });
+        receiver_threads.push_back(std::move(th));
+    }
+    // receivers threads for non-blocking pop
+    for (int i = 0; i < n_threads; i++)
+    {
+        auto th = std::thread([ch, &reciever_counter]() mutable
+            {
+                co::loop(
+                    [&ch, &reciever_counter]() -> co::func<void>
+                    {
+                        while (true)
+                        {
+                            co::result<std::string> result = co_await ch.pop();
+                            if (result == co::closed)
+                                break;
+                            std::string local_copy = result.unwrap();
+                            assert(local_copy.size() > 0);
+                            reciever_counter.fetch_add(1, std::memory_order::release);
+                        }
+                    }
+                );
+            });
+        receiver_threads.push_back(std::move(th));
+    }
+
+    // Senders are in the blocking threads.
+    for (int i = 0; i < n_threads; i++)
+    {
+        auto th = std::thread([ch, n_threads, n_elements]() mutable
+            {
+                for (int i = 0; i < n_elements / (2 * n_threads); i++)
+                {
+                    co::result<void> result = ch.blocking_push(std::to_string(i));
+                    assert(result.is_ok());
+                }
+            });
+        sender_threads.push_back(std::move(th));
+    }
+    // Senders are in the non-blocking threads.
+    for (int i = 0; i < n_threads; i++)
+    {
+        auto th = std::thread([ch, n_threads, n_elements]() mutable
+            {
+                co::loop(
+                    [&ch]() -> co::func<void>
+                    {
+                        for (int i = 0; i < n_elements / (2 * n_threads); i++)
+                        {
+                            co::result<void> result = co_await ch.push(std::to_string(i));
+                            assert(result.is_ok());
+                        }
+                    }
+                );
+            });
+        sender_threads.push_back(std::move(th));
+    }
+    for (auto& thread : sender_threads)
+    {
+        thread.join();
+    }
+    ch.close();
+    for (auto& thread : receiver_threads)
+    {
+        thread.join();
+    }
+    REQUIRE(reciever_counter.load(std::memory_order::acquire) == n_elements);
 }
