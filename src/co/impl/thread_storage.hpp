@@ -77,7 +77,7 @@ inline void current_thread_on_resume(thread_storage* thread)
     assert(thread != nullptr);
     set_this_thread_storage_ptr(thread);
 
-    // co::ts::event has wierd behaviour when it calls `current_thread_on_suspend`,
+    // co::ts_event has wierd behaviour when it calls `current_thread_on_suspend`,
     // but then call current thread_on_resume immideately.
     // That leaves suspended_coroutine to be set and never be used.
     thread->suspended_coroutine = std::coroutine_handle<>{};

@@ -9,7 +9,10 @@
 namespace co
 {
 
-class event;
+template <bool ThreadSafe>
+class event_base;
+
+using event = event_base<false>;
 
 namespace impl
 {

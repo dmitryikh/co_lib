@@ -1,6 +1,6 @@
 #pragma once
 
-#include <co/ts/event.hpp>
+#include <co/event.hpp>
 #include <co/func.hpp>
 #include <co/impl/intrusive_list.hpp>
 #include <mutex>
@@ -24,8 +24,8 @@ public:
     }
 
 private:
-    event _event;
-    ::co::impl::intrusive_list_hook hook;
+    co::ts_event _event;
+    co::impl::intrusive_list_hook hook;
 };
 
 // It's not thread safe on it's own. The wait methods accept unique_lock for

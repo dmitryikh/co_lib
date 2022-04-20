@@ -23,7 +23,6 @@ conan_cmake_run(CONANFILE conanfile.py
 include(cmake/CPM.cmake)
 
 add_library(co_lib
-        src/co/event.cpp
         src/co/impl/timer.cpp
         src/co/impl/async_signal.cpp
         src/co/impl/scheduler.cpp
@@ -39,7 +38,6 @@ add_library(co_lib
         src/co/signal_callback.cpp
         src/co/exception.cpp
         src/co/net/address.cpp
-        src/co/ts/event.cpp
         src/co/ts/impl/waiting_queue.cpp)
 
 target_link_libraries(co_lib PUBLIC ${CONAN_LIBS})

@@ -4,7 +4,7 @@
 
 using namespace std::chrono_literals;
 
-TEMPLATE_TEST_CASE("event usage", "[core]", co::event, co::ts::event)
+TEMPLATE_TEST_CASE("event usage", "[core]", co::event, co::ts_event)
 {
     std::vector<TestType> events(1000);
     co::loop(
@@ -36,7 +36,7 @@ TEST_CASE("ts::event blocking usage", "[core][ts]")
 {
     constexpr int n_events = 1000;
     constexpr int n_threads = 10;
-    std::vector<co::ts::event> events(n_events);
+    std::vector<co::ts_event> events(n_events);
     int events_counter = 0;
     std::vector<std::thread> threads;
     threads.reserve(n_threads);
@@ -83,7 +83,7 @@ TEST_CASE("ts::event usage", "[core][ts]")
 {
     constexpr int n_events = 1000;
     constexpr int n_threads = 10;
-    std::vector<co::ts::event> events(n_events);
+    std::vector<co::ts_event> events(n_events);
     int events_counter = 0;
     std::vector<std::thread> threads;
     threads.reserve(n_threads);
@@ -132,7 +132,7 @@ TEST_CASE("ts::event usage", "[core][ts]")
         thread.join();
     }
 }
-TEMPLATE_TEST_CASE("event wait/notify", "[core][!mayfail][.]", co::event, co::ts::event)
+TEMPLATE_TEST_CASE("event wait/notify", "[core][!mayfail][.]", co::event, co::ts_event)
 {
     co::loop(
         []() -> co::func<void>
@@ -190,7 +190,7 @@ TEMPLATE_TEST_CASE("event wait/notify", "[core][!mayfail][.]", co::event, co::ts
 // TODO: rewrite this test. Event is one-shot sync. primitive.
 // One can't call `wait()` many times on the same event.
 // TODO: Check the other primitives that they don't use the same event multiple times.
-TEMPLATE_TEST_CASE("event notify in advance", "[core][!mayfail][.]", co::event, co::ts::event)
+TEMPLATE_TEST_CASE("event notify in advance", "[core][!mayfail][.]", co::event, co::ts_event)
 {
     co::loop(
         []() -> co::func<void>
@@ -232,7 +232,7 @@ TEMPLATE_TEST_CASE("event notify in advance", "[core][!mayfail][.]", co::event, 
 // TODO: rewrite this test. Event is one-shot sync. primitive.
 // One can't call `wait()` many times on the same event.
 // TODO: Check the other primitives that they don't use the same event multiple times.
-TEMPLATE_TEST_CASE("event never notified", "[core][!mayfail][.]", co::event/*, co::ts::event*/)
+TEMPLATE_TEST_CASE("event never notified", "[core][!mayfail][.]", co::event/*, co::ts_event*/)
 {
     co::loop(
         []() -> co::func<void>
@@ -302,7 +302,7 @@ TEMPLATE_TEST_CASE("event never notified", "[core][!mayfail][.]", co::event/*, c
           }
         });
 }
-TEMPLATE_TEST_CASE("event notified concurrently", "[core]", co::event, co::ts::event)
+TEMPLATE_TEST_CASE("event notified concurrently", "[core]", co::event, co::ts_event)
 {
     co::loop(
         []() -> co::func<void>
@@ -441,7 +441,7 @@ TEST_CASE("ts::event blocking wait", "[core][ts]")
         []() -> co::func<void>
         {
           {
-              co::ts::event event;
+              co::ts_event event;
 
               auto th = std::thread(
                   [&event]()
@@ -456,7 +456,7 @@ TEST_CASE("ts::event blocking wait", "[core][ts]")
               th.join();
           }
           {
-              co::ts::event event;
+              co::ts_event event;
 
               auto th = std::thread(
                   [&event]()
@@ -471,7 +471,7 @@ TEST_CASE("ts::event blocking wait", "[core][ts]")
               th.join();
           }
           {
-              co::ts::event event;
+              co::ts_event event;
 
               auto th = std::thread(
                   [&event]()
@@ -488,7 +488,7 @@ TEST_CASE("ts::event blocking wait", "[core][ts]")
               th.join();
           }
           {
-              co::ts::event event;
+              co::ts_event event;
 
               auto th = std::thread(
                   [&event]()
@@ -505,7 +505,7 @@ TEST_CASE("ts::event blocking wait", "[core][ts]")
               th.join();
           }
           {
-              co::ts::event event;
+              co::ts_event event;
 
               auto th = std::thread(
                   [&event]()

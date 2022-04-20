@@ -10,5 +10,3 @@
 #include <co/signal_callback.hpp>
 #include <co/this_thread.hpp>
 #include <co/thread.hpp>
-
-#include <co/ts/event.hpp>
