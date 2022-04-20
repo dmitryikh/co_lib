@@ -4,9 +4,9 @@
 
 using namespace std::chrono_literals;
 
-TEST_CASE("event usage", "[core]")
+TEMPLATE_TEST_CASE("event usage", "[core]", co::event, co::ts::event)
 {
-    std::vector<co::event> events(1000);
+    std::vector<TestType> events(1000);
     co::loop(
         [&events]() -> co::func<void>
         {
@@ -187,12 +187,15 @@ TEMPLATE_TEST_CASE("event wait/notify", "[core]", co::event, co::ts::event)
         });
 }
 
-TEST_CASE("event notify in advance", "[core]")
+// TODO: rewrite this test. Event is one-shot sync. primitive.
+// One can't call `wait()` many times on the same event.
+// TODO: Check the other primitives that they don't use the same event multiple times.
+TEMPLATE_TEST_CASE("event notify in advance", "[core]", co::event, co::ts::event)
 {
     co::loop(
         []() -> co::func<void>
         {
-          co::event event;
+          TestType event;
           REQUIRE(event.is_notified() == false);
 
           REQUIRE(event.notify() == true);
@@ -226,13 +229,15 @@ TEST_CASE("event notify in advance", "[core]")
           REQUIRE(res.is_ok());
         });
 }
-
-TEST_CASE("event never notified", "[core]")
+// TODO: rewrite this test. Event is one-shot sync. primitive.
+// One can't call `wait()` many times on the same event.
+// TODO: Check the other primitives that they don't use the same event multiple times.
+TEMPLATE_TEST_CASE("event never notified", "[core]", co::event/*, co::ts::event*/)
 {
     co::loop(
         []() -> co::func<void>
         {
-          co::event event;
+          TestType event;
 
           REQUIRE(event.is_notified() == false);
 
@@ -297,14 +302,13 @@ TEST_CASE("event never notified", "[core]")
           }
         });
 }
-
-TEST_CASE("event notified concurrently", "[core]")
+TEMPLATE_TEST_CASE("event notified concurrently", "[core]", co::event, co::ts::event)
 {
     co::loop(
         []() -> co::func<void>
         {
           {
-              co::event event;
+              TestType event;
 
               auto th = co::thread(
                   [&event]() -> co::func<void>
@@ -319,7 +323,7 @@ TEST_CASE("event notified concurrently", "[core]")
               co_await th.join();
           }
           {
-              co::event event;
+              TestType event;
 
               auto th = co::thread(
                   [&event]() -> co::func<void>
@@ -336,7 +340,7 @@ TEST_CASE("event notified concurrently", "[core]")
               co_await th.join();
           }
           {
-              co::event event;
+              TestType event;
 
               auto th = co::thread(
                   [&event]() -> co::func<void>
@@ -352,7 +356,7 @@ TEST_CASE("event notified concurrently", "[core]")
               co_await th.join();
           }
           {
-              co::event event;
+              TestType event;
               auto stop_source = co::stop_source();
               auto stop_token = stop_source.get_token();
 
@@ -378,7 +382,7 @@ TEST_CASE("event notified concurrently", "[core]")
               co_await th2.join();
           }
           {
-              co::event event;
+              TestType event;
               auto stop_source = co::stop_source();
               auto stop_token = stop_source.get_token();
 
@@ -404,7 +408,7 @@ TEST_CASE("event notified concurrently", "[core]")
               co_await th2.join();
           }
           {
-              co::event event;
+              TestType event;
               auto stop_source = co::stop_source();
               auto stop_token = stop_source.get_token();
 
@@ -428,6 +432,93 @@ TEST_CASE("event notified concurrently", "[core]")
               REQUIRE(std::chrono::steady_clock::now() - start < 50ms);
               co_await th1.join();
               co_await th2.join();
+          }
+        });
+}
+TEST_CASE("ts::event blocking wait", "[core][ts]")
+{
+    co::loop(
+        []() -> co::func<void>
+        {
+          {
+              co::ts::event event;
+
+              auto th = std::thread(
+                  [&event]()
+                  {
+                    std::this_thread::sleep_for(50ms);
+                    event.notify();
+                  });
+
+              auto start = std::chrono::steady_clock::now();
+              co_await event.wait();
+              REQUIRE(std::chrono::steady_clock::now() - start >= 50ms - 1ms);
+              th.join();
+          }
+          {
+              co::ts::event event;
+
+              auto th = std::thread(
+                  [&event]()
+                  {
+                        auto start = std::chrono::steady_clock::now();
+                        event.blocking_wait();
+                        REQUIRE(std::chrono::steady_clock::now() - start >= 50ms - 1ms);
+                  });
+
+              co_await co::this_thread::sleep_for(50ms);
+              event.notify();
+              th.join();
+          }
+          {
+              co::ts::event event;
+
+              auto th = std::thread(
+                  [&event]()
+                  {
+                    std::this_thread::sleep_for(50ms);
+                    event.notify();
+                  });
+
+              auto start = std::chrono::steady_clock::now();
+              auto res = co_await event.wait(25ms);
+              REQUIRE(res == co::timeout);
+              REQUIRE(std::chrono::steady_clock::now() - start >= 25ms - 1ms);
+              REQUIRE(std::chrono::steady_clock::now() - start < 50ms);
+              th.join();
+          }
+          {
+              co::ts::event event;
+
+              auto th = std::thread(
+                  [&event]()
+                  {
+                        auto start = std::chrono::steady_clock::now();
+                        auto res = event.blocking_wait(25ms);
+                        REQUIRE(res == co::timeout);
+                        REQUIRE(std::chrono::steady_clock::now() - start >= 25ms - 1ms);
+                        REQUIRE(std::chrono::steady_clock::now() - start < 50ms);
+                  });
+
+              co_await co::this_thread::sleep_for(100ms);
+              event.notify();
+              th.join();
+          }
+          {
+              co::ts::event event;
+
+              auto th = std::thread(
+                  [&event]()
+                  {
+                    std::this_thread::sleep_for(50ms);
+                    event.notify();
+                  });
+
+              auto start = std::chrono::steady_clock::now();
+              auto res = co_await event.wait(100ms);
+              REQUIRE(res.is_ok());
+              REQUIRE(std::chrono::steady_clock::now() - start >= 50ms - 1ms);
+              th.join();
           }
         });
 }

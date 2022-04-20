@@ -101,6 +101,8 @@ class event
     friend class impl::event_awaiter;
     friend class impl::interruptible_event_awaiter;
 
+    // TODO: Event can't be moved because timer use a pointer to this.
+
 public:
     /// \brief notify the awaited side that the event is ready.
     ///
@@ -138,7 +140,6 @@ public:
     ///
     /// \return void
     [[nodiscard("co_await me")]] impl::interruptible_event_awaiter wait(const co::until& until);
-    ;
 
     /// \brief check whether notify() was successfully called
     ///

@@ -62,6 +62,7 @@ interruptible_event_awaiter::interruptible_event_awaiter(event& event,
     // defined in any point of time
     assert(_thread_storage != nullptr);
     assert(_event._waiting_coro == nullptr);
+    assert(_event._status != event_status::waiting);
     if (_event._status != event_status::ok)
         _event._status = event_status::waiting;
 
