@@ -7,7 +7,6 @@
 
 #include <co/event.hpp>
 #include <co/impl/thread_storage.hpp>
-#include <co/impl/uv_handler.hpp>
 #include <co/result.hpp>
 #include <co/status_code.hpp>
 #include <co/std.hpp>
@@ -19,16 +18,6 @@ class event;
 
 namespace impl
 {
-
-using uv_async_ptr = co::impl::uv_handle_ptr<uv_async_t>;
-
-struct coroutine_notifier
-{
-    coroutine_notifier(const std::coroutine_handle<>& coro);
-    void notify();
-
-    uv_async_ptr _async_ptr;
-};
 
 // Notify another thread about an event
 struct thread_notifier
@@ -199,9 +188,19 @@ private:
         return _status.compare_exchange_strong(expected, wanted, std::memory_order_acq_rel);
     }
 
+    bool advance_status_and_assert(co::impl::event_status expected, co::impl::event_status wanted, co::impl::event_status then_check)
+    {
+        const bool success = _status.compare_exchange_strong(expected, wanted, std::memory_order_acq_rel);
+        if (!success)
+        {
+            assert(expected == then_check);
+        }
+        return success;
+    }
+
 private:
     std::atomic<co::impl::event_status> _status = co::impl::event_status::init;
-    std::variant<std::monostate, impl::coroutine_notifier, impl::thread_notifier> _notifier;
+    std::variant<std::monostate, co::impl::co_thread_waker, impl::thread_notifier> _notifier;
 };
 
 }  // namespace co

@@ -25,6 +25,20 @@ enum class event_status
     timeout
 };
 
+struct co_thread_waker
+{
+    co_thread_waker() = default;
+    co_thread_waker(thread_storage* thread)
+    {
+        assert(thread != nullptr);
+        _thread_ptr = thread;
+    }
+
+    void wake();
+
+    thread_storage* _thread_ptr = nullptr;
+};
+
 class event_awaiter
 {
 public:
@@ -151,7 +165,7 @@ public:
 
 private:
     impl::event_status _status = impl::event_status::init;
-    std::coroutine_handle<> _waiting_coro;
+    impl::co_thread_waker _waker;
 };
 
 }  // namespace co

@@ -75,19 +75,6 @@ template <typename T>
 template <typename T2>
 co::result<void> channel<T>::try_push(T2&& t) requires(std::is_constructible_v<T, T2>)
 {
-    /*
-        detail::spinlock_lock lk{ splk_ };
-        if ( BOOST_UNLIKELY( is_closed_() ) ) {
-            return channel_op_status::closed;
-        }
-        if ( is_full_() ) {
-            return channel_op_status::full;
-        }
-        slots_[pidx_] = value;
-        pidx_ = (pidx_ + 1) % capacity_;
-        waiting_consumers_.notify_one();
-        return channel_op_status::success;
-    */
     check_shared_state();
     std::unique_lock lk(_state->_mutex);
     if (_state->_closed)
@@ -195,7 +182,7 @@ co::result<T> channel<T>::blocking_pop()
     std::unique_lock lk(_state->_mutex);
     while (_state->_queue.empty() && !_state->_closed)
     {
-        _state->_producer_waiting_queue.blocking_wait(lk);
+        _state->_consumer_waiting_queue.blocking_wait(lk);
     }
 
     if (_state->_closed && _state->_queue.empty())

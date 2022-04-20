@@ -10,6 +10,11 @@ namespace co
 namespace impl
 {
 
+void co_thread_waker::wake()
+{
+    wake_thread(_thread_ptr);
+}
+
 event_awaiter::event_awaiter(event& _event)
     : _thread_storage(get_this_thread_storage_ptr())
     , _event(_event)
@@ -17,6 +22,7 @@ event_awaiter::event_awaiter(event& _event)
     // we can't run async code outside of co::thread. Then _thread_storage should be
     // defined in any point of time
     assert(_thread_storage != nullptr);
+    assert(_event._waker._thread_ptr == nullptr);
 }
 
 bool event_awaiter::await_ready() const noexcept
@@ -26,16 +32,16 @@ bool event_awaiter::await_ready() const noexcept
 
 void event_awaiter::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
 {
-    _event._waiting_coro = awaiting_coroutine;
+    _event._waker._thread_ptr = _thread_storage;
     _event._status = event_status::waiting;
-    set_this_thread_storage_ptr(nullptr);
+    current_thread_on_suspend(awaiting_coroutine);
 }
 
 void event_awaiter::await_resume()
 {
     assert(_event._status == event_status::ok);
 
-    set_this_thread_storage_ptr(_thread_storage);
+    current_thread_on_resume(_thread_storage);
 
     switch (_event._status)
     {
@@ -61,7 +67,7 @@ interruptible_event_awaiter::interruptible_event_awaiter(event& event,
     // we can't run async code outside of co::thread. Then _thread_storage should be
     // defined in any point of time
     assert(_thread_storage != nullptr);
-    assert(_event._waiting_coro == nullptr);
+    assert(_event._waker._thread_ptr == nullptr);
     assert(_event._status != event_status::waiting);
     if (_event._status != event_status::ok)
         _event._status = event_status::waiting;
@@ -85,9 +91,9 @@ co::stop_callback_func interruptible_event_awaiter::stop_callback_func()
             return;
         }
         _event._status = event_status::cancel;
-        if (_event._waiting_coro)
+        if (_event._waker._thread_ptr != nullptr)
         {
-            get_scheduler().ready(_event._waiting_coro);
+            _event._waker.wake();
         }
     };
 }
@@ -104,8 +110,8 @@ void interruptible_event_awaiter::on_timer(void* awaiter_ptr)
     }
     awaiter._event._status = event_status::timeout;
 
-    assert(awaiter._event._waiting_coro);
-    get_scheduler().ready(awaiter._event._waiting_coro);
+    assert(awaiter._event._waker._thread_ptr != nullptr);
+    awaiter._event._waker.wake();
 }
 
 bool interruptible_event_awaiter::await_ready() const noexcept
@@ -121,25 +127,23 @@ bool interruptible_event_awaiter::await_ready() const noexcept
 void interruptible_event_awaiter::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
 {
     assert(_event._status == event_status::waiting);
-    assert(_event._waiting_coro == nullptr);
+    assert(_event._waker._thread_ptr == nullptr);
 
     if (_milliseconds_opt.has_value())
         _thread_storage->_timer.set_timer(_milliseconds_opt.value(), on_timer, static_cast<void*>(this));
 
-    _event._waiting_coro = awaiting_coroutine;
-    set_this_thread_storage_ptr(nullptr);
+    _event._waker._thread_ptr = _thread_storage;
+    current_thread_on_suspend(awaiting_coroutine);
 }
 
 result<void> interruptible_event_awaiter::await_resume()
 {
     assert(_event._status > event_status::waiting);
 
-    set_this_thread_storage_ptr(_thread_storage);
+    current_thread_on_resume(_thread_storage);
 
     if (_milliseconds_opt.has_value())
         _thread_storage->_timer.stop();  // do not wait the timer anymore
-
-    _event._waiting_coro = nullptr;
 
     switch (_event._status)
     {
@@ -165,7 +169,7 @@ bool event::notify() noexcept
         return false;
 
     if (_status == impl::event_status::waiting)
-        impl::get_scheduler().ready(_waiting_coro);
+        _waker.wake();
 
     _status = impl::event_status::ok;
     return true;

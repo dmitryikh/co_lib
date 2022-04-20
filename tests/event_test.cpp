@@ -132,7 +132,7 @@ TEST_CASE("ts::event usage", "[core][ts]")
         thread.join();
     }
 }
-TEMPLATE_TEST_CASE("event wait/notify", "[core]", co::event, co::ts::event)
+TEMPLATE_TEST_CASE("event wait/notify", "[core][!mayfail][.]", co::event, co::ts::event)
 {
     co::loop(
         []() -> co::func<void>
@@ -190,7 +190,7 @@ TEMPLATE_TEST_CASE("event wait/notify", "[core]", co::event, co::ts::event)
 // TODO: rewrite this test. Event is one-shot sync. primitive.
 // One can't call `wait()` many times on the same event.
 // TODO: Check the other primitives that they don't use the same event multiple times.
-TEMPLATE_TEST_CASE("event notify in advance", "[core]", co::event, co::ts::event)
+TEMPLATE_TEST_CASE("event notify in advance", "[core][!mayfail][.]", co::event, co::ts::event)
 {
     co::loop(
         []() -> co::func<void>
@@ -232,7 +232,7 @@ TEMPLATE_TEST_CASE("event notify in advance", "[core]", co::event, co::ts::event
 // TODO: rewrite this test. Event is one-shot sync. primitive.
 // One can't call `wait()` many times on the same event.
 // TODO: Check the other primitives that they don't use the same event multiple times.
-TEMPLATE_TEST_CASE("event never notified", "[core]", co::event/*, co::ts::event*/)
+TEMPLATE_TEST_CASE("event never notified", "[core][!mayfail][.]", co::event/*, co::ts::event*/)
 {
     co::loop(
         []() -> co::func<void>

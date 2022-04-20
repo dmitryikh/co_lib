@@ -13,32 +13,13 @@ namespace impl
 
 using co::impl::get_scheduler;
 using co::impl::event_status;
-using co::impl::set_this_thread_storage_ptr;
+using co::impl::thread_storage;
+using co::impl::co_thread_waker;
 using co::impl::get_this_thread_storage_ptr;
+using co::impl::current_thread_on_resume;
+using co::impl::current_thread_on_suspend;
+using co::impl::wake_thread;
 
-coroutine_notifier::coroutine_notifier(const std::coroutine_handle<>& coro)
-{
-    // The callback will be called in the current event loop thread.
-    const auto cb = [](uv_async_t* handle)
-    {
-        auto coro = std::coroutine_handle<>::from_address(handle->data);
-        assert(coro != nullptr);
-        get_scheduler().ready(coro);
-    };
-
-    auto handle = new uv_async_t;
-    // TODO: check the return
-    uv_async_init(get_scheduler().uv_loop(), handle, cb);
-    handle->data = coro.address();
-    _async_ptr = uv_async_ptr{ handle };
-}
-
-void coroutine_notifier::notify()
-{
-    assert(_async_ptr != nullptr);
-    // can be called from any thread
-    uv_async_send(_async_ptr.get());
-}
 
 void thread_notifier::notify()
 {
@@ -70,12 +51,13 @@ bool event_awaiter::await_ready() const noexcept
 bool event_awaiter::await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
 {
     // transition init -> waiting
-    _event._notifier.emplace<coroutine_notifier>(awaiting_coroutine);
+    current_thread_on_suspend(awaiting_coroutine);
+    _event._notifier.emplace<co::impl::co_thread_waker>(_thread_storage);
 
     event_status expected = event_status::init;
     if (_event._status.compare_exchange_strong(expected, event_status::waiting, std::memory_order_acq_rel))
     {
-        set_this_thread_storage_ptr(nullptr);
+        // set_this_thread_storage_ptr(nullptr);
         return true;
     }
 
@@ -90,7 +72,8 @@ void event_awaiter::await_resume()
     event_status status = _event._status.load(std::memory_order::acquire);
     assert(status == event_status::ok);
 
-    set_this_thread_storage_ptr(_thread_storage);
+    // set_this_thread_storage_ptr(_thread_storage);
+    current_thread_on_resume(_thread_storage);
 
     _event._notifier.emplace<std::monostate>();
 
@@ -124,7 +107,7 @@ interruptible_event_awaiter::interruptible_event_awaiter(event& event,
     // Process timeout earlier
     if (_milliseconds_opt.has_value() && _milliseconds_opt.value() <= 0)
     {
-        _event.advance_status(event_status::init, event_status::timeout);
+        _event.advance_status_and_assert(event_status::init, event_status::timeout, event_status::ok);
     }
     // NOTE: The stop callback might be immediately called here.
     if (token_opt.has_value())
@@ -140,10 +123,10 @@ co::stop_callback_func interruptible_event_awaiter::stop_callback_func()
             // Called before being waited. Changing the state is enough.
             return;
         }
-        if (_event.advance_status(event_status::waiting, event_status::cancel))
+        if (_event.advance_status_and_assert(event_status::waiting, event_status::cancel, event_status::ok))
         {
-            assert(std::holds_alternative<impl::coroutine_notifier>(_event._notifier));
-            std::get<impl::coroutine_notifier>(_event._notifier).notify();
+            assert(std::holds_alternative<co_thread_waker>(_event._notifier));
+            std::get<co_thread_waker>(_event._notifier).wake();
         }
     };
 }
@@ -158,13 +141,13 @@ void interruptible_event_awaiter::on_timer(void* awaiter_ptr)
     {
         // Called before being waited. Changing the state is enough.
         // It's harmless but shoudn't happen.
-        assert(true);
+        assert(false);
         return;
     }
     if (event.advance_status(event_status::waiting, event_status::timeout))
     {
-        assert(std::holds_alternative<impl::coroutine_notifier>(event._notifier));
-        std::get<impl::coroutine_notifier>(event._notifier).notify();
+        assert(std::holds_alternative<co_thread_waker>(event._notifier));
+        std::get<co_thread_waker>(event._notifier).wake();
     }
 }
 
@@ -179,13 +162,14 @@ bool interruptible_event_awaiter::await_suspend(std::coroutine_handle<> awaiting
     // assert(_event._notifier.is_noop());
 
     // transition init -> waiting
-    _event._notifier.emplace<coroutine_notifier>(awaiting_coroutine);
+    current_thread_on_suspend(awaiting_coroutine);
+    _event._notifier.emplace<co_thread_waker>(_thread_storage);
 
     if (_event.advance_status(event_status::init, event_status::waiting))
     {
         if (_milliseconds_opt.has_value())
             _thread_storage->_timer.set_timer(_milliseconds_opt.value(), on_timer, static_cast<void*>(this));
-        set_this_thread_storage_ptr(nullptr);
+        // set_this_thread_storage_ptr(nullptr);
         return true;
     }
 
@@ -198,7 +182,7 @@ result<void> interruptible_event_awaiter::await_resume()
     event_status status = _event._status.load(std::memory_order::acquire);
     assert(status > event_status::waiting);
 
-    set_this_thread_storage_ptr(_thread_storage);
+    current_thread_on_resume(_thread_storage);
 
     if (_milliseconds_opt.has_value())
         _thread_storage->_timer.stop();  // do not wait the timer anymore
@@ -236,9 +220,9 @@ bool event::notify()
 
     if (advance_status(event_status::waiting, event_status::ok))
     {
-        if (std::holds_alternative<impl::coroutine_notifier>(_notifier))
+        if (std::holds_alternative<co::impl::co_thread_waker>(_notifier))
         {
-            std::get<impl::coroutine_notifier>(_notifier).notify();
+            std::get<co::impl::co_thread_waker>(_notifier).wake();
         }
         else if (std::holds_alternative<impl::thread_notifier>(_notifier))
         {
@@ -284,7 +268,6 @@ void event::blocking_wait()
 
     _notifier.emplace<impl::thread_notifier>();
 
-    event_status expected = event_status::init;
     if (advance_status(event_status::init, event_status::waiting))
     {
         std::get<impl::thread_notifier>(_notifier).wait();

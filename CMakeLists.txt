@@ -25,7 +25,9 @@ include(cmake/CPM.cmake)
 add_library(co_lib
         src/co/event.cpp
         src/co/impl/timer.cpp
+        src/co/impl/async_signal.cpp
         src/co/impl/scheduler.cpp
+        src/co/impl/thread_storage.cpp
         src/co/impl/waiting_queue.cpp
         src/co/thread.cpp
         src/co/this_thread.cpp
