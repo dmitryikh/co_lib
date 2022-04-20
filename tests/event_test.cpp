@@ -132,7 +132,7 @@ TEST_CASE("ts::event usage", "[core][ts]")
         thread.join();
     }
 }
-TEMPLATE_TEST_CASE("event wait/notify", "[core][!mayfail][.]", co::event, co::ts_event)
+TEMPLATE_TEST_CASE("event wait/notify", "[core]", co::event, co::ts_event)
 {
     co::loop(
         []() -> co::func<void>
@@ -143,10 +143,6 @@ TEMPLATE_TEST_CASE("event wait/notify", "[core][!mayfail][.]", co::event, co::ts
             REQUIRE(event.notify() == true);
             REQUIRE(event.is_notified() == true);
 
-            REQUIRE(event.notify() == false);
-            REQUIRE(event.is_notified() == true);
-
-            co_await event.wait();
             REQUIRE(event.notify() == false);
             REQUIRE(event.is_notified() == true);
 
@@ -179,72 +175,54 @@ TEMPLATE_TEST_CASE("event wait/notify", "[core][!mayfail][.]", co::event, co::ts
             REQUIRE(notified == true);
             REQUIRE(event.notify() == false);
             REQUIRE(event.is_notified() == true);
-
-            co_await event.wait();
-            REQUIRE(event.notify() == false);
-            REQUIRE(event.is_notified() == true);
             co_await th.join();
         });
 }
 
-// TODO: rewrite this test. Event is one-shot sync. primitive.
-// One can't call `wait()` many times on the same event.
-// TODO: Check the other primitives that they don't use the same event multiple times.
-TEMPLATE_TEST_CASE("event notify in advance", "[core][!mayfail][.]", co::event, co::ts_event)
+TEMPLATE_TEST_CASE("event notify in advance", "[core]", co::event, co::ts_event)
 {
     co::loop(
         []() -> co::func<void>
         {
-          TestType event;
-          REQUIRE(event.is_notified() == false);
-
-          REQUIRE(event.notify() == true);
-          REQUIRE(event.is_notified() == true);
-
-          REQUIRE(event.notify() == false);
-          REQUIRE(event.is_notified() == true);
-
-          co_await event.wait();
-          REQUIRE(event.notify() == false);
-          REQUIRE(event.is_notified() == true);
-
-          co_await event.wait();
-          REQUIRE(event.notify() == false);
-          REQUIRE(event.is_notified() == true);
-
-          // all interruptable cases will return (result::is_ok() == true) on already notified event
-          auto res = co_await event.wait(100ms);
-          REQUIRE(res.is_ok());
-
-          res = co_await event.wait(std::chrono::steady_clock::now() + 100ms);
-          REQUIRE(res.is_ok());
-
-          auto stop_source = co::stop_source();
-          const auto stop_token = stop_source.get_token();
-          res = co_await event.wait(co::until(100ms, stop_token));
-          REQUIRE(res.is_ok());
-
-          stop_source.request_stop();
-          res = co_await event.wait(co::until(100ms, stop_token));
-          REQUIRE(res.is_ok());
+          {
+            TestType event;
+            REQUIRE(event.notify() == true);
+            // all interruptable cases will return (result::is_ok() == true) on already notified event
+            auto res = co_await event.wait(100ms);
+            REQUIRE(res.is_ok());
+          }
+          {  
+            TestType event;
+            REQUIRE(event.notify() == true);
+            auto res = co_await event.wait(std::chrono::steady_clock::now() + 100ms);
+            REQUIRE(res.is_ok());
+          }
+          {  
+            TestType event;
+            REQUIRE(event.notify() == true);
+            auto stop_source = co::stop_source();
+            const auto stop_token = stop_source.get_token();
+            auto res = co_await event.wait(co::until(100ms, stop_token));
+            REQUIRE(res.is_ok());
+          }
+          {  
+            TestType event;
+            REQUIRE(event.notify() == true);
+            auto stop_source = co::stop_source();
+            const auto stop_token = stop_source.get_token();
+            stop_source.request_stop();
+            auto res = co_await event.wait(co::until(100ms, stop_token));
+            REQUIRE(res.is_ok());
+          }
         });
 }
-// TODO: rewrite this test. Event is one-shot sync. primitive.
-// One can't call `wait()` many times on the same event.
-// TODO: Check the other primitives that they don't use the same event multiple times.
-TEMPLATE_TEST_CASE("event never notified", "[core][!mayfail][.]", co::event/*, co::ts_event*/)
+TEMPLATE_TEST_CASE("event never notified", "[core]", co::event, co::ts_event)
 {
     co::loop(
         []() -> co::func<void>
         {
-          TestType event;
-
-          REQUIRE(event.is_notified() == false);
-
-          // this will lock infinitely
-          // co_await event.wait();
-
           {
+              TestType event;
               auto start = std::chrono::steady_clock::now();
               auto res = co_await event.wait(100ms);
               REQUIRE(res == co::timeout);
@@ -254,6 +232,7 @@ TEMPLATE_TEST_CASE("event never notified", "[core][!mayfail][.]", co::event/*, c
           }
 
           {
+              TestType event;
               auto deadline = std::chrono::steady_clock::now() + 100ms;
               auto res = co_await event.wait(deadline);
               REQUIRE(res == co::timeout);
@@ -267,6 +246,7 @@ TEMPLATE_TEST_CASE("event never notified", "[core][!mayfail][.]", co::event/*, c
           stop_source.request_stop();
 
           {
+              TestType event;
               auto start = std::chrono::steady_clock::now();
               auto res = co_await event.wait(stop_token);
               REQUIRE(res == co::cancel);
@@ -275,6 +255,7 @@ TEMPLATE_TEST_CASE("event never notified", "[core][!mayfail][.]", co::event/*, c
           }
 
           {
+              TestType event;
               auto start = std::chrono::steady_clock::now();
               auto res = co_await event.wait(co::until(100ms, stop_token));
               REQUIRE(res == co::cancel);
@@ -283,6 +264,7 @@ TEMPLATE_TEST_CASE("event never notified", "[core][!mayfail][.]", co::event/*, c
           }
 
           {
+              TestType event;
               auto stop_source = co::stop_source();
               const auto stop_token = stop_source.get_token();
               // stop will be requested after 50ms
@@ -521,4 +503,43 @@ TEST_CASE("ts::event blocking wait", "[core][ts]")
               th.join();
           }
         });
+}
+TEST_CASE("ts::event blocking wait with timeout", "[core][ts]")
+{
+    SECTION("timeouted")
+    {
+        co::ts_event event;
+        auto th = std::thread([&event]()
+        {
+            auto start = std::chrono::steady_clock::now();
+            auto res = event.blocking_wait(25ms);
+            REQUIRE(res == co::timeout);
+            REQUIRE(std::chrono::steady_clock::now() - start >= 25ms);
+            REQUIRE(std::chrono::steady_clock::now() - start < 40ms);
+        });
+        co::loop([&event]() -> co::func<void>
+        {
+            co_await co::this_thread::sleep_for(50ms);
+            event.notify();
+        });
+        th.join();
+    }
+    SECTION("notified")
+    {
+        co::ts_event event;
+        auto th = std::thread([&event]()
+        {
+            auto start = std::chrono::steady_clock::now();
+            auto res = event.blocking_wait(50ms);
+            REQUIRE(res.is_ok());
+            REQUIRE(std::chrono::steady_clock::now() - start >= 25ms);
+            REQUIRE(std::chrono::steady_clock::now() - start < 40ms);
+        });
+        co::loop([&event]() -> co::func<void>
+        {
+            co_await co::this_thread::sleep_for(25ms);
+            event.notify();
+        });
+        th.join();
+    }
 }
