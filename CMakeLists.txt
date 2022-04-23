@@ -27,7 +27,6 @@ add_library(co_lib
         src/co/impl/async_signal.cpp
         src/co/impl/scheduler.cpp
         src/co/impl/thread_storage.cpp
-        src/co/impl/waiting_queue.cpp
         src/co/thread.cpp
         src/co/this_thread.cpp
         src/co/mutex.cpp
@@ -37,8 +36,7 @@ add_library(co_lib
         src/co/condition_variable.cpp
         src/co/signal_callback.cpp
         src/co/exception.cpp
-        src/co/net/address.cpp
-        src/co/ts/impl/waiting_queue.cpp)
+        src/co/net/address.cpp)
 
 target_link_libraries(co_lib PUBLIC ${CONAN_LIBS})
 target_link_directories(co_lib PUBLIC ${CONAN_LIB_DIRS})

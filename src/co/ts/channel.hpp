@@ -21,8 +21,8 @@ public:
     std::mutex _mutex;
     bool _closed = false;
     queue_type _queue;
-    waiting_queue _producer_waiting_queue;
-    waiting_queue _consumer_waiting_queue;
+    co::impl::ts_waiting_queue _producer_waiting_queue;
+    co::impl::ts_waiting_queue _consumer_waiting_queue;
 };
 
 }  // namespace co::impl

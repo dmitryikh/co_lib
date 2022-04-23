@@ -45,18 +45,6 @@ struct std_thread_event_data
     bool _notified = false;
 };
 
-// struct std_thread_waker
-// {
-//     std_thread_event_data& data; 
-// };
-
-// struct co_thread_waker
-// {
-//     void wake();
-
-//     thread_storage& thread;
-// };
-
 template <bool ThreadSafe>
 class event_awaiter
 {
