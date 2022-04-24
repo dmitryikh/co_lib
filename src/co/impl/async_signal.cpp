@@ -1,6 +1,6 @@
 #include <co/event.hpp>
-#include <co/impl/scheduler.hpp>
 #include <co/impl/async_signal.hpp>
+#include <co/impl/scheduler.hpp>
 
 namespace co::impl
 {

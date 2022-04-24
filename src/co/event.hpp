@@ -1,15 +1,15 @@
 #pragma once
 
-#include <mutex>
-#include <condition_variable>
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
 
+#include <co/impl/thread_storage.hpp>
 #include <co/result.hpp>
 #include <co/status_code.hpp>
 #include <co/std.hpp>
 #include <co/stop_token.hpp>
 #include <co/until.hpp>
-#include <co/impl/thread_storage.hpp>
 
 namespace co
 {
@@ -50,8 +50,8 @@ class event_awaiter
 {
 public:
     explicit event_awaiter(event_base<ThreadSafe>& _event)
-    : _thread_storage(get_this_thread_storage_ptr())
-    , _event(_event)
+        : _thread_storage(get_this_thread_storage_ptr())
+        , _event(_event)
     {
         // we can't run async code outside of co::thread. Then _thread_storage should be
         // defined in any point of time
@@ -88,7 +88,7 @@ public:
 
     void await_resume()
     {
-        event_status status = _event._status.load( ThreadSafe ? std::memory_order::acquire : std::memory_order::relaxed);
+        event_status status = _event._status.load(ThreadSafe ? std::memory_order::acquire : std::memory_order::relaxed);
         assert(status == event_status::ok);
 
         current_thread_on_resume(_thread_storage);
@@ -118,9 +118,9 @@ class interruptible_event_awaiter
     interruptible_event_awaiter(event_base<ThreadSafe>& event,
                                 std::optional<int64_t> milliseconds_opt,
                                 const std::optional<co::stop_token>& token_opt)
-    : _thread_storage(get_this_thread_storage_ptr())
-    , _event(event)
-    , _milliseconds_opt(std::move(milliseconds_opt))
+        : _thread_storage(get_this_thread_storage_ptr())
+        , _event(event)
+        , _milliseconds_opt(std::move(milliseconds_opt))
     {
         // we can't run async code outside of co::thread. Then _thread_storage should be
         // defined in any point of time
@@ -174,7 +174,7 @@ public:
     }
     result<void> await_resume()
     {
-        event_status status = _event._status.load( ThreadSafe ? std::memory_order::acquire : std::memory_order::relaxed);
+        event_status status = _event._status.load(ThreadSafe ? std::memory_order::acquire : std::memory_order::relaxed);
         assert(status > event_status::waiting);
 
         current_thread_on_resume(_thread_storage);
@@ -303,10 +303,10 @@ public:
         return impl::interruptible_event_awaiter<ThreadSafe>(*this, until);
     }
 
-    void blocking_wait() requires (ThreadSafe == true);
+    void blocking_wait() requires(ThreadSafe == true);
 
     template <class Rep, class Period>
-    result<void> blocking_wait(std::chrono::duration<Rep, Period> timeout) requires (ThreadSafe == true);
+    result<void> blocking_wait(std::chrono::duration<Rep, Period> timeout) requires(ThreadSafe == true);
 
     /// \brief check whether notify() was successfully called
     ///
@@ -315,13 +315,14 @@ public:
     {
         return _status.load(std::memory_order_relaxed) == co::impl::event_status::ok;
     }
+
 private:
-    bool advance_status(co::impl::event_status expected, co::impl::event_status wanted) requires (ThreadSafe == true)
+    bool advance_status(co::impl::event_status expected, co::impl::event_status wanted) requires(ThreadSafe == true)
     {
         return _status.compare_exchange_strong(expected, wanted, std::memory_order_acq_rel);
     }
 
-    bool advance_status(co::impl::event_status expected, co::impl::event_status wanted) requires (ThreadSafe == false)
+    bool advance_status(co::impl::event_status expected, co::impl::event_status wanted) requires(ThreadSafe == false)
     {
         if (_status.load(std::memory_order::relaxed) == expected)
         {
@@ -352,25 +353,22 @@ bool event_base<ThreadSafe>::notify() noexcept
     if (advance_status(event_status::waiting, event_status::ok))
     {
         assert(_waker_data != nullptr);
-        switch(_waker_type)
+        switch (_waker_type)
         {
-            case impl::waker_type::co_thread:
-            {
-                wake_thread(static_cast<impl::thread_storage*>(_waker_data));
-                break;
-            }
-            case impl::waker_type::std_thread:
-            {
-                auto data = static_cast<impl::std_thread_event_data*>(_waker_data);
-                std::unique_lock lk(data->_mutex);
-                data->_notified = true;
-                data->_cv.notify_one();
-                break;
-            }
-            default:
-            {
-                assert(false);
-            }
+        case impl::waker_type::co_thread: {
+            wake_thread(static_cast<impl::thread_storage*>(_waker_data));
+            break;
+        }
+        case impl::waker_type::std_thread: {
+            auto data = static_cast<impl::std_thread_event_data*>(_waker_data);
+            std::unique_lock lk(data->_mutex);
+            data->_notified = true;
+            data->_cv.notify_one();
+            break;
+        }
+        default: {
+            assert(false);
+        }
         }
         return true;
     }
@@ -380,7 +378,7 @@ bool event_base<ThreadSafe>::notify() noexcept
 }
 
 template <bool ThreadSafe>
-void event_base<ThreadSafe>::blocking_wait() requires (ThreadSafe == true)
+void event_base<ThreadSafe>::blocking_wait() requires(ThreadSafe == true)
 {
     using ::co::impl::event_status;
 
@@ -403,10 +401,10 @@ void event_base<ThreadSafe>::blocking_wait() requires (ThreadSafe == true)
     assert(_status.load(std::memory_order::acquire) > event_status::waiting);
 }
 
-
 template <bool ThreadSafe>
 template <class Rep, class Period>
-result<void> event_base<ThreadSafe>::blocking_wait(std::chrono::duration<Rep, Period> timeout) requires (ThreadSafe == true)
+result<void> event_base<ThreadSafe>::blocking_wait(std::chrono::duration<Rep, Period> timeout) requires(ThreadSafe ==
+                                                                                                        true)
 {
     using ::co::impl::event_status;
 

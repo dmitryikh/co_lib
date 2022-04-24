@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 #include <co/channel.hpp>
-#include <co/ts/channel.hpp>
 #include <co/co.hpp>
+#include <co/ts/channel.hpp>
 
 #include <thread>
 
@@ -89,12 +89,12 @@ TEST_CASE("channel simple usage", "[primitives]")
         }());
 }
 
-TEST_CASE("ts::channel basic stress test", "[ts][primitives]")
+TEST_CASE("ts::channel basic stress test", "[ts][primitives][stress]")
 {
     // Use std::thread and co::thread for push/pop simultaneously.
     // Do not use interruptions (timeout, stop_tokens, etc).
     constexpr int n_elements = 10000;
-    constexpr int n_capacity = 10;
+    constexpr int n_capacity = 100;
     constexpr int n_threads = 10;
     co::ts::channel<std::string> ch(n_capacity);
     int events_counter = 0;
@@ -106,7 +106,8 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives]")
     // receivers threads for blocking_pop
     for (int i = 0; i < n_threads; i++)
     {
-        auto th = std::thread([ch, &reciever_counter]() mutable
+        auto th = std::thread(
+            [ch, &reciever_counter]() mutable
             {
                 while (true)
                 {
@@ -123,7 +124,8 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives]")
     // receivers threads for non-blocking pop
     for (int i = 0; i < n_threads; i++)
     {
-        auto th = std::thread([ch, &reciever_counter]() mutable
+        auto th = std::thread(
+            [ch, &reciever_counter]() mutable
             {
                 co::loop(
                     [&ch, &reciever_counter]() -> co::func<void>
@@ -137,8 +139,7 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives]")
                             assert(local_copy.size() > 0);
                             reciever_counter.fetch_add(1, std::memory_order::release);
                         }
-                    }
-                );
+                    });
             });
         receiver_threads.push_back(std::move(th));
     }
@@ -146,7 +147,8 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives]")
     // Senders are in the blocking threads.
     for (int i = 0; i < n_threads; i++)
     {
-        auto th = std::thread([ch, n_threads, n_elements]() mutable
+        auto th = std::thread(
+            [ch, n_threads, n_elements]() mutable
             {
                 for (int i = 0; i < n_elements / (2 * n_threads); i++)
                 {
@@ -159,7 +161,8 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives]")
     // Senders are in the non-blocking threads.
     for (int i = 0; i < n_threads; i++)
     {
-        auto th = std::thread([ch, n_threads, n_elements]() mutable
+        auto th = std::thread(
+            [ch, n_threads, n_elements]() mutable
             {
                 co::loop(
                     [&ch]() -> co::func<void>
@@ -169,8 +172,7 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives]")
                             co::result<void> result = co_await ch.push(std::to_string(i));
                             assert(result.is_ok());
                         }
-                    }
-                );
+                    });
             });
         sender_threads.push_back(std::move(th));
     }

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <string>
-#include <co/impl/timer.hpp>
 #include <co/impl/async_signal.hpp>
+#include <co/impl/timer.hpp>
 #include <co/stop_token.hpp>
 
 namespace co::impl
@@ -23,7 +23,9 @@ struct thread_storage
 
 void wake_thread(thread_storage*);
 
-inline std::shared_ptr<thread_storage> create_thread_storage(const std::string& thread_name, uint64_t id, scheduler* scheduler_ptr)
+inline std::shared_ptr<thread_storage> create_thread_storage(const std::string& thread_name,
+                                                             uint64_t id,
+                                                             scheduler* scheduler_ptr)
 {
     auto storage = std::make_shared<thread_storage>();
     storage->id = id;
@@ -41,7 +43,7 @@ inline std::shared_ptr<thread_storage> create_thread_storage(const std::string& 
         thread_storage* storage = static_cast<thread_storage*>(data);
         wake_thread(storage);
     };
-    storage->async_signal.callback = callback; 
+    storage->async_signal.callback = callback;
 
     return storage;
 }

@@ -50,7 +50,7 @@ public:
     waiting_queue_base& operator=(waiting_queue_base&&) = default;
 
     /// \brief unconditionally waits until been notified
-    co::func<void> wait() requires (ThreadSafe == false)
+    co::func<void> wait() requires(ThreadSafe == false)
     {
         waker<ThreadSafe> w;
         _wakers_list.push_back(w);
@@ -58,7 +58,7 @@ public:
         if (w.hook.is_linked())
             w.hook.unlink();
     }
-    co::func<void> wait(std::unique_lock<std::mutex>& lk) requires (ThreadSafe == true)
+    co::func<void> wait(std::unique_lock<std::mutex>& lk) requires(ThreadSafe == true)
     {
         assert(lk.owns_lock());
         waker<ThreadSafe> w;
@@ -72,7 +72,7 @@ public:
     }
 
     /// \brief waits until been notified or interruption occurs based on until object
-    co::func<co::result<void>> wait(const co::until& until) requires (ThreadSafe == false)
+    co::func<co::result<void>> wait(const co::until& until) requires(ThreadSafe == false)
     {
         waker<ThreadSafe> w;
         _wakers_list.push_back(w);
@@ -82,7 +82,8 @@ public:
         co_return status;
     }
 
-    co::func<co::result<void>> wait(std::unique_lock<std::mutex>& lk, const co::until& until) requires (ThreadSafe == true)
+    co::func<co::result<void>> wait(std::unique_lock<std::mutex>& lk,
+                                    const co::until& until) requires(ThreadSafe == true)
     {
         assert(lk.owns_lock());
         waker<ThreadSafe> w;
@@ -96,7 +97,7 @@ public:
     }
 
     // Blocks the current std::thread until the waker is notified.
-    void blocking_wait(std::unique_lock<std::mutex>& lk) requires (ThreadSafe == true)
+    void blocking_wait(std::unique_lock<std::mutex>& lk) requires(ThreadSafe == true)
     {
         assert(lk.owns_lock());
         waker<ThreadSafe> w;
@@ -109,7 +110,8 @@ public:
     }
 
     template <class Rep, class Period>
-    co::result<void> blocking_wait(std::unique_lock<std::mutex>& lk, std::chrono::duration<Rep, Period> timeout) requires (ThreadSafe == true)
+    co::result<void> blocking_wait(std::unique_lock<std::mutex>& lk,
+                                   std::chrono::duration<Rep, Period> timeout) requires(ThreadSafe == true)
     {
         assert(lk.owns_lock());
         waker<ThreadSafe> w;

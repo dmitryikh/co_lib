@@ -1,6 +1,6 @@
 #pragma once
-#include <uv.h>
 #include <co/func.hpp>
+#include <uv.h>
 
 namespace co::impl
 {
@@ -9,7 +9,7 @@ namespace co::impl
 class async_signal
 {
 public:
-    typedef void(*callback_type)(void*);
+    typedef void (*callback_type)(void*);
     // Can't be moved or copied because uv's loop keep the reference to uv_async.
     async_signal(const async_signal&) = delete;
     async_signal(async_signal&&) = delete;
@@ -44,4 +44,4 @@ public:
     void* data = nullptr;
     callback_type callback = nullptr;
 };
-}  // co::impl
+}  // namespace co::impl

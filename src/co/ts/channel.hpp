@@ -1,8 +1,8 @@
 #pragma once
 
 #include <boost/circular_buffer.hpp>
-#include <co/ts/impl/waiting_queue.hpp>
 #include <co/status_codes.hpp>
+#include <co/ts/impl/waiting_queue.hpp>
 #include <co/until.hpp>
 
 namespace co::ts::impl
@@ -25,7 +25,7 @@ public:
     co::impl::ts_waiting_queue _consumer_waiting_queue;
 };
 
-}  // namespace co::impl
+}  // namespace co::ts::impl
 
 namespace co::ts
 {
@@ -212,4 +212,4 @@ template <typename T>
     return _state->_closed;
 }
 
-}  // namespace co
+}  // namespace co::ts
