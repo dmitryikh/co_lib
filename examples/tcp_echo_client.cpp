@@ -1,3 +1,4 @@
+#include <iostream>
 #include <co/co.hpp>
 #include <co/net/net.hpp>
 
@@ -9,7 +10,7 @@ co::func<void> client(std::string ip, uint16_t port)
 
         std::string send_data = "hello world";
         std::cout << "Send message: " << send_data << "\n";
-        co_await tcp_stream.write(send_data).unwrap();
+        co_await tcp_stream.write({ send_data.data(), send_data.size() }).unwrap();
 
         const size_t buffer_size = 100;
         std::array<char, buffer_size> buffer;

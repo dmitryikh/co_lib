@@ -303,10 +303,10 @@ public:
         return impl::interruptible_event_awaiter<ThreadSafe>(*this, until);
     }
 
-    void blocking_wait() requires(ThreadSafe == true);
+    void blocking_wait() requires(ThreadSafe);
 
     template <class Rep, class Period>
-    result<void> blocking_wait(std::chrono::duration<Rep, Period> timeout) requires(ThreadSafe == true);
+    result<void> blocking_wait(std::chrono::duration<Rep, Period> timeout) requires(ThreadSafe);
 
     /// \brief check whether notify() was successfully called
     ///
@@ -317,12 +317,12 @@ public:
     }
 
 private:
-    bool advance_status(co::impl::event_status expected, co::impl::event_status wanted) requires(ThreadSafe == true)
+    bool advance_status(co::impl::event_status expected, co::impl::event_status wanted) requires(ThreadSafe)
     {
         return _status.compare_exchange_strong(expected, wanted, std::memory_order_acq_rel);
     }
 
-    bool advance_status(co::impl::event_status expected, co::impl::event_status wanted) requires(ThreadSafe == false)
+    bool advance_status(co::impl::event_status expected, co::impl::event_status wanted) requires(!ThreadSafe)
     {
         if (_status.load(std::memory_order::relaxed) == expected)
         {
@@ -378,7 +378,7 @@ bool event_base<ThreadSafe>::notify() noexcept
 }
 
 template <bool ThreadSafe>
-void event_base<ThreadSafe>::blocking_wait() requires(ThreadSafe == true)
+void event_base<ThreadSafe>::blocking_wait() requires(ThreadSafe)
 {
     using ::co::impl::event_status;
 
@@ -403,8 +403,7 @@ void event_base<ThreadSafe>::blocking_wait() requires(ThreadSafe == true)
 
 template <bool ThreadSafe>
 template <class Rep, class Period>
-result<void> event_base<ThreadSafe>::blocking_wait(std::chrono::duration<Rep, Period> timeout) requires(ThreadSafe ==
-                                                                                                        true)
+result<void> event_base<ThreadSafe>::blocking_wait(std::chrono::duration<Rep, Period> timeout) requires(ThreadSafe)
 {
     using ::co::impl::event_status;
 

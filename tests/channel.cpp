@@ -1,7 +1,6 @@
 #include <catch2/catch.hpp>
 #include <co/channel.hpp>
 #include <co/co.hpp>
-#include <co/ts_channel.hpp>
 
 #include <thread>
 
@@ -61,7 +60,7 @@ TEMPLATE_TEST_CASE("channel usage", "[primitives]", co::channel<int>, co::ts_cha
     REQUIRE(end - start < 50ms + 5ms);
 }
 
-TEST_CASE("channel simple usage", "[primitives]")
+TEMPLATE_TEST_CASE("channel simple usage", "[primitives]", co::channel<int>, co::ts_channel<int>)
 {
     co::loop(
         []() -> co::func<void>
@@ -114,6 +113,7 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives][stress]")
                     co::result<std::string> result = ch.blocking_pop();
                     if (result == co::closed)
                         break;
+                    REQUIRE(result.is_ok());
                     std::string local_copy = result.unwrap();
                     assert(local_copy.size() > 0);
                     reciever_counter.fetch_add(1, std::memory_order::release);
