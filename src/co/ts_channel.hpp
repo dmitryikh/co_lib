@@ -2,19 +2,19 @@
 
 #include <boost/circular_buffer.hpp>
 #include <co/status_codes.hpp>
-#include <co/ts/impl/waiting_queue.hpp>
+#include <co/impl/waiting_queue.hpp>
 #include <co/until.hpp>
 
-namespace co::ts::impl
+namespace co::impl
 {
 
 template <typename T>
-struct channel_shared_state
+struct ts_channel_shared_state
 {
 public:
     using queue_type = boost::circular_buffer<T>;
 
-    explicit channel_shared_state(size_t capacity)
+    explicit ts_channel_shared_state(size_t capacity)
         : _queue(capacity)
     {}
 
@@ -25,19 +25,19 @@ public:
     co::impl::ts_waiting_queue _consumer_waiting_queue;
 };
 
-}  // namespace co::ts::impl
+}  // namespace co::impl
 
-namespace co::ts
+namespace co
 {
 
 // channel should be passed by value between threads. The channel object is not
 // thread safe itself.
 template <typename T>
-class channel
+class ts_channel
 {
 public:
-    explicit channel(size_t capacity)
-        : _state(std::make_shared<impl::channel_shared_state<T>>(capacity))
+    explicit ts_channel(size_t capacity)
+        : _state(std::make_shared<impl::ts_channel_shared_state<T>>(capacity))
     {}
 
     template <typename T2>
@@ -68,12 +68,12 @@ private:
     }
 
 private:
-    std::shared_ptr<impl::channel_shared_state<T>> _state;
+    std::shared_ptr<impl::ts_channel_shared_state<T>> _state;
 };
 
 template <typename T>
 template <typename T2>
-co::result<void> channel<T>::try_push(T2&& t) requires(std::is_constructible_v<T, T2>)
+co::result<void> ts_channel<T>::try_push(T2&& t) requires(std::is_constructible_v<T, T2>)
 {
     check_shared_state();
     std::unique_lock lk(_state->_mutex);
@@ -90,7 +90,7 @@ co::result<void> channel<T>::try_push(T2&& t) requires(std::is_constructible_v<T
 
 template <typename T>
 template <typename T2>
-co::func<co::result<void>> channel<T>::push(T2&& t) requires(std::is_constructible_v<T, T2>)
+co::func<co::result<void>> ts_channel<T>::push(T2&& t) requires(std::is_constructible_v<T, T2>)
 {
     check_shared_state();
     std::unique_lock lk(_state->_mutex);
@@ -115,7 +115,7 @@ co::func<co::result<void>> channel<T>::push(T2&& t) requires(std::is_constructib
 
 template <typename T>
 template <typename T2>
-co::result<void> channel<T>::blocking_push(T2&& t) requires(std::is_constructible_v<T, T2>)
+co::result<void> ts_channel<T>::blocking_push(T2&& t) requires(std::is_constructible_v<T, T2>)
 {
     check_shared_state();
     std::unique_lock lk(_state->_mutex);
@@ -139,7 +139,7 @@ co::result<void> channel<T>::blocking_push(T2&& t) requires(std::is_constructibl
 }
 
 template <typename T>
-co::result<T> channel<T>::try_pop()
+co::result<T> ts_channel<T>::try_pop()
 {
     check_shared_state();
     std::unique_lock lk(_state->_mutex);
@@ -156,7 +156,7 @@ co::result<T> channel<T>::try_pop()
 }
 
 template <typename T>
-co::func<co::result<T>> channel<T>::pop()
+co::func<co::result<T>> ts_channel<T>::pop()
 {
     check_shared_state();
     std::unique_lock lk(_state->_mutex);
@@ -176,7 +176,7 @@ co::func<co::result<T>> channel<T>::pop()
 }
 
 template <typename T>
-co::result<T> channel<T>::blocking_pop()
+co::result<T> ts_channel<T>::blocking_pop()
 {
     check_shared_state();
     std::unique_lock lk(_state->_mutex);
@@ -196,7 +196,7 @@ co::result<T> channel<T>::blocking_pop()
 }
 
 template <typename T>
-void channel<T>::close()
+void ts_channel<T>::close()
 {
     check_shared_state();
     std::unique_lock lk(_state->_mutex);
@@ -206,7 +206,7 @@ void channel<T>::close()
 }
 
 template <typename T>
-[[nodiscard]] bool channel<T>::is_closed() const
+[[nodiscard]] bool ts_channel<T>::is_closed() const
 {
     check_shared_state();
     return _state->_closed;

@@ -1,13 +1,13 @@
 #include <catch2/catch.hpp>
 #include <co/channel.hpp>
 #include <co/co.hpp>
-#include <co/ts/channel.hpp>
+#include <co/ts_channel.hpp>
 
 #include <thread>
 
 using namespace std::chrono_literals;
 
-TEMPLATE_TEST_CASE("channel usage", "[primitives]", co::channel<int>, co::ts::channel<int>)
+TEMPLATE_TEST_CASE("channel usage", "[primitives]", co::channel<int>, co::ts_channel<int>)
 {
     auto start = std::chrono::steady_clock::now();
     co::loop(
@@ -96,7 +96,7 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives][stress]")
     constexpr int n_elements = 10000;
     constexpr int n_capacity = 100;
     constexpr int n_threads = 10;
-    co::ts::channel<std::string> ch(n_capacity);
+    co::ts_channel<std::string> ch(n_capacity);
     int events_counter = 0;
     std::vector<std::thread> sender_threads, receiver_threads;
     sender_threads.reserve(n_threads * 2);
