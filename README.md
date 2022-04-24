@@ -14,15 +14,14 @@ co_lib design priorities:
 co_lib benefits:
 1. Cancellation as a first class citizen: co::stop_token, co::stop_source, almost all awaited ops can be cancelled.
 2. co::result<T> type (like in Rust) to check the result of an operation
-3. based on libuv C library: event loop, network, timers, etc..
+3. Based on libuv C library: event loop, network, timers, etc..
+4. Supports "share nothing" patterns. co::ts_channel is the only primitive to talk between OS threads.
 
 Current limitations:
-1. Single threaded
-2. No communications between event loop thread and other system threads
-3. Developing and testing on clang 11 only
+1. Single threaded event loops. Use co::ts_channel to talk between OS threads and co::threads.
 
 # Dependencies
-1. C++20 at clang-11
+1. C++20 at clang >=11
 2. boost 1.75 (headers only)
 3. libuv 1.40
 4. conan package manager
@@ -90,8 +89,8 @@ int main()
 ```
 
 # Build Instruction
-`co_lib` is header only library. It uses conan package manager to manage its
-dependencies and also to be included into other projects.
+`co_lib` uses conan package manager to manage its dependencies and also to be included
+into other projects.
 
 To build the package locally:
 

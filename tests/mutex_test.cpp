@@ -28,7 +28,8 @@ TEST_CASE("mutex usage", "[primitives]")
             auto th3 = co::thread(
                 [&]() -> co::func<void>
                 {
-                    while (co_await mutex.lock(2ms) == co::timeout) {}
+                    while (co_await mutex.lock(2ms) == co::timeout)
+                    {}
                     co_await co::this_thread::sleep_for(11ms);
                     mutex.unlock();
                 });

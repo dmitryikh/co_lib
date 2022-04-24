@@ -13,6 +13,7 @@ co::func<void> mutex::lock()
 
 co::func<co::result<void>> mutex::lock(const until& until)
 {
+    // TODO: check stop token first?
     if (try_lock())
         co_return co::ok();
 

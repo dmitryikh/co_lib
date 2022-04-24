@@ -22,14 +22,17 @@ thread_func create_thread_main_func(func<void> func,
     {
         set_this_thread_storage_ptr(thread_storage.get());
         thread_storage->_timer.init(co::impl::get_scheduler().uv_loop());
+        thread_storage->async_signal.init(co::impl::get_scheduler().uv_loop());
         co_await func;
     }
     catch (const std::exception& exc)
     {
         // TODO: terminate here
         std::cerr << "func error: " << exc.what() << "\n";
+        assert(false);
     }
     co_await thread_storage->_timer.close();
+    co_await thread_storage->async_signal.close();
     finish->notify();
     set_this_thread_storage_ptr(nullptr);
 }
@@ -40,7 +43,7 @@ namespace co
 {
 
 co::thread::thread(co::func<void>&& func, const std::string& thread_name)
-    : _thread_storage_ptr(impl::create_thread_storage(thread_name, ++id))
+    : _thread_storage_ptr(impl::create_thread_storage(thread_name, ++id, &co::impl::get_scheduler()))
     , _event_ptr(std::make_shared<event>())
     , _thread_func(impl::create_thread_main_func(std::move(func), _event_ptr, _thread_storage_ptr))
 {
