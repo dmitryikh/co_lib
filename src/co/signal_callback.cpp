@@ -34,7 +34,7 @@ signal_callback::~signal_callback()
 {
     for (auto& signal : _uv_signals)
     {
-        assert(signal != nullptr);
+        CO_DCHECK(signal != nullptr);
         uv_signal_stop(signal.get());
     }
 }
@@ -51,12 +51,12 @@ void signal_callback::register_signal(int signal)
 
 void signal_callback::signal_handler(uv_signal_t* handle, int signal)
 {
-    assert(handle != nullptr);
-    assert(handle->data != nullptr);
+    CO_DCHECK(handle != nullptr);
+    CO_DCHECK(handle->data != nullptr);
 
     auto& self = *static_cast<signal_callback*>(handle->data);
 
-    assert(self._callback != nullptr);
+    CO_DCHECK(self._callback != nullptr);
     self._callback(signal);
 }
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cassert>
 #include <memory>
 #include <uv.h>
+#include <co/check.hpp>
 
 namespace co::impl
 {
@@ -14,7 +14,7 @@ struct uv_handle_deleter
     {
         static auto on_close = [](uv_handle_t* handle)
         {
-            assert(handle != nullptr);
+            CO_DCHECK(handle != nullptr);
             delete handle;
         };
         uv_close((uv_handle_t*)handle, on_close);

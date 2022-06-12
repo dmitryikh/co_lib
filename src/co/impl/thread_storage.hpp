@@ -34,12 +34,12 @@ inline std::shared_ptr<thread_storage> create_thread_storage(const std::string& 
     else
         storage->name = thread_name;
 
-    assert(scheduler_ptr != nullptr);
+    CO_DCHECK(scheduler_ptr != nullptr);
     storage->scheduler_ptr = scheduler_ptr;
     storage->async_signal.data = static_cast<void*>(storage.get());
     auto callback = [](void* data)
     {
-        assert(data != nullptr);
+        CO_DCHECK(data != nullptr);
         thread_storage* storage = static_cast<thread_storage*>(data);
         wake_thread(storage);
     };
@@ -63,8 +63,8 @@ inline thread_storage* get_this_thread_storage_ptr()
 inline void current_thread_on_suspend(std::coroutine_handle<> awaiting_coroutine)
 {
     thread_storage* thread = get_this_thread_storage_ptr();
-    assert(thread != nullptr);
-    assert(thread->suspended_coroutine.address() == nullptr);
+    CO_DCHECK(thread != nullptr);
+    CO_DCHECK(thread->suspended_coroutine.address() == nullptr);
     thread->suspended_coroutine = awaiting_coroutine;
     *this_thread_storage() = nullptr;
 }
@@ -76,7 +76,7 @@ inline void set_this_thread_storage_ptr(thread_storage* thread)
 
 inline void current_thread_on_resume(thread_storage* thread)
 {
-    assert(thread != nullptr);
+    CO_DCHECK(thread != nullptr);
     set_this_thread_storage_ptr(thread);
 
     // co::ts_event has wierd behaviour when it calls `current_thread_on_suspend`,
@@ -85,12 +85,10 @@ inline void current_thread_on_resume(thread_storage* thread)
     thread->suspended_coroutine = std::coroutine_handle<>{};
 }
 
-inline thread_storage& this_thread_storage_ref()
+inline thread_storage& this_thread_storage_ref() noexcept
 {
     thread_storage* ptr = get_this_thread_storage_ptr();
-    if (ptr == nullptr)
-        throw std::runtime_error("thread_storage only exists inside event loop");
-
+    CO_CHECK(ptr != nullptr) << "thread_storage only exists inside event loop";
     return *ptr;
 }
 

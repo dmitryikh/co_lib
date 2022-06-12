@@ -12,18 +12,13 @@ class exception;
 class error_desc : public co::status_code
 {
 public:
-    // TODO: boost::outcome::result needs that
-    error_desc()
-        : co::status_code(co::other)
-    {}
-
     error_desc(const co::status_code& status, const char* desc = "");
 
     error_desc(const co::exception& coexc);
 
     [[nodiscard]] const char* what() const
     {
-        assert(_desc != nullptr);
+        CO_DCHECK(_desc != nullptr);
         return _desc;
     }
 
@@ -77,6 +72,7 @@ private:
     error_desc _edesc;
 };
 
+std::ostream& operator<<(std::ostream& out, const co::error_desc& desc);
 std::ostream& operator<<(std::ostream& out, const co::exception& coexc);
 
 }  // namespace co

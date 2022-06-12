@@ -1,8 +1,8 @@
 #include <co/net/tcp_listener.hpp>
 
-#include <cassert>
 #include <queue>
 #include <variant>
+#include <co/check.hpp>
 #include <co/condition_variable.hpp>
 #include <co/net/status_codes.hpp>
 
@@ -39,8 +39,8 @@ namespace co::net
 tcp_listener::tcp_listener(std::unique_ptr<impl::tcp_listener_shared_state>&& state)
     : _state(std::move(state))
 {
-    assert(_state != nullptr);
-    assert(_state->_server_tcp_ptr != nullptr);
+    CO_DCHECK(_state != nullptr);
+    CO_DCHECK(_state->_server_tcp_ptr != nullptr);
 }
 
 tcp_listener::tcp_listener(tcp_listener&& other) = default;
@@ -72,8 +72,8 @@ co::func<co::result<tcp_listener>> tcp_listener::bind(const std::string& ip, uin
 
 void tcp_listener::on_new_connection(uv_stream_t* server, int status)
 {
-    assert(server != nullptr);
-    assert(server->data != nullptr);
+    CO_DCHECK(server != nullptr);
+    CO_DCHECK(server->data != nullptr);
 
     auto& state = *static_cast<impl::tcp_listener_shared_state*>(server->data);
 
@@ -99,7 +99,7 @@ co::func<co::result<tcp_stream>> tcp_listener::accept(const co::until& until)
         co_return co::err(co::other);
     }
 
-    assert(!_state->_queue.empty());
+    CO_DCHECK(!_state->_queue.empty());
     impl::message msg = _state->_queue.front();
     _state->_queue.pop();
 
@@ -120,7 +120,7 @@ co::func<co::result<tcp_stream>> tcp_listener::accept(const co::until& until)
     }
     else
     {
-        assert(false);  // unreachable
+        CO_DCHECK(false);  // unreachable
     }
 }
 

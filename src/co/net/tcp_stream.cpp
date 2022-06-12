@@ -22,8 +22,8 @@ co::func<co::result<tcp_stream>> tcp_stream::connect(const std::string& ip, uint
 
     auto on_connect = [](uv_connect_t* connect, int status)
     {
-      assert(connect != nullptr);
-      assert(connect->data != nullptr);
+      CO_DCHECK(connect != nullptr);
+      CO_DCHECK(connect->data != nullptr);
 
       auto& state = *static_cast<connect_state*>(connect->data);
       state.status = status;
@@ -68,8 +68,8 @@ co::func<co::result<std::span<char>>> tcp_stream::read(std::span<char> buffer)
 
     auto alloc = [](uv_handle_t* handle, size_t /*suggested_size*/, uv_buf_t* buf)
     {
-      assert(handle != nullptr);
-      assert(handle->data != nullptr);
+      CO_DCHECK(handle != nullptr);
+      CO_DCHECK(handle->data != nullptr);
 
       auto& state = *static_cast<read_state*>(handle->data);
       buf->base = state.buffer.data();
@@ -78,8 +78,8 @@ co::func<co::result<std::span<char>>> tcp_stream::read(std::span<char> buffer)
 
     auto on_read = [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* /*buf*/)
     {
-      assert(stream != nullptr);
-      assert(stream->data != nullptr);
+      CO_DCHECK(stream != nullptr);
+      CO_DCHECK(stream->data != nullptr);
 
       auto& state = *static_cast<read_state*>(stream->data);
 
@@ -103,7 +103,7 @@ co::func<co::result<std::span<char>>> tcp_stream::read(std::span<char> buffer)
       state.ev.notify();
     };
 
-    assert(_tcp_ptr);
+    CO_CHECK(_tcp_ptr);
     _tcp_ptr->data = static_cast<void*>(&state);
     int ret = uv_read_start((uv_stream_t*)_tcp_ptr.get(), alloc, on_read);
     using namespace std::string_literals;
@@ -118,7 +118,7 @@ co::func<co::result<std::span<char>>> tcp_stream::read(std::span<char> buffer)
     if (state.read_len == 0)
         co_return co::err(eof);
 
-    assert(state.read_len <= buffer.size());
+    CO_DCHECK(state.read_len <= buffer.size());
     co_return co::ok(buffer.subspan(0, state.read_len));
 }
 
@@ -138,8 +138,8 @@ co::func<co::result<void>> tcp_stream::write(std::span<const char> buffer)
 
     auto on_write = [](uv_write_t* handle, int status)
     {
-      assert(handle != nullptr);
-      assert(handle->data != nullptr);
+      CO_DCHECK(handle != nullptr);
+      CO_DCHECK(handle->data != nullptr);
 
       auto& state = *static_cast<write_state*>(handle->data);
       state.status = status;
@@ -148,7 +148,7 @@ co::func<co::result<void>> tcp_stream::write(std::span<const char> buffer)
 
     uv_write_t write_handle;
     write_handle.data = static_cast<void*>(&state);
-    assert(_tcp_ptr);
+    CO_CHECK(_tcp_ptr);
     int ret =
         uv_write((uv_write_t*)&write_handle, (uv_stream_t*)_tcp_ptr.get(), bufs.data(), bufs.size(), on_write);
     using namespace std::string_literals;
@@ -177,8 +177,8 @@ co::func<co::result<void>> tcp_stream::shutdown()
 
     auto on_shutdown = [](uv_shutdown_t* handle, int status)
     {
-      assert(handle != nullptr);
-      assert(handle->data != nullptr);
+      CO_DCHECK(handle != nullptr);
+      CO_DCHECK(handle->data != nullptr);
 
       auto& state = *static_cast<shutdown_state*>(handle->data);
       state.status = status;
@@ -187,7 +187,7 @@ co::func<co::result<void>> tcp_stream::shutdown()
 
     uv_shutdown_t shutdown_handle;
     shutdown_handle.data = static_cast<void*>(&state);
-    assert(_tcp_ptr);
+    CO_CHECK(_tcp_ptr);
     const int ret = uv_shutdown(&shutdown_handle, (uv_stream_t*)_tcp_ptr.get(), on_shutdown);
     using namespace std::string_literals;
     if (ret != 0)

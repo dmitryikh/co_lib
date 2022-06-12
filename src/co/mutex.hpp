@@ -72,8 +72,8 @@ public:
 
     ~mutex()
     {
-        assert(!_is_locked);
-        assert(_waiting_queue.empty());
+        CO_DCHECK(!_is_locked);
+        CO_DCHECK(_waiting_queue.empty());
     }
 
 private:

@@ -1,6 +1,7 @@
 #include <co/thread.hpp>
 
 #include <iostream>
+#include <co/check.hpp>
 #include <co/event.hpp>
 #include <co/impl/scheduler.hpp>
 #include <co/impl/thread_storage.hpp>
@@ -27,9 +28,7 @@ thread_func create_thread_main_func(func<void> func,
     }
     catch (const std::exception& exc)
     {
-        // TODO: terminate here
-        std::cerr << "func error: " << exc.what() << "\n";
-        assert(false);
+        CO_CHECK(true) << "unhandled exception: " << exc.what();
     }
     co_await thread_storage->_timer.close();
     co_await thread_storage->async_signal.close();
@@ -42,13 +41,23 @@ thread_func create_thread_main_func(func<void> func,
 namespace co
 {
 
-co::thread::thread(co::func<void>&& func, const std::string& thread_name)
+thread::thread(co::func<void>&& func, const std::string& thread_name)
     : _thread_storage_ptr(impl::create_thread_storage(thread_name, ++id, &co::impl::get_scheduler()))
     , _event_ptr(std::make_shared<event>())
     , _thread_func(impl::create_thread_main_func(std::move(func), _event_ptr, _thread_storage_ptr))
 {
     // schedule the thread execution
     co::impl::get_scheduler().ready(_thread_func._coroutine);
+}
+
+thread::~thread()
+{
+    // If _event_ptr == null, then the thread object has been already moved away.
+    if (_event_ptr != nullptr) {
+        CO_CHECK(_detached || is_joined())
+            << "Undetached thread should be joined before being destructed. Thread name = "
+            << _thread_storage_ptr->name << " id = " << _thread_storage_ptr->id;
+    }
 }
 
 co::func<void> thread::join()
@@ -58,6 +67,7 @@ co::func<void> thread::join()
 
 co::func<co::result<void>> thread::join(co::until until)
 {
+    // TODO: event is one off mechanism, probably we want to call thread::join several times.
     co_return co_await _event_ptr->wait(until);
 }
 

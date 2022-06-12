@@ -115,7 +115,7 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives][stress]")
                         break;
                     REQUIRE(result.is_ok());
                     std::string local_copy = result.unwrap();
-                    assert(local_copy.size() > 0);
+                    CO_CHECK(local_copy.size() > 0);
                     reciever_counter.fetch_add(1, std::memory_order::release);
                 }
             });
@@ -136,7 +136,7 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives][stress]")
                             if (result == co::closed)
                                 break;
                             std::string local_copy = result.unwrap();
-                            assert(local_copy.size() > 0);
+                            CO_CHECK(local_copy.size() > 0);
                             reciever_counter.fetch_add(1, std::memory_order::release);
                         }
                     });
@@ -153,7 +153,7 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives][stress]")
                 for (int i = 0; i < n_elements / (2 * n_threads); i++)
                 {
                     co::result<void> result = ch.blocking_push(std::to_string(i));
-                    assert(result.is_ok());
+                    CO_CHECK(result.is_ok());
                 }
             });
         sender_threads.push_back(std::move(th));
@@ -170,7 +170,7 @@ TEST_CASE("ts::channel basic stress test", "[ts][primitives][stress]")
                         for (int i = 0; i < n_elements / (2 * n_threads); i++)
                         {
                             co::result<void> result = co_await ch.push(std::to_string(i));
-                            assert(result.is_ok());
+                            CO_CHECK(result.is_ok());
                         }
                     });
             });

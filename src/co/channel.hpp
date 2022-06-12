@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include <boost/circular_buffer.hpp>
+#include <co/check.hpp>
 #include <co/impl/waiting_queue.hpp>
 #include <co/status_codes.hpp>
 #include <co/until.hpp>
@@ -124,8 +125,8 @@ public:
 private:
     void check_shared_state() const
     {
-        if (_state == nullptr)
-            throw std::runtime_error("channel shared state is nullptr");
+        CO_CHECK(_state != nullptr)
+                << "Propbably you are trying to use the channel after a move.";
     }
 
 private:
@@ -169,7 +170,7 @@ co::func<co::result<void>> channel_base<T, ThreadSafe>::push(T2&& t,
     if (_state->_closed)
         co_return co::err(co::closed);
 
-    assert(!_state->_queue.full());
+    CO_DCHECK(!_state->_queue.full());
     _state->_queue.push_back(std::forward<T2>(t));
     _state->_consumer_waiting_queue.notify_one();
     co_return co::ok();
@@ -213,7 +214,7 @@ co::result<void> channel_base<T, ThreadSafe>::blocking_push(
     if (_state->_closed)
         return co::err(co::closed);
 
-    assert(!_state->_queue.full());
+    CO_DCHECK(!_state->_queue.full());
     _state->_queue.push_back(std::forward<T2>(t));
     _state->_consumer_waiting_queue.notify_one();
     return co::ok();
@@ -255,7 +256,7 @@ co::func<co::result<T>> channel_base<T, ThreadSafe>::pop(co::until until)
     if (_state->_closed && _state->_queue.empty())
         co_return co::err(co::closed);
 
-    assert(!_state->_queue.empty());
+    CO_DCHECK(!_state->_queue.empty());
     result<T> res = co::ok(std::move(_state->_queue.front()));
     _state->_queue.pop_front();
     _state->_producer_waiting_queue.notify_one();
@@ -296,7 +297,7 @@ co::result<T> channel_base<T, ThreadSafe>::blocking_pop(std::chrono::duration<Re
     if (_state->_closed && _state->_queue.empty())
         return co::err(co::closed);
 
-    assert(!_state->_queue.empty());
+    CO_DCHECK(!_state->_queue.empty());
     result<T> res = co::ok(std::move(_state->_queue.front()));
     _state->_queue.pop_front();
     _state->_producer_waiting_queue.notify_one();

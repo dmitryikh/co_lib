@@ -33,10 +33,10 @@ public:
     // This will be called inside the co::thread's std::thread.
     static void async_callback(uv_async_t* handle)
     {
-        assert(handle->data != nullptr);
+        CO_DCHECK(handle->data != nullptr);
         async_signal& self = *static_cast<async_signal*>(handle->data);
-        assert(self.data != nullptr);
-        assert(self.callback != nullptr);
+        CO_DCHECK(self.data != nullptr);
+        CO_DCHECK(self.callback != nullptr);
         self.callback(self.data);
     }
 

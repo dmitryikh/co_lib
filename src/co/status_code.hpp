@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <concepts>
 #include <cstdint>
 #include <type_traits>
+#include <co/check.hpp>
 
 namespace co
 {
@@ -53,7 +53,7 @@ public:
         : _category(category)
         , _code(static_cast<int>(code))
     {
-        assert(category != nullptr);
+        CO_DCHECK(category != nullptr);
     }
 
     status_code& operator=(const status_code&) = default;
@@ -100,6 +100,11 @@ public:
     [[nodiscard]] const char* message() const
     {
         return _category->message(_code);
+    }
+
+    [[nodiscard]] int code() const
+    {
+        return _code;
     }
 
 private:

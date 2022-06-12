@@ -1,6 +1,7 @@
 #pragma once
 
 #include <variant>
+#include <co/check.hpp>
 #include <co/exception.hpp>
 #include <co/status_code.hpp>
 
@@ -30,12 +31,12 @@ struct success_type<void>
 ///
 /// \code
 ///     co::result<int> res = co::ok(3);
-///     assert(res.is_ok());
+///     CO_CHECK(res.is_ok());
 ///     int i = res.unwrap();
 ///
 ///     res = co::err(co::timeout);
-///     assert(res.is_err());
-///     assert(res == co::timeout);  // sugar on (res.is_err() && res.err == co::timeout)
+///     CO_CHECK(res.is_err());
+///     CO_CHECK(res == co::timeout);  // sugar on (res.is_err() && res.err == co::timeout)
 /// \endcode
 ///
 template <typename T>

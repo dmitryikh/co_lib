@@ -37,7 +37,7 @@ public:
         case net_code::other_net:
             return "other net";
         }
-        assert(false);
+        CO_DCHECK(false);
         return "undefined";
     }
 };

@@ -45,7 +45,7 @@ public:
         case my_code::other:
             return "other";
         }
-        assert(false);
+        CO_CHECK(false);
         return "undefined";
     }
 };
@@ -76,7 +76,7 @@ public:
         case their_code::other:
             return "other t";
         }
-        assert(false);
+        CO_CHECK(false);
         return "undefined";
     }
 };

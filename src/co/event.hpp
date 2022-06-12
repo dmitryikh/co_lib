@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <mutex>
 
+#include <co/check.hpp>
 #include <co/impl/thread_storage.hpp>
 #include <co/result.hpp>
 #include <co/status_code.hpp>
@@ -31,6 +32,17 @@ enum class event_status
     timeout
 };
 
+inline std::string_view event_status_to_string(event_status status) {
+    switch(status) {
+        case event_status::init: return "init";
+        case event_status::waiting: return "waiting";
+        case event_status::ok: return "ok";
+        case event_status::cancel: return "cancel";
+        case event_status::timeout: return "timeout";
+    }
+    return "unknown";
+}
+
 enum class waker_type
 {
     not_set,
@@ -53,10 +65,8 @@ public:
         : _thread_storage(get_this_thread_storage_ptr())
         , _event(_event)
     {
-        // we can't run async code outside of co::thread. Then _thread_storage should be
-        // defined in any point of time
-        assert(_thread_storage != nullptr);
-        assert(_event._waker_type == waker_type::not_set);
+        CO_CHECK(_thread_storage != nullptr) << "The async code can't be run outside of co::loop";
+        CO_DCHECK(_event._waker_type == waker_type::not_set);
     }
 
     event_awaiter& operator=(const event_awaiter&) = delete;
@@ -82,14 +92,16 @@ public:
         }
 
         // _event._status has been already changed from init to ok, let's resume the current coroutine
-        assert(_event._status.load(std::memory_order::acquire) == event_status::ok);
+        CO_DCHECK(_event._status.load(std::memory_order::acquire) == event_status::ok)
+            << "Unexpected event_status = "
+            << event_status_to_string(_event._status.load(std::memory_order::acquire));
         return false;
     }
 
     void await_resume()
     {
         event_status status = _event._status.load(ThreadSafe ? std::memory_order::acquire : std::memory_order::relaxed);
-        assert(status == event_status::ok);
+        CO_DCHECK(status == event_status::ok);
 
         current_thread_on_resume(_thread_storage);
 
@@ -99,12 +111,13 @@ public:
         case event_status::waiting:
         case event_status::cancel:
         case event_status::timeout:
-            assert(false);
-            throw std::logic_error("unexpected status in event_awaiter::await_resume()");
+            // Unexpected status in event_awaiter::await_resume().
+            CO_CHECK(false) << "Unexpected event_status = " << event_status_to_string(status);
         case event_status::ok:
             return;
         }
-        assert(false);  // unreachable
+        // unreachable
+        return;
     }
 
 private:
@@ -122,11 +135,9 @@ class interruptible_event_awaiter
         , _event(event)
         , _milliseconds_opt(std::move(milliseconds_opt))
     {
-        // we can't run async code outside of co::thread. Then _thread_storage should be
-        // defined in any point of time
-        assert(_thread_storage != nullptr);
-        assert(_event._waker_type == waker_type::not_set);
-        assert(_event._status.load(std::memory_order::relaxed) != event_status::waiting);
+        CO_CHECK(_thread_storage != nullptr) << "The async code can't be run outside of co::loop";
+        CO_DCHECK(_event._waker_type == waker_type::not_set);
+        CO_DCHECK(_event._status.load(std::memory_order::relaxed) != event_status::waiting);
 
         // Process timeout earlier
         if (_milliseconds_opt.has_value() && _milliseconds_opt.value() <= 0)
@@ -155,7 +166,7 @@ public:
 
     bool await_suspend(std::coroutine_handle<> awaiting_coroutine) noexcept
     {
-        assert(_event._status.load(std::memory_order_relaxed) != event_status::waiting);
+        CO_DCHECK(_event._status.load(std::memory_order_relaxed) != event_status::waiting);
 
         // transition init -> waiting
         current_thread_on_suspend(awaiting_coroutine);
@@ -175,7 +186,7 @@ public:
     result<void> await_resume()
     {
         event_status status = _event._status.load(ThreadSafe ? std::memory_order::acquire : std::memory_order::relaxed);
-        assert(status > event_status::waiting);
+        CO_DCHECK(status > event_status::waiting);
 
         current_thread_on_resume(_thread_storage);
 
@@ -186,8 +197,7 @@ public:
         {
         case event_status::init:
         case event_status::waiting:
-            assert(false);
-            throw std::logic_error("unexpected status in interruptible_event_awaiter::await_resume()");
+            CO_CHECK(false) << "Unexpected event_status = " << event_status_to_string(status);
         case event_status::ok:
             return co::ok();
         case event_status::cancel:
@@ -195,7 +205,8 @@ public:
         case event_status::timeout:
             return co::err(co::timeout);
         }
-        assert(false);  // unreachable
+        // unreachable
+        return co::ok();
     }
 
 private:
@@ -210,8 +221,8 @@ private:
             }
             if (_event.advance_status(event_status::waiting, event_status::cancel))
             {
-                assert(_event._waker_type == waker_type::co_thread);
-                assert(_event._waker_data != nullptr);
+                CO_DCHECK(_event._waker_type == waker_type::co_thread);
+                CO_DCHECK(_event._waker_data != nullptr);
                 wake_thread(static_cast<thread_storage*>(_event._waker_data));
             }
         };
@@ -219,7 +230,7 @@ private:
 
     static void on_timer(void* awaiter_ptr)
     {
-        assert(awaiter_ptr != nullptr);
+        CO_DCHECK(awaiter_ptr != nullptr);
 
         auto& awaiter = *static_cast<interruptible_event_awaiter*>(awaiter_ptr);
         event_base<ThreadSafe>& event = awaiter._event;
@@ -227,13 +238,13 @@ private:
         {
             // Called before being waited. Changing the state is enough.
             // It's harmless but shoudn't happen.
-            assert(false);
+            CO_DCHECK(false);
             return;
         }
         if (event.advance_status(event_status::waiting, event_status::timeout))
         {
-            assert(event._waker_type == waker_type::co_thread);
-            assert(event._waker_data != nullptr);
+            CO_DCHECK(event._waker_type == waker_type::co_thread);
+            CO_DCHECK(event._waker_data != nullptr);
             wake_thread(static_cast<thread_storage*>(event._waker_data));
         }
     }
@@ -275,9 +286,8 @@ public:
     /// \return void
     [[nodiscard("co_await me")]] impl::event_awaiter<ThreadSafe> wait()
     {
-        if (_status.load(std::memory_order_relaxed) == impl::event_status::waiting)
-            throw std::logic_error("event already waiting");
-
+        // Event already waiting.
+        CO_CHECK(_status.load(std::memory_order_relaxed) != impl::event_status::waiting);
         return impl::event_awaiter<ThreadSafe>(*this);
     }
 
@@ -297,9 +307,8 @@ public:
     /// \return void
     [[nodiscard("co_await me")]] impl::interruptible_event_awaiter<ThreadSafe> wait(const co::until& until)
     {
-        if (_status == impl::event_status::waiting)
-            throw std::logic_error("event already waiting");
-
+        CO_CHECK(_status.load(std::memory_order_relaxed) != impl::event_status::waiting)
+            << "Event has been already waited.";
         return impl::interruptible_event_awaiter<ThreadSafe>(*this, until);
     }
 
@@ -352,7 +361,7 @@ bool event_base<ThreadSafe>::notify() noexcept
 
     if (advance_status(event_status::waiting, event_status::ok))
     {
-        assert(_waker_data != nullptr);
+        CO_DCHECK(_waker_data != nullptr);
         switch (_waker_type)
         {
         case impl::waker_type::co_thread: {
@@ -367,13 +376,13 @@ bool event_base<ThreadSafe>::notify() noexcept
             break;
         }
         default: {
-            assert(false);
+            CO_DCHECK(false);
         }
         }
         return true;
     }
     // The event has been already notified.
-    assert(_status.load(std::memory_order::acquire) > event_status::waiting);
+    CO_DCHECK(_status.load(std::memory_order::acquire) > event_status::waiting);
     return false;
 }
 
@@ -383,8 +392,7 @@ void event_base<ThreadSafe>::blocking_wait() requires(ThreadSafe)
     using ::co::impl::event_status;
 
     event_status status = _status.load(std::memory_order_relaxed);
-    if (status == event_status::waiting)
-        throw std::logic_error("event already waiting");
+    CO_CHECK(status != event_status::waiting) << "Event has been already waited.";
 
     if (status == event_status::ok)
         return;
@@ -398,7 +406,7 @@ void event_base<ThreadSafe>::blocking_wait() requires(ThreadSafe)
         std::unique_lock lk(data._mutex);
         data._cv.wait(lk, [&data] { return data._notified; });
     }
-    assert(_status.load(std::memory_order::acquire) > event_status::waiting);
+    CO_DCHECK(_status.load(std::memory_order::acquire) > event_status::waiting);
 }
 
 template <bool ThreadSafe>
@@ -408,8 +416,7 @@ result<void> event_base<ThreadSafe>::blocking_wait(std::chrono::duration<Rep, Pe
     using ::co::impl::event_status;
 
     event_status status = _status.load(std::memory_order_relaxed);
-    if (status == event_status::waiting)
-        throw std::logic_error("event already waiting");
+    CO_CHECK(status != event_status::waiting) << "Event has been already waited.";
 
     if (status < event_status::waiting)
     {
@@ -429,14 +436,13 @@ result<void> event_base<ThreadSafe>::blocking_wait(std::chrono::duration<Rep, Pe
         }
         status = _status.load(std::memory_order::acquire);
     }
-    assert(status > event_status::waiting);
+    CO_DCHECK(status > event_status::waiting);
 
     switch (status)
     {
     case event_status::init:
     case event_status::waiting:
-        assert(false);
-        throw std::logic_error("unexpected status in interruptible_event_awaiter::await_resume()");
+        CO_CHECK(false) << "Unexpected event_status = " << event_status_to_string(status);
     case event_status::ok:
         return co::ok();
     case event_status::cancel:
@@ -444,7 +450,8 @@ result<void> event_base<ThreadSafe>::blocking_wait(std::chrono::duration<Rep, Pe
     case event_status::timeout:
         return co::err(co::timeout);
     }
-    assert(false);  // unreachable
+    // unreachable
+    return co::ok();
 }
 
 /// \brief is a interruptable synchronisation primitive for one time notification
@@ -463,7 +470,7 @@ result<void> event_base<ThreadSafe>::blocking_wait(std::chrono::duration<Rep, Pe
 ///          std::cout << "timeout\n";
 ///     else
 ///     {
-///         assert(res.is_ok());
+///         CO_CHECK(res.is_ok());
 ///         std::cout << "successfully notified\n";
 ///     }
 /// \endcode

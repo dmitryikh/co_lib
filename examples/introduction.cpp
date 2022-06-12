@@ -46,13 +46,13 @@ int main()
     // co::result is used to represent co::func result that can be return value
     // or error object describing the error
     co::result<int> res = co::ok(3);  // put success value
-    assert(res.is_ok());
+    CO_CHECK(res.is_ok());
     int i = res.unwrap();  // get the value or throw co::exception in case of holding an error
 
     res = co::err(co::timeout);  // std::error_code is used as error in co::result
-    assert(res.is_err());
-    assert(res.err() == co::timeout);
-    assert(res == co::timeout);  // sugar on (res.is_err() && res.err == co::timeout)
+    CO_CHECK(res.is_err());
+    CO_CHECK(res.err() == co::timeout);
+    CO_CHECK(res == co::timeout);  // sugar on (res.is_err() && res.err == co::timeout)
     res = co::err(co::cancel,
                   "func is cancelled");  // additional description as a not owned char* can be provided
 

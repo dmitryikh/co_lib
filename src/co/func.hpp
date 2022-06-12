@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cassert>
 #include <type_traits>
+#include <co/check.hpp>
 #include <co/impl/shared_state.hpp>
 #include <co/result.hpp>
 #include <co/std.hpp>
@@ -39,7 +39,7 @@ public:
     {
         // NOTE: it's not expected to be resumed because
         // symmetric_transfer_awaiter should be used in final_suspend
-        assert(false);
+        CO_DCHECK(false);
     }
 
 private:
@@ -178,7 +178,7 @@ public:
         if (!_coroutine)
             return;
 
-        assert(_coroutine.done());
+        CO_DCHECK(_coroutine.done());
         _coroutine.destroy();
     }
 

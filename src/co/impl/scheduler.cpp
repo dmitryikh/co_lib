@@ -1,4 +1,4 @@
-#include <cassert>
+#include <co/check.hpp>
 #include <co/impl/scheduler.hpp>
 
 namespace co::impl
@@ -33,7 +33,7 @@ void scheduler::run()
 
 void scheduler::ready(scheduler::coroutine_handle handle)
 {
-    assert(handle);
+    CO_DCHECK(handle);
     _ready.push(handle);
 }
 

@@ -41,8 +41,7 @@ public:
 
     void set_exception(std::exception_ptr exc_ptr)
     {
-        if (base::is_done())
-            throw co::exception(co::other, "promise already set");
+        CO_CHECK(!base::is_done()) << "promise already set";
 
         base::set_exception(std::move(exc_ptr));
         _cv.notify_all();
@@ -51,8 +50,7 @@ public:
     template <typename... Args>
     void set_value(Args&&... args)
     {
-        if (base::is_done())
-            throw co::exception(co::other, "promise already set");
+        CO_CHECK(!base::is_done()) << "promise already set";
 
         base::set_value(std::forward<Args>(args)...);
         _cv.notify_all();
@@ -115,21 +113,14 @@ public:
 
     co::func<T> get()
     {
-        check_shared_state();
+        CO_CHECK(valid()) << "future is uninitialized";
         co_return co_await _shared_state->get();
     }
 
     co::func<co::result<T>> get(co::until until)
     {
-        check_shared_state();
+        CO_CHECK(valid()) << "future is uninitialized";
         co_return co_await _shared_state->get(until);
-    }
-
-private:
-    void check_shared_state() const noexcept(false)
-    {
-        if (!_shared_state)
-            throw co::exception(co::broken, "future is uninitialized");
     }
 
 private:
@@ -149,36 +140,34 @@ public:
     promise(promise&&) noexcept = default;
     promise& operator=(promise&&) noexcept = default;
 
+    [[nodiscard]] bool valid() const noexcept
+    {
+        return _shared_state != nullptr;
+    }
+
     future<T> get_future() const
     {
-        check_shared_state();
+        CO_CHECK(valid()) << "promise is uninitialized";
         return future<T>{ _shared_state };
     }
 
     void set_exception(std::exception_ptr exc_ptr)
     {
-        check_shared_state();
+        CO_CHECK(valid()) << "promise is uninitialized";
         _shared_state->set_exception(std::move(exc_ptr));
     }
 
     template <typename... Args>
     void set_value(Args&&... args) requires(std::is_constructible_v<T, Args...>)
     {
-        check_shared_state();
+        CO_CHECK(valid()) << "promise is uninitialized";
         _shared_state->set_value(std::forward<Args>(args)...);
     }
 
     ~promise()
     {
-        if (_shared_state)
+        if (valid())
             _shared_state->promise_destroyed();
-    }
-
-private:
-    void check_shared_state() const noexcept(false)
-    {
-        if (!_shared_state)
-            throw co::exception(co::broken, "promise is uninitialized");
     }
 
 private:

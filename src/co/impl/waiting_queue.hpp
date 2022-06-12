@@ -62,7 +62,7 @@ public:
     template <typename Mutex>
     co::func<void> wait(std::unique_lock<Mutex>& lk)
     {
-        assert(lk.owns_lock());
+        CO_DCHECK(lk.owns_lock());
         waker<ThreadSafe> w;
         _wakers_list.push_back(w);
         lk.unlock();
@@ -88,7 +88,7 @@ public:
     co::func<co::result<void>> wait(std::unique_lock<Mutex>& lk,
                                     const co::until& until)
     {
-        assert(lk.owns_lock());
+        CO_DCHECK(lk.owns_lock());
         waker<ThreadSafe> w;
         _wakers_list.push_back(w);
         lk.unlock();
@@ -103,7 +103,7 @@ public:
     template <typename Mutex>
     void blocking_wait(std::unique_lock<Mutex>& lk)
     {
-        assert(lk.owns_lock());
+        CO_DCHECK(lk.owns_lock());
         waker<ThreadSafe> w;
         _wakers_list.push_back(w);
         lk.unlock();
@@ -117,7 +117,7 @@ public:
     co::result<void> blocking_wait(std::unique_lock<Mutex>& lk,
                                    std::chrono::duration<Rep, Period> timeout)
     {
-        assert(lk.owns_lock());
+        CO_DCHECK(lk.owns_lock());
         waker<ThreadSafe> w;
         _wakers_list.push_back(w);
         lk.unlock();
@@ -162,7 +162,7 @@ public:
 
     ~waiting_queue_base()
     {
-        assert(empty());
+        CO_DCHECK(empty());
     }
 
 private:

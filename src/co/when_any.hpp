@@ -34,7 +34,7 @@ co::func<std::tuple<T1, T2>> when_any(co::func<T1>&& f1, co::func<T2>&& f2, co::
     co_await th1.join();
     co_await th2.join();
 
-    assert(res1.has_value() && res2.has_value());
+    CO_DCHECK(res1.has_value() && res2.has_value());
 
     co_return { std::move(res1.value()), std::move(res2.value()) };
 }

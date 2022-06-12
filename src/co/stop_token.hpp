@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <co/check.hpp>
 #include <co/impl/intrusive_list.hpp>
 
 namespace co
@@ -28,13 +29,13 @@ class stop_state
 public:
     void register_callback(stop_callback_node& callback)
     {
-        assert(!callback.hook.is_linked());
+        CO_DCHECK(!callback.hook.is_linked());
         _callbacks.push_back(callback);
     }
 
     static void unregister_callback(stop_callback_node& callback)
     {
-        assert(callback.hook.is_linked());
+        CO_DCHECK(callback.hook.is_linked());
         callback.hook.unlink();
     }
 
@@ -51,14 +52,14 @@ public:
         }
     }
 
-    [[nodiscard]] bool stop_requested() const
+    [[nodiscard]] bool stop_requested() const noexcept
     {
         return _stop_requested;
     }
 
     ~stop_state()
     {
-        assert(_callbacks.empty());
+        CO_DCHECK(_callbacks.empty());
     }
 
 private:

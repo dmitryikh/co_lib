@@ -14,10 +14,16 @@ error_desc::error_desc(const co::exception& coexc)
     : error_desc(coexc.status(), coexc.what())
 {}
 
-std::ostream& operator<<(std::ostream& out, const exception& coexc)
+std::ostream& operator<<(std::ostream& out, const co::error_desc& desc)
 {
-    out << coexc.status().category_name() << "::" << coexc.status().message() << "(" << coexc.status().message() << ") "
-        << coexc.what();
+    out << desc.status().category_name() << "::" << desc.status().message() << "(" << desc.status().code() << ") "
+        << desc.what();
+    return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const co::exception& coexc)
+{
+    out << coexc.err();
     return out;
 }
 

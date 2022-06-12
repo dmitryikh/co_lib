@@ -26,7 +26,7 @@ namespace co
 ///         "producer");
 ///
 ///     co_await cv.wait([&]() { return ready; }, { 50ms }).unwrap();
-///     assert(data == "hello world");
+///     CO_CHECK(data == "hello world");
 ///     co_await th.join();
 /// \endcode
 class condition_variable

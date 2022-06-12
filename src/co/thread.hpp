@@ -89,14 +89,13 @@ public:
 
     explicit thread(func<void>&& func, const std::string& thread_name = "");
 
-    ~thread()
-    {
-        if (!_detached && !is_joined())
-        {
-            // TODO: terminate is to offensive, diagnostic needed
-            // std::terminate();
-        }
-    }
+    ~thread();
+
+    thread(const thread&) = delete;
+    thread& operator=(const thread&) = delete;
+
+    thread(thread&&) = default;
+    thread& operator=(thread&&) = default;
 
     /// \brief detach the thread. The thread no more need to be joined before destruction
     void detach()

@@ -18,11 +18,11 @@ TEMPLATE_TEST_CASE("event usage", "[core]", co::event, co::ts_event)
                         co_await co::this_thread::sleep_for(2ms);
                         event.notify();
                         co_return;
-                    });
+                    }).detach();
             }
             for (auto& event : events)
             {
-                co::thread([&event]() -> co::func<void> { co_await event.wait(); });
+                co::thread([&event]() -> co::func<void> { co_await event.wait(); }).detach();
             }
             co_return;
         });
@@ -56,7 +56,7 @@ TEST_CASE("ts::event blocking usage", "[core][ts]")
                                     co_await co::this_thread::sleep_for(2ms);
                                     event.notify();
                                     co_return;
-                                });
+                                }).detach();
                         }
                         co_return;
                     });
@@ -102,7 +102,7 @@ TEST_CASE("ts::event usage", "[core][ts]")
                                 {
                                     co_await co::this_thread::sleep_for(2ms);
                                     event.notify();
-                                });
+                                }).detach();
                         }
                         co_return;
                     });
@@ -119,7 +119,7 @@ TEST_CASE("ts::event usage", "[core][ts]")
                     {
                         co_await event.wait();
                         events_counter++;
-                    });
+                    }).detach();
             }
             co_return;
         });

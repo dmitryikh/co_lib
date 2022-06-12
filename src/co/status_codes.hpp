@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cassert>
+#include <co/check.hpp>
 #include <co/status_code.hpp>
 
 namespace co::impl
@@ -50,7 +50,7 @@ public:
         case core_codes::other:
             return "other";
         }
-        assert(false);
+        CO_DCHECK(false);
         return "undefined";
     }
 };

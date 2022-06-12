@@ -58,7 +58,7 @@ TEMPLATE_TEST_CASE("result construction", "[primitives]", int, no_copy_no_move, 
     {
         co::result<TestType> res = co::err(co::cancel);
         REQUIRE_THROWS(res.unwrap());
-        REQUIRE_NOTHROW(res.err());
+        REQUIRE(res.err() == co::cancel);
     }
 
     SECTION("Create with co::ok")
@@ -73,8 +73,7 @@ TEST_CASE("result args construction", "[primitives]")
 {
     const std::string msg = "my message";
     co::result<std::string_view> res = co::ok(msg);
-    REQUIRE_NOTHROW(res.unwrap());
-    REQUIRE_NOTHROW(res.unwrap() == "my message");
+    REQUIRE(res.unwrap() == "my message");
 }
 
 TEST_CASE("result unwrap", "[primitives]")
